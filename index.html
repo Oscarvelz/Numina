@@ -503,6 +503,7 @@
       .x-lab__cap dt { font-size: 12px; color: #e8b64c; }
       .x-lab__cap dd { margin: 0; }
       .x-lab--inline .x-lab__cap { display: none; }
+      .x-read .x-mg-big { display: block; font: 600 22px/1.25 var(--sans); }
       .x-lab__ok { min-height: var(--tap); padding: 0 18px; border-radius: 999px; background: var(--primary); color: var(--bg); font-weight: 600; }
       @media (max-width: 400px) { .x-key:nth-child(2) { display: none; } .x-lab__fold span:last-child { display: none; } }
       @media (min-width: 640px) { .x-lab .x-ctl { grid-template-columns: 1fr 1fr; } .x-lab .x-btns { grid-column: 1 / -1; } }
@@ -742,7 +743,8 @@
         .pnav { grid-row: 5; }
       }
     </style>
-  <link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-180.png"><meta name="theme-color" content="#0b1020"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"></head>
+  <link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-180.png"><meta name="theme-color" content="#0b1020"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+</head>
   <body>
     <!-- LOGIN -->
     <section id="login">
@@ -1442,7 +1444,7 @@
             (inline ? '<button type="button" class="x-lab__x glass press" aria-label="Open full screen" title="Full screen">⤢</button>'
               : '<button type="button" class="x-lab__x glass press" aria-label="Close scene">✕</button>') +
             '<p class="x-read x-lab__read glass" aria-live="polite"></p>' +
-            (sc.gallery ? '<aside class="x-lab__cap glass" aria-label="About this graph"><dl>' + [["What you’re seeing", sc.see], ["Why this graph works", sc.why], ["Where it’s useful", sc.use]].map(function (r) {
+            (sc.gallery || sc.warm ? '<aside class="x-lab__cap glass" aria-label="About this ' + (sc.warm ? "picture" : "graph") + '"><dl>' + [["What you’re seeing", sc.see], [sc.warm ? "Why this picture works" : "Why this graph works", sc.why], ["Where it’s useful", sc.use]].map(function (r) {
               return '<div><dt class="eyebrow">' + r[0] + "</dt><dd>" + esc(r[1]) + "</dd></div>";
             }).join("") + "</dl></aside>" : "") +
             '<section class="x-lab__panel glass" aria-label="Scene controls"><div class="x-lab__dock"><div class="x-lab__keys"></div>' +
@@ -3757,6 +3759,265 @@
               env.spin = false; env.view(0, 0.22); build(); frame(); place();
             }
           },
+          /* ============ WARM-UP LAB: very basic, colorful, touchable ============ */
+          {
+            id: "mgarden", name: "Multiplication Garden", day: "m1", n: "01", level: "warmlab", warm: true, hue: ["#ff4d6d", "#ffd23f"],
+            kicker: "WARM-UP · MULTIPLICATION AS ROWS × COLUMNS",
+            idea: "Plant rows of glowing cubes and watch 4 × 6 become a rectangle you can count.",
+            cap: "A grid of glowing cubes: each row has its own color. Set the rows and how many go in each row, and the total is rows × columns. Turn it to see 6 × 4 is the same 24 cubes. Count by rows lights each row in turn while the count jumps 6, 12, 18, 24. Tap a cube to light up its row and column.",
+            see: "Every cube is one thing. Rows stack equal groups, so rows × columns counts them all at once.",
+            why: "Multiplication is “equal groups”; the rectangle makes the groups visible, and turning it shows 4 × 6 and 6 × 4 are the same amount. It hides that multiplication also works for fractions and decimals, which later scenes show as area.",
+            use: "Egg cartons (2 × 6), parking lots, seats in a theater, tiles on a floor, and quickly estimating totals without counting one by one.",
+            build: function (box, ctl, env) {
+              var T = env.THREE, M = 10, root = new T.Group(), grid = new T.Group(); env.scene.add(root); root.add(grid);
+              var PAL = [0xff4d6d, 0xff8c42, 0xffd23f, 0x7ae582, 0x3ddbd9, 0x4ea8ff, 0x8f7bff, 0xd36bff, 0xff6fb5, 0xb8f25c];
+              var st = { r: 4, c: 6, turn: false, count: -1, ct: 0 };
+              galLights(env);
+              /* a rounded cube: an extruded rounded square with a soft bevel, 0.8 on each side */
+              var sh = new T.Shape(), a = 0.3, q = 0.1;
+              sh.moveTo(-a + q, -a); sh.lineTo(a - q, -a); sh.quadraticCurveTo(a, -a, a, -a + q); sh.lineTo(a, a - q); sh.quadraticCurveTo(a, a, a - q, a);
+              sh.lineTo(-a + q, a); sh.quadraticCurveTo(-a, a, -a, a - q); sh.lineTo(-a, -a + q); sh.quadraticCurveTo(-a, -a, -a + q, -a);
+              var geo = new T.ExtrudeGeometry(sh, { depth: 0.6, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 3, curveSegments: 4 }); geo.center();
+              /* the soft ground */
+              var ground = new T.Mesh(new T.CircleGeometry(1, 64), new T.MeshStandardMaterial({ color: 0x1e2a52, roughness: 0.95, transparent: true, opacity: 0.85 }));
+              ground.rotation.x = -Math.PI / 2; ground.position.y = -0.01; root.add(ground);
+              var cubes = [];
+              for (var r = 0; r < M; r++) for (var c = 0; c < M; c++) {
+                var m = new T.Mesh(geo, new T.MeshStandardMaterial({ color: PAL[r], emissive: PAL[r], emissiveIntensity: 0.25, roughness: 0.35, metalness: 0.05 }));
+                m.userData = { r: r, c: c, s: 0, v: 0, hl: 0, lit: 0 }; m.scale.setScalar(0.001); m.visible = false; grid.add(m); cubes.push(m);
+              }
+              var tag = labSprite(T, "#ffffff", 0.6).text(""); tag.visible = false; grid.add(tag);
+              function on(u) { return u.r < st.r && u.c < st.c; }
+              function total() { return st.r * st.c; }
+              function seq(k) { var o = []; for (var i = 1; i <= k; i++) o.push(i * st.c); return o.join(", "); }
+              function paint() {
+                var R = st.turn ? st.c : st.r, C = st.turn ? st.r : st.c, big = R + " row" + (R === 1 ? "" : "s") + " × " + C + " in each row = " + total(), sub;
+                if (st.count >= 0) sub = "Count by rows: " + seq(Math.min(st.count + 1, st.r)) + (st.count >= st.r - 1 ? " ✓" : "");
+                else if (st.turn) sub = "Same " + total() + " cubes: order doesn't matter.";
+                else sub = "Tap a cube to light up its row and column.";
+                env.read.innerHTML = '<b class="x-mg-big">' + esc(big) + "</b>" + esc(sub);
+              }
+              function fit() {
+                var W = Math.hypot(st.r, st.c) + 1.2;
+                ground.scale.setScalar(W * 0.62 + 0.6);
+                env.frame(0.3, Math.max(5, W * 0.95), 1.5);
+              }
+              function stopCount() { st.count = -1; tag.visible = false; cubes.forEach(function (m) { m.userData.lit = 0; }); if (cntB.on) { cntB.on = false; cntBtn.setAttribute("aria-pressed", "false"); } }
+              function refresh() { stopCount(); fit(); paint(); }
+              /* tap (not drag) a cube: light its whole row and column */
+              var ray = new T.Raycaster(), ndc = new T.Vector2(), down = null;
+              env.on(box, "pointerdown", function (e) { down = { x: e.clientX, y: e.clientY, id: e.pointerId }; }, true);
+              env.on(box, "pointerup", function (e) {
+                if (!down || down.id !== e.pointerId || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 8) { down = null; return; }
+                down = null;
+                var b = box.getBoundingClientRect(); ndc.set(((e.clientX - b.left) / b.width) * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1); ray.setFromCamera(ndc, env.camera);
+                var hit = ray.intersectObjects(cubes.filter(function (m) { return on(m.userData); }), false)[0];
+                if (!hit) return;
+                var u = hit.object.userData;
+                cubes.forEach(function (m) { if (m.userData.r === u.r || m.userData.c === u.c) m.userData.hl = 1.4; });
+                hit.object.userData.v += 4;
+              }, true);
+              env.tick(function (dt, t) {
+                var R = st.r, C = st.c;
+                if (st.count >= 0 && st.count < R) {
+                  st.ct += dt;
+                  if (st.ct >= 0.6) { st.ct = 0; if (st.count < R - 1) { st.count++; paint(); } else { st.count = R; } }
+                  var row = Math.min(st.count, R - 1);
+                  tag.text(String((row + 1) * C)); tag.visible = true; tag.position.set((C - 1) / 2 + 1.1, 0.7, row - (R - 1) / 2);
+                }
+                cubes.forEach(function (m) {
+                  var u = m.userData, ts = on(u) ? 1 : 0;
+                  /* a small springy pop in and out */
+                  u.v += (ts - u.s) * 140 * dt; u.v *= Math.exp(-11 * dt); u.s = Math.max(0, u.s + u.v * dt);
+                  if (!ts && u.s < 0.02) { u.s = 0; u.v = 0; m.visible = false; return; }
+                  m.visible = true;
+                  if (st.count >= 0) u.lit += ((u.r <= Math.min(st.count, R - 1) ? 1 : 0) - u.lit) * Math.min(1, dt * 8);
+                  u.hl = Math.max(0, u.hl - dt);
+                  var glow = Math.min(1, u.hl) + u.lit * 0.6, sc = Math.max(0.001, u.s) * (1 + 0.08 * Math.min(1, u.hl));
+                  m.material.emissiveIntensity = 0.22 + glow * 0.75 + 0.04 * Math.sin(t * 2 + u.r);
+                  m.scale.setScalar(sc);
+                  var px = u.c - (C - 1) / 2, pz = u.r - (R - 1) / 2;
+                  m.position.x += (px - m.position.x) * Math.min(1, dt * 10); m.position.z += (pz - m.position.z) * Math.min(1, dt * 10);
+                  m.position.y = 0.4 * sc + (st.count >= 0 && u.r === st.count ? 0.15 : 0);
+                });
+                var goal = st.turn ? -Math.PI / 2 : 0; grid.rotation.y += (goal - grid.rotation.y) * Math.min(1, dt * 4);
+              });
+              env.slider("Rows", 1, M, 1, st.r, String, function (v) { st.r = v; refresh(); });
+              env.slider("Columns", 1, M, 1, st.c, String, function (v) { st.c = v; refresh(); });
+              var turnB = { t: "Turn it", on: false, fn: function (v) { st.turn = v; paint(); } };
+              var cntB = { t: "Count by rows", on: false, fn: function (v) {
+                if (!v) { stopCount(); paint(); return; }
+                cubes.forEach(function (m) { m.userData.lit = 0; }); st.count = 0; st.ct = 0; paint();
+              } };
+              env.buttons([turnB, cntB]);
+              var turnBtn = ctl.lastElementChild.children[0], cntBtn = ctl.lastElementChild.children[1];
+              env.keys.push({ t: "Turn it", label: "Turn the rectangle a quarter turn", fn: function () { turnBtn.click(); } });
+              env.keys.push({ t: "Count", label: "Count by rows", fn: function () { cntBtn.click(); } });
+              /* start with the cubes placed so they only pop, not slide */
+              cubes.forEach(function (m) { m.position.set(m.userData.c - (st.c - 1) / 2, 0, m.userData.r - (st.r - 1) / 2); });
+              env.spin = false; env.view(0.35, 0.82); fit(); paint();
+            }
+          },
+          {
+            id: "fairshare", name: "Fair Share", day: "m2", n: "02", level: "warmlab", warm: true, hue: ["#3ddbd9", "#ff6f61"],
+            kicker: "WARM-UP · DIVISION AS SHARING",
+            idea: "Deal glowing marbles into bowls and see 24 ÷ 4 become 6 in each bowl.",
+            cap: "A pile of glowing marbles and a row of bowls. Set the total and the number of bowls, then Deal: marbles hop one at a time, round and round, so every bowl gets the same amount. Marbles that can't be shared evenly stay in the middle, glowing coral: the remainder. Group instead packs groups of that size. Show as share % labels each bowl with its part of the whole.",
+            see: "A total split into equal shares. Each bowl ends with the same amount; anything that can't be split evenly is the remainder.",
+            why: "Division answers “how many in each?” (sharing) or “how many groups?” (grouping); dealing one-by-one shows why both give the same number. It hides that the remainder can be cut into fractions, which the share % labels hint at.",
+            use: "Splitting a bill, dividing a recipe, sharing work hours, cost per person, unit price (total ÷ count), and seeing a share as a percent of the whole.",
+            build: function (box, ctl, env) {
+              var T = env.THREE, MAXN = 40, ROW = 10, GAP = 0.12, R0 = 0.13, PZ = -1.9, BZ = 0.7;
+              var root = new T.Group(); env.scene.add(root);
+              var MPAL = [0xff4d6d, 0xffd23f, 0x3ddbd9, 0x8f7bff, 0x7ae582, 0xff8c42, 0x4ea8ff, 0xd36bff, 0xff6fb5, 0xb8f25c];
+              var BPAL = [0x4ea8ff, 0xff8c42, 0x7ae582, 0xd36bff, 0xffd23f, 0x3ddbd9, 0xff6fb5, 0x8f7bff, 0xb8f25c, 0xff4d6d];
+              var CORAL = new T.Color(0xff6f61);
+              var st = { n: 24, b: 4, group: false, pct: false, dealing: false, done: false, k: 0, ct: 0, fin: 0 };
+              galLights(env);
+              var ground = new T.Mesh(new T.CircleGeometry(1, 64), new T.MeshStandardMaterial({ color: 0x1e2a52, roughness: 0.95, transparent: true, opacity: 0.85 }));
+              ground.rotation.x = -Math.PI / 2; ground.position.y = -0.01; root.add(ground);
+              /* bowls: a shallow lathed dish with a torus rim, each its own color */
+              var prof = [[0, 0.02], [0.3, 0.03], [0.48, 0.1], [0.58, 0.26]].map(function (p) { return new T.Vector2(p[0], p[1]); });
+              var dishG = new T.LatheGeometry(prof, 40), rimG = new T.TorusGeometry(0.58, 0.04, 10, 40);
+              var bowls = [];
+              for (var b = 0; b < MAXN; b++) {
+                var col = BPAL[b % BPAL.length], g = new T.Group();
+                var mat = new T.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.28, roughness: 0.4, metalness: 0.1, side: T.DoubleSide });
+                var rim = new T.Mesh(rimG, mat); rim.rotation.x = -Math.PI / 2; rim.position.y = 0.26;
+                g.add(new T.Mesh(dishG, mat), rim);
+                var lab = labSprite(T, "#" + col.toString(16).padStart(6, "0"), 0.28).text(""); lab.visible = false; g.add(lab);
+                g.userData = { s: 0, v: 0, lab: lab, x: 0, z: 0 }; g.visible = false; g.scale.setScalar(0.001); root.add(g); bowls.push(g);
+              }
+              /* marbles: glossy spheres */
+              var sphG = new T.SphereGeometry(R0, 24, 16), marbles = [];
+              var CAPS = [19, 12, 7, 2];
+              function pilePos(i) {
+                var L = 0, j = i; while (L < CAPS.length - 1 && j >= CAPS[L]) { j -= CAPS[L]; L++; }
+                var r = 0.145 * Math.sqrt(j + (L ? 0.5 : 0)), a = j * 2.39996 + L * 0.9;
+                return new T.Vector3(Math.cos(a) * r, R0 + L * 0.2, PZ + Math.sin(a) * r);
+              }
+              for (var i = 0; i < MAXN; i++) {
+                var c0 = new T.Color(MPAL[i % MPAL.length]);
+                var m = new T.Mesh(sphG, new T.MeshStandardMaterial({ color: c0.clone(), emissive: c0.clone(), emissiveIntensity: 0.18, roughness: 0.12, metalness: 0.15 }));
+                var p0 = pilePos(i); m.position.copy(p0);
+                m.userData = { base: c0, a: p0.clone(), to: p0.clone(), p: 1, w: 0, dur: 0.35, h: 0.8, s: 0, v: 0, left: false, cl: 0 };
+                m.visible = false; m.scale.setScalar(0.001); root.add(m); marbles.push(m);
+              }
+              /* the numbers */
+              function q() { return Math.floor(st.n / st.b); }
+              function rem() { return st.n - q() * st.b; }
+              function nBowls() { return st.group ? q() : st.b; }
+              function dealt() { return q() * st.b; }
+              function gcd(a, c) { return c ? gcd(c, a % c) : a; }
+              var VF = { "1/2": "½", "1/3": "⅓", "2/3": "⅔", "1/4": "¼", "3/4": "¾", "1/5": "⅕", "2/5": "⅖", "3/5": "⅗", "4/5": "⅘", "1/6": "⅙", "5/6": "⅚", "1/7": "⅐", "1/8": "⅛", "3/8": "⅜", "5/8": "⅝", "7/8": "⅞", "1/9": "⅑", "1/10": "⅒" };
+              function red(a, d) { var g = gcd(a, d) || 1; return a / g + "/" + d / g; }
+              function mixed(w, r, d) { var f = red(r, d); return (w ? String(w) : "") + (VF[f] || (w ? " " : "") + f); }
+              function pctOf(c) { var p = Math.round((c / st.n) * 1000) / 10; return red(c, st.n) + " = " + p + "%"; }
+              /* where the k-th dealt marble lands: bowl and slot */
+              function bowlOf(k) { return st.group ? Math.floor(k / st.b) : k % st.b; }
+              function slotOf(k) { return st.group ? k % st.b : Math.floor(k / st.b); }
+              function slotPos(bi, s) {
+                var L = Math.floor(s / 7), j = s % 7, u = bowls[bi].userData, a = (j - 1) * Math.PI / 3 + L * Math.PI / 6, r = j ? 0.27 : 0;
+                return new T.Vector3(u.x + Math.cos(a) * r, 0.03 + R0 + L * 0.21, u.z + Math.sin(a) * r);
+              }
+              function bowlCount(bi) {
+                var c = 0; for (var k = 0; k < st.k; k++) if (bowlOf(k) === bi) c++; return c;
+              }
+              function layout() {
+                var nb = Math.max(nBowls(), 1), rows = Math.ceil(nb / ROW), cols = Math.min(nb, ROW);
+                bowls.forEach(function (g, bi) {
+                  var row = Math.floor(bi / ROW), inRow = Math.min(ROW, nb - row * ROW);
+                  g.userData.x = (bi % ROW - (inRow - 1) / 2) * 1.3; g.userData.z = BZ + row * 1.5;
+                });
+                var zMin = PZ - 0.9, zMax = BZ + (rows - 1) * 1.5 + 0.7, W = Math.max(cols * 1.3, 3), D = zMax - zMin;
+                root.userData.cz = -(zMin + zMax) / 2;
+                ground.scale.set(W * 0.6 + 0.5, D * 0.6 + 0.4, 1); ground.position.z = (zMin + zMax) / 2;
+                env.frame(0.3, Math.max(5.2, Math.max(W, D * 1.3) * 0.95), 1.5);
+              }
+              function hop(m, to, delay, dur, h) {
+                var u = m.userData; u.a.copy(m.position); u.to.copy(to); u.p = 0; u.w = delay; u.dur = dur; u.h = h;
+              }
+              function gather(instant) {
+                st.dealing = false; st.done = false; st.k = 0; st.ct = 0; st.fin = 0;
+                marbles.forEach(function (m, i) {
+                  var u = m.userData, p = pilePos(i); u.left = false;
+                  if (instant || m.position.distanceTo(p) < 0.01) { m.position.copy(p); u.a.copy(p); u.to.copy(p); u.p = 1; }
+                  else hop(m, p, (MAXN - i) * 0.012, 0.4, 0.6);
+                });
+                layout(); paint();
+              }
+              function deal() {
+                if (st.dealing) return;
+                if (st.done || st.k) gather(true);
+                st.dealing = true; st.k = 0; st.ct = GAP; st.fin = 0; paint();
+              }
+              function launch(k) {
+                var i = st.n - 1 - k, bi = bowlOf(k);
+                hop(marbles[i], slotPos(bi, slotOf(k)), 0, 0.38, 0.9);
+              }
+              function paint() {
+                var N = st.n, B = st.b, Q = q(), Rr = rem(), big, sub;
+                if (st.done) {
+                  if (st.group) { big = N + " in groups of " + B + " → " + Q + " group" + (Q === 1 ? "" : "s") + (Rr ? ", " + Rr + " left over" : ""); sub = Rr ? "As a fraction: " + mixed(Q, Rr, B) + " groups" : "Same answer as " + N + " ÷ " + B + " = " + Q + ", different question: how many groups?"; }
+                  else if (Rr) { big = N + " ÷ " + B + " = " + Q + " each, " + Rr + " left over (remainder)"; sub = "As a fraction: " + mixed(Q, Rr, B) + " each"; }
+                  else { big = N + " ÷ " + B + " = " + Q + " in each bowl"; sub = "Every bowl got the same amount."; }
+                } else if (st.dealing) {
+                  if (st.group) { big = N + " in groups of " + B + ": " + st.k + " packed"; sub = Q ? "Filling group " + Math.min(Q, Math.floor(Math.max(st.k - 1, 0) / B) + 1) + " of " + Q : "Not enough for one group."; }
+                  else { big = N + " ÷ " + B + ": " + st.k + " dealt"; sub = Q ? "Round " + Math.max(1, Math.ceil(st.k / B)) + " of " + Q + " · " + Math.floor(st.k / B) + " in every bowl so far" : "Not enough for one each."; }
+                } else {
+                  big = st.group ? N + " marbles in groups of " + B : N + " marbles, " + B + " bowl" + (B === 1 ? "" : "s");
+                  sub = st.group ? "Tap Deal to pack them: how many groups?" : "Tap Deal to share them out: how many in each?";
+                }
+                env.read.innerHTML = '<b class="x-mg-big">' + esc(big) + "</b>" + esc(sub);
+              }
+              env.tick(function (dt, t) {
+                if (st.dealing) {
+                  var D = dealt();
+                  st.ct += dt;
+                  while (st.ct >= GAP && st.k < D) { st.ct -= GAP; launch(st.k); st.k++; paint(); }
+                  if (st.k >= D) { st.fin += dt; if (st.fin > 0.4) { st.dealing = false; st.done = true; marbles.forEach(function (m, i) { m.userData.left = i < rem(); }); paint(); } }
+                }
+                var nb = nBowls(), shown = st.group ? Math.min(nb, Math.ceil(st.k / st.b)) : nb;
+                root.position.z += ((root.userData.cz || 0) - root.position.z) * Math.min(1, dt * 5);
+                bowls.forEach(function (g, bi) {
+                  var u = g.userData, ts = bi < shown ? 1 : 0;
+                  u.v += (ts - u.s) * 140 * dt; u.v *= Math.exp(-11 * dt); u.s = Math.max(0, u.s + u.v * dt);
+                  if (!ts && u.s < 0.02) { u.s = 0; u.v = 0; g.visible = false; return; }
+                  g.visible = true; g.scale.setScalar(Math.max(0.001, u.s));
+                  g.position.x += (u.x - g.position.x) * Math.min(1, dt * 8); g.position.z += (u.z - g.position.z) * Math.min(1, dt * 8);
+                  var c = st.pct ? bowlCount(bi) : 0;
+                  u.lab.visible = c > 0;
+                  if (c) { u.lab.text(pctOf(c)); u.lab.position.set(0, 0.62 + Math.floor((c - 1) / 7) * 0.21 + (nb > 5 && bi % 2 ? 0.32 : 0), 0); }
+                });
+                marbles.forEach(function (m, i) {
+                  var u = m.userData, ts = i < st.n ? 1 : 0;
+                  u.v += (ts - u.s) * 140 * dt; u.v *= Math.exp(-11 * dt); u.s = Math.max(0, u.s + u.v * dt);
+                  if (!ts && u.s < 0.02) { u.s = 0; u.v = 0; m.visible = false; return; }
+                  m.visible = true; m.scale.setScalar(Math.max(0.001, u.s));
+                  if (u.p < 1) {
+                    u.w -= dt;
+                    if (u.w <= 0) { u.p = Math.min(1, u.p + dt / u.dur); m.position.lerpVectors(u.a, u.to, u.p); m.position.y += Math.sin(Math.PI * u.p) * u.h; }
+                  }
+                  u.cl += ((u.left ? 1 : 0) - u.cl) * Math.min(1, dt * 6);
+                  m.material.color.copy(u.base).lerp(CORAL, u.cl); m.material.emissive.copy(m.material.color);
+                  m.material.emissiveIntensity = 0.18 + u.cl * (0.55 + 0.25 * Math.sin(t * 4 + i));
+                });
+              });
+              env.slider("Total marbles", 1, MAXN, 1, st.n, String, function (v) { st.n = v; gather(false); });
+              env.slider("Bowls", 1, 10, 1, st.b, String, function (v) { st.b = v; gather(false); });
+              env.buttons([{ t: "Deal", fn: deal }, { t: "Reset", fn: function () { gather(false); } }]);
+              var actRow = ctl.lastElementChild;
+              env.buttons([
+                { t: "Group instead", on: false, fn: function (v) { st.group = v; gather(false); } },
+                { t: "Show as share %", on: false, fn: function (v) { st.pct = v; } }
+              ]);
+              var grpBtn = ctl.lastElementChild.children[0];
+              env.keys.push({ t: "Deal", label: "Deal the marbles into the bowls", fn: function () { actRow.children[0].click(); } });
+              env.keys.push({ t: "Reset", label: "Gather the marbles back to the pile", fn: function () { actRow.children[1].click(); } });
+              env.keys.push({ t: "Group", label: "Group instead of share", fn: function () { grpBtn.click(); } });
+              env.spin = false; env.view(0, 0.9); layout(); root.position.z = root.userData.cz; paint();
+            }
+          },
           /* ============ GRAPH GALLERY: showpiece, full-color graphs ============ */
           {
             id: "ciskyline", name: "Compound Interest Skyline", unit: "Growth & money", day: 18, level: "gallery", gallery: true, hue: ["#3fe6ff", "#ffc23a"],
@@ -4238,8 +4499,8 @@
           },
           lab: function () {
             var tile = function (s, soon) {
-              return '<button type="button" class="x-tile glass press" data-n="' + pad2(s.day) + '"' + (soon ? ' aria-disabled="true"' : ' data-scene="' + s.id + '"') + ' style="--h1:' + s.hue[0] + ";--h2:" + s.hue[1] + '">' +
-                '<span class="x-tile__glow" aria-hidden="true"></span><span class="eyebrow">' + (s.unit ? esc(s.unit) + " · " : "") + dayLabel(s.day) + " · " + esc(lessonOf(s.day).title) + "</span>" +
+              return '<button type="button" class="x-tile glass press" data-n="' + (s.n || pad2(s.day)) + '"' + (soon ? ' aria-disabled="true"' : ' data-scene="' + s.id + '"') + ' style="--h1:' + s.hue[0] + ";--h2:" + s.hue[1] + '">' +
+                '<span class="x-tile__glow" aria-hidden="true"></span><span class="eyebrow">' + (s.kicker ? esc(s.kicker) + "</span>" : "") + (s.kicker ? "" : (s.unit ? esc(s.unit) + " · " : "") + dayLabel(s.day) + " · " + esc(lessonOf(s.day).title) + "</span>") +
                 '<span class="x-tile__t">' + esc(s.name) + '</span><span class="x-tile__i">' + esc(s.idea) + "</span>" +
                 (soon ? '<span class="chip">Coming soon</span>' : "") + "</button>";
             };
@@ -4248,7 +4509,8 @@
               '<section class="empty glass"><div class="empty__ring">' + I.review.replace(/width="20" height="20"/, 'width="32" height="32"') + "</div>" +
               "<h3>New math scenes are arriving</h3><p>Interactive scenes for each lesson will appear here soon.</p></section>";
             var GALLERY_G = { v: "gallery", t: "Graph Gallery", s: "Growth & money · Functions & graphs · Proportional thinking" };
-            return '<div><h1 class="greet">The Lab</h1><p class="dim">See math move.</p></div>' + [GALLERY_G, WARM_G].concat(GROUPS).map(function (g) {
+            var WARMLAB_G = { v: "warmlab", t: "Warm-up Lab", s: "See the basics move: multiply, divide, compare." };
+            return '<div><h1 class="greet">The Lab</h1><p class="dim">See math move.</p></div>' + [WARMLAB_G, GALLERY_G, WARM_G].concat(GROUPS).map(function (g) {
               var items = all.filter(function (o) { return (o.s.level || lessonOf(o.s.day).level) === g.v; }).sort(function (a, b) { return String(a.s.day).localeCompare(String(b.s.day), undefined, { numeric: true }); });
               return items.length ? '<section aria-label="' + g.t + '"><div class="grpname"><h2 class="mark" style="--fs:18px">' + g.t + '</h2><span class="eyebrow">' + g.s + '</span></div><div class="x-gal">' +
                 items.map(function (o) { return tile(o.s, o.soon); }).join("") + "</div></section>" : "";
@@ -5396,5 +5658,6 @@
         if (Auth.user) showApp(); else showLogin();
       })();
     </script>
-  <script>if('serviceWorker' in navigator&&location.protocol==='https:'){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}</script></body>
+  <script>if('serviceWorker' in navigator&&location.protocol==='https:'){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}</script>
+</body>
 </html>
