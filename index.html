@@ -198,6 +198,12 @@
       .alert { min-height: 18px; margin: 8px 2px 0; font-size: 12.5px; color: #ff8d9b; }
       [data-theme="day"] .alert { color: #c02b3f; }
       .auth__foot { margin-top: 14px; text-align: center; font-size: 12px; color: var(--dim); }
+      .alert.is-info, [data-theme="day"] .alert.is-info { color: var(--text); }
+      .x-authalt { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px; margin-top: 4px; }
+      .x-link { min-height: var(--tap); padding: 0 4px; font-size: 13px; color: var(--primary); text-decoration: underline; text-underline-offset: 3px; }
+      .chip[data-state="live"] { color: var(--text); }
+      .chip[data-state="syncing"] svg { animation: pulse 1.4s var(--ease) infinite; }
+      .chip svg { width: 14px; height: 14px; }
 
       /* ============ APP FRAME ============ */
       #app { position: relative; z-index: 1; min-height: 100dvh; }
@@ -321,7 +327,7 @@
 
       /* ============ TABS / RAIL ============ */
       .tabbar { position: fixed; z-index: 40; left: 50%; transform: translateX(-50%); bottom: 14px; width: calc(100% - 28px); max-width: 26rem; display: flex; padding: 6px; border-radius: 999px; }
-      .tabbar button { flex: 1; min-height: var(--tap); border-radius: 999px; display: grid; justify-items: center; gap: 2px; padding: 5px 0; color: var(--dim); font-size: 10.5px; letter-spacing: 0.03em; }
+      .tabbar button { flex: 1; min-height: var(--tap); border-radius: 999px; display: grid; justify-items: center; gap: 2px; padding: 5px 0; color: var(--dim); font-size: 12px; letter-spacing: 0.02em; }
       .tabbar button[aria-current="page"] { color: var(--bg); background: var(--primary); box-shadow: 0 0 0 1px var(--primary), 0 6px 22px color-mix(in srgb, var(--primary) 55%, transparent); }
       @media (min-width: 768px) {
         .tabbar { left: 14px; top: 50%; bottom: auto; transform: translateY(-50%); width: 84px; max-width: none; flex-direction: column; border-radius: var(--r-xl); gap: 4px; }
@@ -329,8 +335,8 @@
         .wrap { padding: 22px 16px 60px; max-width: 46rem; margin-left: 112px; }
         .hd { padding-left: 112px; }
       }
-      .totop { position: fixed; z-index: 45; right: 16px; bottom: 76px; width: 36px; height: 36px; border-radius: 999px; display: grid; place-items: center; color: var(--text); background: var(--surface); border: 1px solid var(--border); box-shadow: var(--ring), var(--shadow); backdrop-filter: blur(14px); opacity: 0; transform: translateY(12px); pointer-events: none; transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease); }
-      .totop.is-on { opacity: 1; transform: none; pointer-events: auto; }
+      .totop { position: fixed; z-index: 45; right: 16px; bottom: 76px; width: 36px; height: 36px; border-radius: 999px; display: grid; place-items: center; color: var(--text); background: var(--surface); border: 1px solid var(--border); box-shadow: var(--ring), var(--shadow); backdrop-filter: blur(14px); opacity: 0; visibility: hidden; transform: translateY(12px); pointer-events: none; transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease), visibility 0s linear var(--dur); }
+      .totop.is-on { opacity: 1; visibility: visible; transform: none; pointer-events: auto; transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease), visibility 0s; }
       @media (min-width: 768px) { .totop { bottom: 20px; } }
 
       /* ============ LESSON PLAYER ============ */
@@ -563,7 +569,7 @@
       .x-tile::before { background: linear-gradient(160deg, color-mix(in srgb, var(--h1) 16%, transparent), transparent 70%); }
       .x-tile__glow { filter: none; opacity: 0.35; background: radial-gradient(circle, transparent 52%, color-mix(in srgb, var(--h1) 70%, transparent) 54%, transparent 57%); }
       .tabbar.glass { border-radius: 999px; }
-      .tabbar button { min-height: var(--tap); font-size: 11px; }
+      .tabbar button { min-height: var(--tap); font-size: 12px; }
       .tabbar button[aria-current="page"] { color: var(--text); background: color-mix(in srgb, var(--primary) 14%, transparent); box-shadow: inset 0 0 0 1.5px var(--primary); }
       .x-lab { background: var(--sky); }
       .x-lab__x, .x-lab__rc { z-index: 3; }
@@ -748,7 +754,7 @@
   <body>
     <!-- LOGIN -->
     <section id="login">
-      <form class="auth glass" id="auth-form" novalidate>
+      <div class="auth glass" id="auth-form">
         <div class="auth__brand">
           <img class="x-icon" src="numina-icon.png" alt="" />
           <h1 class="mark">Numina</h1>
@@ -759,7 +765,7 @@
           <button type="button" role="tab" id="tab-up" aria-selected="false" class="press">Create account</button>
         </div>
         <div class="field" id="f-name" hidden>
-          <label for="i-name">Name</label>
+          <label for="i-name">Name (optional)</label>
           <div class="field__box"><input id="i-name" type="text" autocomplete="name" placeholder="Jordan Wells" /></div>
         </div>
         <div class="field">
@@ -775,8 +781,12 @@
         </div>
         <button type="button" class="cta press" id="submit">Sign in</button>
         <p class="alert" id="alert" role="alert"></p>
-        <p class="auth__foot">Accounts stay on this device. Passwords are salted and hashed.</p>
-      </form>
+        <div class="x-authalt">
+          <button type="button" class="x-link press" id="forgot">Forgot password?</button>
+          <button type="button" class="x-link press" id="guest">Continue without account</button>
+        </div>
+        <p class="auth__foot">Sign in to sync your progress across devices. Without an account, progress stays on this device.</p>
+      </div>
     </section>
 
     <!-- APP -->
@@ -798,6 +808,9 @@
          ========================================================= */
       (function () {
         "use strict";
+        /* cloud accounts + progress sync (Supabase REST, publishable key is public by design) */
+        var SUPABASE_URL = "https://etyimgbooxvqejkjhfyo.supabase.co";
+        var SUPABASE_KEY = "sb_publishable_PhzsifRX21bl1JX_1NXMCA_0kB-q6xB";
         var doc = document, root = doc.documentElement;
         var $ = function (s, r) { return (r || doc).querySelector(s); };
         var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
@@ -848,7 +861,7 @@
             try { localStorage.removeItem(k); } catch (e) {}
           }
         };
-        var K = { accounts: "nm.accounts", session: "nm.session", prefs: "nm.prefs", meta: "nm.meta" };
+        var K = { accounts: "nm.accounts", session: "nm.session", prefs: "nm.prefs", meta: "nm.meta", cloud: "nm.cloud" };
         var prefs = Object.assign({ night: "aurora", day: "paper", theme: "night", goal: 10, sort: "recent", level: "all", view: "medium", cols: 2 }, Store.get(K.prefs, {}));
         /* one-time move to the high-school path: old Days 1–2 become the warm-up shelf */
         if (!prefs.hsPath) {
@@ -930,63 +943,231 @@
               return Promise.resolve(fallback());
             }
           },
+          /* old on-device accounts: only read now, to carry a name over to the cloud account */
           accounts: function () { return Store.get(K.accounts, {}); },
           signUp: function (name, email, pw) {
-            var accts = Auth.accounts(), key = email.toLowerCase();
-            if (accts[key]) return Promise.reject(new Error("An account already exists for that email."));
-            var salt = Auth.rand();
-            return Auth.hash(pw, salt).then(function (h) {
-              accts[key] = { name: name, email: email, salt: salt, hash: h, at: Date.now() };
-              Store.set(K.accounts, accts);
-              return Auth.start({ name: name, email: email });
+            return Cloud.raw("/auth/v1/signup", { method: "POST", body: { email: email, password: pw, data: name ? { name: name } : {} } }).then(function (res) {
+              if (!res.ok) throw Cloud.err(res);
+              if (!res.data || !res.data.access_token) { var c = new Error("Check your email to confirm, then sign in."); c.code = "confirm"; throw c; }
+              return Auth.online(res.data, name);
             });
           },
           signIn: function (email, pw) {
-            var acct = Auth.accounts()[email.toLowerCase()];
-            if (!acct) { var nf = new Error("No account found on this device yet. Tap Create account; it takes a second."); nf.code = "noacct"; return Promise.reject(nf); }
-            return Auth.hash(pw, acct.salt).then(function (h) {
-              if (h !== acct.hash && acct.hash !== "plain:" + acct.salt + ":" + pw) throw new Error("That password does not match.");
-              return Auth.start({ name: acct.name, email: acct.email });
+            return Cloud.raw("/auth/v1/token?grant_type=password", { method: "POST", body: { email: email, password: pw } }).then(function (res) {
+              if (!res.ok) {
+                var e = Cloud.err(res);
+                if (/invalid login/i.test(e.message)) e.message = "That email and password don’t match an account. New here? Tap Create account.";
+                if (/not confirmed/i.test(e.message)) e.message = "Confirm your email first (check your inbox), then sign in.";
+                throw e;
+              }
+              return Auth.online(res.data);
             });
           },
+          online: function (d, name) {
+            var s = Cloud.take(d), local = Auth.accounts()[(s.user.email || "").toLowerCase()];
+            s.user.name = s.user.name || name || (local && local.name) || (s.user.email || "").split("@")[0];
+            Cloud.save(s);
+            return Auth.start({ name: s.user.name, email: s.user.email, id: s.user.id, cloud: true });
+          },
+          recover: function (email) {
+            return Cloud.raw("/auth/v1/recover", { method: "POST", body: { email: email } }).then(function (res) { if (!res.ok) throw Cloud.err(res); });
+          },
+          guest: function () { return Auth.start({ name: "", email: "", local: true }); },
           start: function (user) {
             Auth.user = user;
             Store.set(K.session, user);
-            meta.localAt = Date.now();
-            saveMeta();
             return user;
           },
-          signOut: function () { Auth.user = null; Store.del(K.session); }
+          signOut: function () {
+            var s = Cloud.s, first = s && Sync.dirty ? Sync.push() : Promise.resolve();
+            return first.catch(function () {}).then(function () {
+              if (s) Cloud.raw("/auth/v1/logout", { method: "POST" }).catch(function () {});
+            }).then(function () {
+              clearTimeout(Sync.t); Sync.dirty = false;
+              Cloud.save(null); Auth.user = null; Store.del(K.session);
+            });
+          }
+        };
+
+        /* ============ CLOUD: Supabase REST via fetch ============ */
+        var Cloud = {
+          s: Store.get(K.cloud, null),
+          save: function (s) { Cloud.s = s; if (s) Store.set(K.cloud, s); else Store.del(K.cloud); },
+          take: function (d) {
+            var u = d.user || {}, md = u.user_metadata || {}, old = Cloud.s && Cloud.s.user;
+            var s = {
+              access_token: d.access_token, refresh_token: d.refresh_token,
+              expires_at: Date.now() + (d.expires_in || 3600) * 1000,
+              user: { id: u.id || (old && old.id), email: u.email || (old && old.email) || "", name: md.name || (old && old.name) || "" }
+            };
+            Cloud.save(s);
+            return s;
+          },
+          raw: function (path, opt) {
+            opt = opt || {};
+            var h = { apikey: SUPABASE_KEY, Authorization: "Bearer " + ((Cloud.s && Cloud.s.access_token) || SUPABASE_KEY), "Content-Type": "application/json" };
+            Object.keys(opt.headers || {}).forEach(function (k) { h[k] = opt.headers[k]; });
+            var init = { method: opt.method || "GET", headers: h };
+            if (opt.body) init.body = JSON.stringify(opt.body);
+            if (opt.keepalive) init.keepalive = true;
+            return fetch(SUPABASE_URL + path, init).then(function (r) {
+              return r.text().then(function (t) { var j = null; try { j = t ? JSON.parse(t) : null; } catch (e) { j = null; } return { ok: r.ok, status: r.status, data: j }; });
+            }, function () { var e = new Error("Can’t reach the server. Check your connection, or continue without an account."); e.offline = true; throw e; });
+          },
+          err: function (res) {
+            var d = res.data || {};
+            var e = new Error(d.msg || d.error_description || d.message || (typeof d.error === "string" ? d.error : "") || "Request failed (" + res.status + ").");
+            e.status = res.status; e.code = d.code || d.error_code;
+            return e;
+          },
+          refresh: function () {
+            if (!Cloud.s || !Cloud.s.refresh_token) { var n = new Error("Signed out."); n.expired = true; return Promise.reject(n); }
+            if (Cloud.busy) return Cloud.busy;
+            Cloud.busy = Cloud.raw("/auth/v1/token?grant_type=refresh_token", { method: "POST", body: { refresh_token: Cloud.s.refresh_token } }).then(function (res) {
+              Cloud.busy = null;
+              if (!res.ok) { var e = Cloud.err(res); if (res.status === 400 || res.status === 401) e.expired = true; throw e; }
+              return Cloud.take(res.data);
+            }, function (e) { Cloud.busy = null; throw e; });
+            return Cloud.busy;
+          },
+          /* signed-in request: refresh near expiry, after a metadata write (stale), and once more on a 401 */
+          stale: false,
+          req: function (path, opt) {
+            opt = opt || {};
+            var near = Cloud.s && Cloud.s.expires_at - Date.now() < 60000, pre = Promise.resolve();
+            if (near) pre = Cloud.refresh();
+            else if (Cloud.s && Cloud.stale) { Cloud.stale = false; pre = Cloud.refresh().catch(function () {}); }
+            return pre.then(function () { return Cloud.raw(path, opt); }).then(function (res) {
+              if (res.status === 401 && !opt.retried) { opt.retried = true; return Cloud.refresh().then(function () { return Cloud.raw(path, opt); }); }
+              return res;
+            });
+          }
         };
 
         /* ============ SYNC ============ */
         var Sync = {
-          state: "off",
-          labels: { off: "Sync on", syncing: "Syncing", live: "Up to date", pending: "Pending changes" },
+          state: "off", dirty: false, quiet: false, t: null,
+          labels: { off: "On this device", syncing: "Syncing…", live: "Synced", pending: "Pending sync", offline: "Offline", expired: "Sign in again to sync" },
+          on: function () { return !!(Auth.user && Auth.user.cloud && Cloud.s); },
+          text: function () {
+            var l = Sync.labels[Sync.state] || "";
+            if (Sync.state === "live" && meta.syncAt) l += " · " + new Date(meta.syncAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+            return l;
+          },
           set: function (s) { Sync.state = s; Sync.paint(); },
           paint: function () {
-            var el = $("#sync");
-            if (!el) return;
-            el.dataset.state = Sync.state;
-            el.innerHTML = I.cloud + "<span>" + Sync.labels[Sync.state] + "</span>";
+            ["#sync", "#sync-chip"].forEach(function (id) {
+              var el = $(id);
+              if (!el) return;
+              el.dataset.state = Sync.state;
+              el.innerHTML = I.cloud + "<span>" + Sync.text() + "</span>";
+            });
+            var note = $("#sync-note");
+            if (note) note.hidden = Sync.state !== "expired";
+            if (note) note.textContent = "Your session ended. Sign out and sign in again to resume syncing; progress here is kept.";
           },
           touch: function () {
+            if (Sync.quiet) return;
             meta.localAt = Date.now();
             meta.rev = (meta.rev || 1) + 1;
             saveMeta();
-            if (Sync.state === "off") return;
-            Sync.set("pending");
+            if (!Sync.on()) return;
+            Sync.dirty = true;
+            if (Sync.state !== "expired") Sync.set(navigator.onLine === false ? "offline" : "pending");
             clearTimeout(Sync.t);
-            Sync.t = setTimeout(function () {
-              Sync.set("syncing");
-              setTimeout(function () { meta.onlineAt = meta.syncAt = Date.now(); saveMeta(); Sync.set("live"); if (State.tab === "settings") Views.render(); }, 700);
-            }, 400);
+            Sync.t = setTimeout(Sync.push, 3000);
           },
-          begin: function () {
+          fail: function (e) {
+            if (window.console) console.warn("sync", e);
+            if (e && e.expired) return Sync.set("expired");
+            Sync.set(navigator.onLine === false || (e && e.offline) ? "offline" : "pending");
+          },
+          ok: function () { Sync.dirty = false; meta.onlineAt = meta.syncAt = Date.now(); saveMeta(); Sync.set("live"); },
+          /* where progress lives: the progress table, or the user's auth metadata when the table is missing.
+             Starts as "table" on every app start, so it upgrades once the table exists. */
+          mode: "table",
+          missing: function (e) { return !!e && (e.code === "PGRST205" || e.status === 404 || /could not find the table/i.test(e.message || "")); },
+          /* the cloud copy: compact, no transient UI state; essentials only past 60 KB */
+          cloud: function (o) {
+            var c = { app: o.app, kind: o.kind, version: o.version, exportedAt: o.exportedAt, settings: o.settings, theme: o.theme, xp: o.xp, streak: o.streak, lessons: o.lessons, quizHistory: o.quizHistory };
+            if (JSON.stringify(c).length > 60000) delete c.quizHistory;
+            return c;
+          },
+          push: function (keep) {
+            clearTimeout(Sync.t);
+            if (!Sync.on()) return Promise.resolve();
+            if (Sync.busy) { Sync.again = true; return Sync.busy; }
             Sync.set("syncing");
-            setTimeout(function () { meta.onlineAt = meta.syncAt = Date.now(); saveMeta(); Sync.set("live"); }, 900);
-          }
+            var data = Sync.cloud(Backup.data()), at = new Date().toISOString();
+            var viaMeta = function () {
+              return Cloud.req("/auth/v1/user", { method: "PUT", keepalive: keep === true, body: { data: { numina_progress: JSON.stringify(data), numina_updated_at: at } } })
+                .then(function (res) { if (!res.ok) throw Cloud.err(res); Cloud.stale = true; Sync.ok(); });
+            };
+            var go = Sync.mode === "meta" ? viaMeta() :
+              Cloud.req("/rest/v1/progress", { method: "POST", keepalive: keep === true, headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: { user_id: Cloud.s.user.id, data: data, updated_at: at } })
+                .then(function (res) { if (!res.ok) throw Cloud.err(res); Sync.ok(); })
+                .catch(function (e) { if (!Sync.missing(e)) throw e; Sync.mode = "meta"; return viaMeta(); });
+            Sync.busy = go
+              .catch(Sync.fail)
+              .then(function () { Sync.busy = null; if (Sync.again) { Sync.again = false; if (Sync.dirty) Sync.push(); } });
+            return Sync.busy;
+          },
+          pull: function () {
+            if (!Sync.on()) return Promise.resolve();
+            if (navigator.onLine === false) { Sync.set("offline"); return Promise.resolve(); }
+            Sync.set("syncing");
+            /* each source resolves to { data: string or object or null, at: ISO string } */
+            var viaMeta = function () {
+              return Cloud.req("/auth/v1/user").then(function (res) {
+                if (!res.ok) throw Cloud.err(res);
+                var md = (res.data && (res.data.user_metadata || (res.data.user && res.data.user.user_metadata))) || {};
+                return { data: md.numina_progress || null, at: md.numina_updated_at };
+              });
+            };
+            var src = Sync.mode === "meta" ? viaMeta() :
+              Cloud.req("/rest/v1/progress?user_id=eq." + encodeURIComponent(Cloud.s.user.id) + "&select=data,updated_at").then(function (res) {
+                if (!res.ok) throw Cloud.err(res);
+                var row = Array.isArray(res.data) && res.data[0];
+                return { data: row && row.data ? row.data : null, at: row && row.updated_at };
+              }).catch(function (e) { if (!Sync.missing(e)) throw e; Sync.mode = "meta"; return viaMeta(); });
+            return src.then(function (row) {
+              var local = Backup.data(), remote = null, merged = local;
+              if (row.data) { try { remote = Backup.decode(typeof row.data === "string" ? row.data : JSON.stringify(row.data)); } catch (e) { remote = null; } }
+              if (remote) {
+                if (!remote.dictionary) remote.dictionary = local.dictionary;
+                merged = Sync.merge(local, remote, Date.parse(row.at) || 0);
+                if (Sync.differs(local, merged)) { Sync.quiet = true; try { Backup.apply(merged); } finally { Sync.quiet = false; } }
+              }
+              if (!remote || Sync.dirty || Sync.differs(Sync.cloud(remote), Sync.cloud(merged))) return Sync.push();
+              Sync.ok();
+            }).catch(Sync.fail);
+          },
+          /* keep the higher value per item; settings and theme follow whichever side changed last */
+          merge: function (l, r, rAt) {
+            var newer = rAt > (meta.localAt || 0) ? r : l, older = newer === l ? r : l;
+            var uni = function (a, b) { var out = [], seen = {}; (a || []).concat(b || []).forEach(function (x) { var k = typeof x === "object" ? JSON.stringify(x) : typeof x + ":" + x; if (!seen[k]) { seen[k] = 1; out.push(x); } }); return out; };
+            var o = JSON.parse(JSON.stringify(newer));
+            o.xp = Math.max(l.xp || 0, r.xp || 0);
+            o.streak = Math.max(l.streak || 0, r.streak || 0);
+            o.lessons = { mastered: uni(l.lessons.mastered, r.lessons.mastered), recent: uni(newer.lessons.recent, older.lessons.recent) };
+            o.quizHistory = uni(l.quizHistory, r.quizHistory);
+            o.exportedAt = new Date(Math.max(Date.parse(l.exportedAt) || 0, Date.parse(r.exportedAt) || 0, rAt || 0)).toISOString();
+            o.account = l.account;
+            return o;
+          },
+          differs: function (a, b) {
+            var key = function (o) { return JSON.stringify([o.xp, o.streak, o.lessons, o.quizHistory, o.settings, o.theme]); };
+            return key(a) !== key(b);
+          },
+          begin: function () { if (Sync.on()) Sync.pull(); else Sync.set("off"); }
         };
+        window.addEventListener("online", function () { if (Sync.on()) Sync.pull(); });
+        window.addEventListener("offline", function () { if (Sync.on()) Sync.set("offline"); });
+        doc.addEventListener("visibilitychange", function () {
+          if (!Sync.on()) return;
+          if (doc.visibilityState === "hidden") { if (Sync.dirty) Sync.push(true); }
+          else Sync.pull();
+        });
 
         /* ============ HISTORY ============ */
         var Layers = [];
@@ -4422,7 +4603,7 @@
             var h = new Date().getHours();
             var part = h < 5 ? "evening" : h < 12 ? "morning" : h < 18 ? "afternoon" : "evening";
             var first = (Auth.user.name || "").split(" ")[0];
-            return '<div><h1 class="greet">Good ' + part + ", " + esc(first) + '</h1><p class="sync" id="sync" aria-live="polite"></p></div>';
+            return '<div><h1 class="greet">Good ' + part + (first ? ", " + esc(first) : "") + '</h1><p class="sync" id="sync" aria-live="polite"></p></div>';
           },
           home: function () {
             var nd = nextDay(), next = LESSONS[nd - 1], hc = LESSON_CONTENT[nd].home;
@@ -4541,14 +4722,19 @@
               fold("learning", "Learning",
                 UI.selBtn("Daily goal", prefs.goal, "Daily goal", GOALS) + toggle("remind", "Daily reminder", !!prefs.remind)) +
               fold("account", "Account &amp; Sync",
-                '<div class="rows">' + row("Name", u.name) + row("Email", u.email) + "</div>" +
-                toggle("sync", "Cloud sync", Sync.state !== "off") +
+                (u.cloud
+                  ? '<div class="rows">' + row("Signed in as", u.email) + "</div>" +
+                    '<div class="x-acts"><span class="chip" id="sync-chip" aria-live="polite"></span></div>' +
+                    '<p class="dim" id="sync-note" hidden></p>' +
+                    '<div class="x-acts"><button type="button" class="start press" id="sync-now">Sync now</button><button type="button" class="danger press" id="signout">Sign out</button></div>'
+                  : '<div class="rows">' + (u.name ? row("Name", u.name) : "") + (u.email ? row("Email", u.email) : "") + row("Account", "On this device only") + "</div>" +
+                    '<p class="dim">Sign in or create an account to sync progress across devices. Everything on this device is merged into your account.</p>' +
+                    '<div class="x-acts"><button type="button" class="start press" id="go-signin">Sign in to sync</button></div>') +
                 '<p class="eyebrow">Backup status</p><div class="rows">' +
                 row("Last local", UI.when(meta.localAt)) + row("Last online", UI.when(meta.onlineAt)) + row("Last sync", UI.when(meta.syncAt)) +
                 row("This device", meta.device) + row("Revision", "r" + meta.rev) + "</div>" +
                 '<p class="eyebrow">Backup</p><p class="dim">Save everything to a file or a progress code, then bring it to another device.</p>' +
-                '<div class="x-acts"><button type="button" class="danger press" id="bk-export">Export progress</button><button type="button" class="danger press" id="bk-import">Import progress</button></div>' +
-                '<button type="button" class="danger press" id="signout">Sign out</button>') +
+                '<div class="x-acts"><button type="button" class="danger press" id="bk-export">Export progress</button><button type="button" class="danger press" id="bk-import">Import progress</button></div>') +
               fold("app", "App",
                 '<p class="eyebrow">Install Numina</p>' +
                 (Pwa.prompt ? '<p class="dim">Add Numina to your home screen. It opens full screen, like any other app.</p><button type="button" class="start press" id="pwa-install">Install</button>'
@@ -5369,7 +5555,6 @@
             if (Auth.user && o.account && o.account.name) { Auth.user.name = String(o.account.name).slice(0, 60); Store.set(K.session, Auth.user); }
             savePrefs();
             Themes.apply();
-            if (prefs.sync === false) Sync.set("off");
             Views.render();
           },
           summary: function (o) {
@@ -5502,16 +5687,18 @@
             var k = t.dataset.toggle;
             if (k === "night") Themes.toggle();
             if (k === "remind") { prefs.remind = !prefs.remind; savePrefs(); }
-            if (k === "sync") { prefs.sync = Sync.state === "off"; savePrefs(); prefs.sync ? Sync.begin() : Sync.set("off"); }
             return Views.render();
           }
           if (t.id === "pwa-install") return Pwa.install();
           if (t.id === "bk-export") return exportProgress();
           if (t.id === "bk-import") return importProgress();
-          if (t.id === "signout") {
-            Auth.signOut();
-            while (Layers.length) Layers.pop();
-            return showLogin();
+          if (t.id === "sync-now") { Sync.dirty = true; return Sync.pull(); }
+          if (t.id === "signout" || t.id === "go-signin") {
+            t.disabled = true;
+            return Auth.signOut().then(function () {
+              while (Layers.length) Layers.pop();
+              showLogin();
+            });
           }
           if (t.dataset.face) {
             var cur = libView();
@@ -5541,11 +5728,21 @@
 
         /* back to top: appears after 160px, glides with easeOutCubic */
         var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        window.addEventListener("scroll", function () { $("#totop").classList.toggle("is-on", window.scrollY > 160); }, { passive: true });
+        /* out of the layout (hidden) until there is somewhere to go back to */
+        var paintTop = function () {
+          var b = $("#totop"), on = window.scrollY > 160;
+          if (on) b.hidden = false;
+          b.classList.toggle("is-on", on);
+          if (!on) b.hidden = true;
+        };
+        $("#totop").hidden = true;
+        window.addEventListener("scroll", paintTop, { passive: true });
         $("#totop").innerHTML = I.up;
         $("#totop").addEventListener("click", function () {
           var from = window.scrollY, t0 = performance.now(), dur = Math.min(900, 300 + from / 4);
-          if (reduce) return window.scrollTo(0, 0);
+          try { $("#view").focus({ preventScroll: true }); } catch (e) {}
+          if (reduce || from <= 0) return window.scrollTo(0, 0);
+          window.scrollTo(0, from * 0.97);
           (function step(now) {
             var p = Math.min(1, (now - t0) / dur), ease = 1 - Math.pow(1 - p, 3);
             window.scrollTo(0, from * (1 - ease));
@@ -5562,8 +5759,9 @@
           $("#f-name").hidden = m === "in";
           $("#submit").textContent = m === "in" ? "Sign in" : "Create account";
           $("#i-pw").setAttribute("autocomplete", m === "in" ? "current-password" : "new-password");
-          $("#alert").textContent = "";
+          say("");
         }
+        function say(msg, info) { var al = $("#alert"); al.textContent = msg; al.classList.toggle("is-info", !!info); }
         $("#tab-in").addEventListener("click", function () { setMode("in"); });
         $("#tab-up").addEventListener("click", function () { setMode("up"); });
         $("#eye").innerHTML = I.eye;
@@ -5591,11 +5789,10 @@
           var done = function () { authBusy = false; btn.disabled = false; btn.removeAttribute("aria-busy"); btn.textContent = mode === "in" ? "Sign in" : "Create account"; };
           try {
             var name = $("#i-name").value.trim(), email = $("#i-email").value.trim(), pw = $("#i-pw").value;
-            var err = mode === "up" && name.length < 2 ? "Name needs at least 2 characters."
-              : email.indexOf("@") < 1 ? "Enter an email address with an @."
+            var err = email.indexOf("@") < 1 ? "Enter an email address with an @."
               : pw.length < 8 ? "Password needs at least 8 characters." : "";
-            if (err) { al.textContent = err; return; }
-            al.textContent = "";
+            if (err) { say(err); return; }
+            say("");
             authBusy = true;
             btn.disabled = true;
             btn.setAttribute("aria-busy", "true");
@@ -5607,11 +5804,10 @@
               .then(function () { done(); enterApp(); })
               .catch(function (x) {
                 done();
-                if (x && x.code === "noacct") {
-                  setMode("up");
+                if (x && x.code === "confirm") {
+                  setMode("in");
                   $("#i-email").value = email;
-                  $("#alert").textContent = x.message;
-                  try { $("#i-name").focus(); } catch (y) {}
+                  say(x.message, true);
                 } else {
                   if (window.console) console.error(x);
                   $("#alert").textContent = (x && x.message) || "Something went wrong.";
@@ -5629,7 +5825,14 @@
             if (e.key === "Enter" || e.keyCode === 13) { e.preventDefault(); doAuth(); }
           });
         });
-        $("#auth-form").addEventListener("submit", function (e) { e.preventDefault(); doAuth(); });
+        $("#forgot").addEventListener("click", function () {
+          var email = $("#i-email").value.trim(), b = this;
+          if (email.indexOf("@") < 1) { say("Enter your email above, then tap Forgot password."); try { $("#i-email").focus(); } catch (y) {} return; }
+          b.disabled = true;
+          Auth.recover(email).then(function () { say("Reset email sent.", true); }, function (x) { say((x && x.message) || "Couldn’t send the reset email."); })
+            .then(function () { b.disabled = false; });
+        });
+        $("#guest").addEventListener("click", function () { Auth.guest(); enterApp(); });
 
         /* ============ BOOT ============ */
         function showLogin() {
@@ -5648,13 +5851,14 @@
           paintTabs();
           Views.render();
           Themes.apply();
-          if (prefs.sync !== false) Sync.begin(); else Sync.set("off");
+          Sync.begin();
         }
         $("#gear-btn").innerHTML = I.gear;
         var onWideApp = function () { if (!$("#app").hidden && State.tab === "library" && !prefs.viewSet) Views.render(); };
         if (WIDE.addEventListener) WIDE.addEventListener("change", onWideApp); else WIDE.addListener(onWideApp);
         Themes.apply();
         try { Pwa.init(); } catch (e) { /* install support is optional */ }
+        if (Auth.user && Auth.user.cloud && !Cloud.s) { Auth.user = null; Store.del(K.session); }
         if (Auth.user) showApp(); else showLogin();
       })();
     </script>
