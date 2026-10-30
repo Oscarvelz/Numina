@@ -1350,7 +1350,7 @@
           { v: "grow", t: "Growth & money", to: 20 }, { v: "shape", t: "Shape & space", to: 24 }, { v: "data", t: "Chance & data", to: 30 }];
         var LESSONS = ("Percentages: the per-hundred lens|Percent change & the “up 50%, down 50%” trap|Ratios & rates (price per ounce, mph)|Proportions & unit conversion|Scaling recipes, maps and doses|" +
           "Variables as placeholders|Equations as balance|Rearranging formulas|Inequalities & budgets|Systems: comparing two plans|" +
-          "Functions as machines|Slope as rate of change|Linear models (phone plans, taxis)|Quadratics: arcs and optimizing|Reading any graph critically|" +
+          "Functions as machines|Slope as rate of change|Linear Models: Fixed + Per-Use|Quadratics: arcs and optimizing|Reading any graph critically|" +
           "Exponents|Exponential growth & decay|Compound interest|Loans, APR & credit cards|Logarithms: counting multiplications|" +
           "Area & volume in real life|Pythagoras & distance|Similar triangles & trigonometry|Circles & π|" +
           "Probability as long-run frequency|Expected value (insurance, lotteries)|Averages and what they hide|Spread & variability|Misleading statistics|The idea of change: a first look at calculus").split("|").map(function (t, i) {
@@ -1370,7 +1370,7 @@
 
         /* real-life tags and minutes per lesson */
         var TAGS = ["Discounts", "Price hikes", "Unit prices", "Travel", "Cooking", "Spreadsheets", "Splitting bills", "Pay and fuel", "Budgets", "Phone plans",
-          "Vending machines", "Speedometers", "Taxi fares", "Fountains and profit", "News charts", "Screen pixels", "Caffeine and viruses", "Savings", "Credit cards", "Earthquakes",
+          "Vending machines", "Speedometers", "Gym, electric bill, car costs", "Fountains and profit", "News charts", "Screen pixels", "Caffeine and viruses", "Savings", "Credit cards", "Earthquakes",
           "Paint and boxes", "TV sizes", "Ramps and heights", "Pizza sizes", "Weather odds", "Insurance", "Salaries", "Commute times", "Headlines", "Speed"];
         LESSONS.forEach(function (l) {
           for (var u = 0; l.day > UNITS[u].to; u++);
@@ -1415,6 +1415,8 @@
           "GEO-SIMILAR-CONGRUENT": "Congruent means same size too; a scaled copy is only similar.",
           "GEO-ADD-SIDES": "Add the squares, not the sides.",
           "GEO-FORGOT-ROOT": "a² + b² gives c², so take the square root to get c.",
+          "LIN-IGNORE-FIXED": "Add the fixed fee: you pay it even at zero use.",
+          "LIN-RATE-AS-TOTAL": "The rate is per use: multiply it by how many uses.",
           "EXP-TIMES-TWO": "3² means 3 × 3, not 3 × 2. The exponent counts how many times the base is multiplied.",
           "EXP-SMALL-JUMP": "Exponential growth looks slow at first and then explodes. Each step multiplies, so late steps add far more than early ones.",
           "EXP-MULT-EXPONENTS": "Same base: add the counts, don't multiply them.",
@@ -1836,7 +1838,7 @@
             '<p class="x-read x-lab__read glass" aria-live="polite"></p>' +
             (sc.gallery || sc.warm ? '<aside class="x-lab__cap glass" aria-label="About this ' + (sc.warm ? "picture" : "graph") + '"><dl>' + [["What you’re seeing", sc.see], [sc.warm ? "Why this picture works" : "Why this graph works", sc.why], ["Where it’s useful", sc.use]].map(function (r) {
               return '<div><dt class="eyebrow">' + r[0] + "</dt><dd>" + esc(r[1]) + "</dd></div>";
-            }).join("") + "</dl></aside>" : "") +
+            }).join("") + "</dl>" + (sc.deep && !inline ? '<button type="button" class="start press x-3dbtn x-lab__deep" data-deep="' + sc.deep + '" style="margin-top:12px">Open the lesson</button>' : "") + "</aside>" : "") +
             '<section class="x-lab__panel glass" aria-label="Scene controls"><div class="x-lab__dock"><div class="x-lab__keys"></div>' +
             '<button type="button" class="x-lab__fold press" aria-expanded="false" aria-controls="' + bodyId + '" aria-label="Controls"><span class="x-lab__grip" aria-hidden="true"></span><span>Controls</span></button></div>' +
             '<div class="x-lab__body" id="' + bodyId + '" hidden><div class="x-ctl"></div></div></section>' +
@@ -1845,6 +1847,8 @@
           var box = $(".x-lab__cv", ov), ctl = $(".x-ctl", ov), fold = $(".x-lab__fold", ov), panel = $(".x-lab__panel", ov), body = $(".x-lab__body", ov);
           var info = $(".x-lab__info", ov), ib = $(".x-lab__i", ov), read = $(".x-lab__read", ov), top = $(".x-lab__top", ov), cap = $(".x-lab__cap", ov);
           $(".x-lab__x", ov).addEventListener("click", function () { if (inline) openScene(id); else History.closeTop(); });
+          /* direct-open lesson link: close the scene, then the document handler opens data-deep like the B3 card */
+          if ($(".x-lab__deep", ov)) $(".x-lab__deep", ov).addEventListener("click", function () { History.closeTop(); });
           $(".x-lab__rc", ov).addEventListener("click", function () { if (env) env.recenter(); });
           function sheet(open) { fold.setAttribute("aria-expanded", String(open)); body.hidden = !open; layout(); }
           fold.addEventListener("click", function () { sheet(fold.getAttribute("aria-expanded") !== "true"); });
@@ -5194,7 +5198,7 @@
             }
           },
           {
-            id: "billbuilder3d", name: "Bill Builder: Fixed + Per-Use", day: 13, n: "10", level: "foundlab", warm: true, hue: ["#ffcc4d", "#4fc3ff"],
+            id: "billbuilder3d", name: "Bill Builder: Fixed + Per-Use", day: 13, deep: 13, n: "10", level: "foundlab", warm: true, hue: ["#ffcc4d", "#4fc3ff"],
             kicker: "FOUNDATIONS · EVERY BILL IS START + RATE × USE",
             idea: "Most bills are a fixed fee plus a price per use. Stack them as bars, and the line through their tops is y = mx + b — and it tells you which deal wins.",
             cap: "The dark base is what you pay even if you use nothing. Each lighter block is one more use. The line through the tops climbs by the rate every step and starts at the fixed fee — that's all y = mx + b means. Where two lines cross, the deals cost the same; past it, the cheaper per-use price stops winning.",
@@ -5696,7 +5700,7 @@
             var st = nmPillarState(p.id), ready = p.lessons.filter(function (l) { return !NM_SOON[l] || nmReady(l); }).length;
             return '<details class="x-fp glass"><summary class="press"><span class="x-fp__id">' + esc(p.part ? p.id : p.kind === "parallel" ? "+" : "◦") + '</span><span class="x-fp__h"><b>' + esc(p.title) + "</b><small>" + esc(p.core) + "</small></span>" +
               '<span class="chip x-fp__st" data-st="' + st + '">' + FP_STATE[st] + '</span><span class="chev" aria-hidden="true">' + I.chev + "</span></summary>" +
-              '<p class="x-fp__meta">' + ready + " of " + p.lessons.length + " lessons open · " + esc(p.anchor) + '</p><ol class="x-fp__ls">' + p.lessons.map(lessonRow).join("") + "</ol>" + (p.id === "B3" ? '<button type="button" class="start press x-3dbtn" data-deep="22" style="margin-top:12px">Deepen: Pythagoras proof</button>' : "") + "</details>";
+              '<p class="x-fp__meta">' + ready + " of " + p.lessons.length + " lessons open · " + esc(p.anchor) + '</p><ol class="x-fp__ls">' + p.lessons.map(lessonRow).join("") + "</ol>" + (p.id === "B3" ? '<button type="button" class="start press x-3dbtn" data-deep="22" style="margin-top:12px">Deepen: Pythagoras proof</button>' : p.lessons.indexOf("b2-views") > -1 ? '<button type="button" class="start press x-3dbtn" data-deep="13" style="margin-top:12px">Use it: Bill Builder lesson</button>' : "") + "</details>";
           };
           var part = function (t, s, list) { return '<div class="grpname x-fp__part"><h3 class="mark" style="--fs:15px">' + t + '</h3><span class="eyebrow">' + s + "</span></div>" + list.map(row).join(""); };
           return '<section class="x-fpath" aria-label="Foundations path"><div class="grpname"><h2 class="mark" style="--fs:18px">Foundations path</h2><span class="eyebrow">12 pillars · 2 tracks</span></div>' +
@@ -6082,7 +6086,22 @@
           for (i = 0; i < 5; i++) s += '<rect x="' + (227 + i * 12) + '" y="41" width="8" height="8"/><rect x="' + (227 + i * 12) + '" y="107" width="8" height="8"/>';
           return s + '</g><g class="x-svn" stroke="none" text-anchor="middle"><text x="38" y="54">205</text><text x="38" y="120">25</text></g></svg>';
         }
+        /* Day 13 plate: a dark fixed block under every bar, one light block per use, a line through the tops */
+        function svgLinear() {
+          var s = SVG_OPEN(144) + '<path d="M24 124H284" stroke-opacity=".35"/>', i, j, x;
+          for (i = 0; i < 6; i++) {
+            x = 40 + i * 40;
+            s += '<rect x="' + x + '" y="94" width="24" height="30" rx="3" style="fill:var(--primary);fill-opacity:.75;stroke:var(--primary)"/>';
+            for (j = 0; j < i; j++) s += '<rect x="' + x + '" y="' + (94 - (j + 1) * 14) + '" width="24" height="14" rx="2" stroke-width="1" style="fill:var(--cyan);fill-opacity:.35;stroke:var(--cyan)"/>';
+          }
+          return s + '<path class="x-draw" style="stroke:var(--gold)" d="M52 94L252 24"/>' + LBL(52, 140, "0 uses") + LBL(252, 140, "5 uses") + LBL(60, 86, "fixed") + "</svg>";
+        }
         var PLATES = {
+          linear: { term: "Every bill = fixed part + rate × use", svg: svgLinear, scene: "billbuilder3d", short: "Fixed fee plus a price per use.",
+            alt: "Six bars, each on the same dark base block, with one more light block per use; a line runs through their tops",
+            see: "The dark block is the fee you pay even at zero use. Each light block is one use at the rate. The line through the tops is the total for any amount of use.",
+            why: "Splitting the bill into what never changes and what grows with use shows why a flat plan only pays off once you use it enough. It hides discounts and tiers that change the rate partway.",
+            use: "Memberships, utilities and subscriptions: find the fee and the rate, then check your usage before you sign up." },
           number: { term: "Number", svg: svgNumber, short: "Keeps only how many.",
             alt: "A cookie, a music note and a calendar day become three identical dots, then the numeral 3",
             see: "Three unlike things (a cookie, a song, a day) turn into three identical dots, then one mark: 3. Each dot stands for one thing; the numeral stands for the whole group.",
@@ -7137,6 +7156,62 @@
         }
         var PY_PLAY = '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-nl__out" role="status"></p></div>';
         var PY_BTNS = '<button type="button" class="start press x-go">Pour</button> <button type="button" class="prev press x-do">Do it for me</button>';
+        /* Day 13 gym bars: A = one dark $40 block; B = u light $6 blocks. 1.5px per dollar */
+        function blSVG(u) {
+          var k = 1.5, y0 = 132, b = 6 * u, s = SVG_OPEN(150) + '<path d="M30 ' + y0 + 'H270" stroke-opacity=".35"/>', i, win = b > 40 ? "A" : b < 40 ? "B" : "";
+          s += '<rect x="70" y="' + (y0 - 40 * k) + '" width="56" height="' + 40 * k + '" rx="4" style="fill:var(--primary);fill-opacity:.75;stroke:var(--primary)"/>';
+          for (i = 0; i < u; i++) s += '<rect x="174" y="' + (y0 - (i + 1) * 6 * k) + '" width="56" height="' + 6 * k + '" rx="2" stroke-width="1" style="fill:var(--cyan);fill-opacity:.35;stroke:var(--cyan)"/>';
+          return s + LBL(98, y0 - 40 * k - 6, "$40", win === "A" ? "fill:var(--gold)" : "") + LBL(202, y0 - b * k - 6, "$" + b, win === "B" ? "fill:var(--gold)" : "") +
+            LBL(98, 146, "A · unlimited") + LBL(202, 146, "B · per class") + "</svg>";
+        }
+        function blPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), res = $(".x-res", card), inp = $("input", card), o = $("output", card), done = !!api.solved;
+          function draw() {
+            var u = +inp.value, b = 6 * u;
+            o.textContent = u + (u === 1 ? " class" : " classes"); box.innerHTML = blSVG(u);
+            out.textContent = u + " classes: A $40, B $" + b + ". " + (b < 40 ? "B is cheaper." : b === 40 ? "Same." : "A is cheaper.");
+            if (!done && b > 40) { done = true; api.solve(10); }
+            res.hidden = !done;
+          }
+          inp.addEventListener("input", draw);
+          $(".x-do", card).addEventListener("click", function () { inp.value = 7; draw(); });
+          if (done) inp.value = 7;
+          draw();
+        }
+        /* Day 13 fill-in: type a dollar amount; a wrong try shows the hint */
+        function blFill(ans) {
+          return function (card, api) {
+            var inp = $("input", card), res = $(".x-res", card), h = $(".x-hint", card), done = !!api.solved;
+            function check() {
+              if (done) return;
+              var v = parseFloat(inp.value.replace(/[$,\s]/g, ""));
+              if (v === ans) { done = true; res.hidden = false; h.hidden = true; inp.disabled = true; return api.solve(10); }
+              h.hidden = false;
+            }
+            $(".x-go", card).addEventListener("click", check);
+            inp.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); });
+            $(".x-do", card).addEventListener("click", function () { inp.value = ans; check(); });
+            if (done) { inp.value = ans; inp.disabled = true; }
+            res.hidden = !done;
+          };
+        }
+        /* Day 13 tap-to-label: tap the rate (m), then the fixed fee (b) */
+        function blLabel(card, api) {
+          var q = $(".x-q", card), res = $(".x-res", card), bs = card.querySelectorAll("[data-p]"), want = api.solved ? "" : "m";
+          var name = { m: "m = ", b: "b = " }, ask = { m: "Tap the rate: that’s m.", b: "Now tap the fixed fee: that’s b." };
+          function mark(b) { b.classList.add("is-picked"); b.disabled = true; if (b.textContent.indexOf("=") < 0) b.textContent = name[b.dataset.p] + b.textContent; }
+          function paint() {
+            if (!want) { Array.prototype.forEach.call(bs, function (b) { if (b.dataset.p !== "x") mark(b); }); q.textContent = "m is the rate, b is the fixed fee."; res.hidden = false; return; }
+            q.textContent = ask[want];
+          }
+          card.addEventListener("click", function (e) {
+            var b = e.target.closest("[data-p]"); if (!b || b.disabled || !want) return;
+            if (b.dataset.p !== want) { q.textContent = (b.dataset.p === "x" ? "That’s x, the use. " : "Not that one. ") + ask[want]; return; }
+            mark(b);
+            if (want === "m") { want = "b"; paint(); } else { want = ""; paint(); api.solve(10); }
+          });
+          paint();
+        }
         /* Day 22 proof puzzle: a 7 × 7 square (a = 3, b = 4), 26px a unit; four legs-3-4 triangles, each [x1, y1, x2, y2, turn]: corners (st 0) → two rectangles (st 1), translation only */
         var PZ_T = [[0, 0, 3, 0, 0], [7, 0, 3, 3, 90], [7, 7, 7, 3, 180], [0, 7, 0, 7, 270]], PZ_TR = EX_RM ? "none" : "transform 1s var(--ease),opacity .6s var(--ease)";
         function pzP(x, y) { return (59 + x * 26) + " " + (27 + y * 26); }
@@ -10064,6 +10139,102 @@
             ]
           },
           /* Day 22, part 1: squares on the sides of a right triangle, poured with pyPlay; opened from the B3 pillar card */
+          /* Day 13: linear models as bills. Fixed fee + rate × use, built from bills before y = mx + b gets a name */
+          13: {
+            home: ["Linear Models: Fixed + Per-Use", "see which gym, power plan or car deal wins for how much you use it."],
+            flow: true,
+            scene: "billbuilder3d",
+            steps: [
+              { kind: "hook", title: "Which deal is cheaper?",
+                body: cpBox(blSVG(0), "Gym A: $40 a month · Gym B: $6 a class") +
+                  '<p class="hook">Gym, power bill, car: every one is a fee plus a price per use.</p><p>Once you can split them, you can pick the cheaper deal in seconds.</p>' },
+              { kind: "predict", title: "Two gyms",
+                body: '<p class="x-q">Gym A: $40/month unlimited. Gym B: $6 per class. You go 5 times a month. Which is cheaper?</p>' +
+                  ["A", "B", "Same"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden><p class="why"><b>B: 5 × $6 = $30.</b> But what about 8 times? 8 × $6 = $48, so A wins at $40.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l13gym", 1)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "Find the break-even",
+                body: '<p class="x-q">Slide Uses until the bars match. Where’s the break-even?</p>' + PY_PLAY +
+                  '<div class="x-range"><input type="range" min="0" max="12" step="1" value="2" aria-label="Uses: classes a month"><output>2 classes</output></div>' +
+                  '<button type="button" class="prev press x-do">Do it for me</button>' +
+                  '<div class="x-res" hidden><p class="why"><b>Break-even ≈ 6.7 classes ($40 ÷ $6).</b> 7 classes or more, A wins.</p></div>' +
+                  '<button type="button" class="start press x-3dbtn" data-scene="billbuilder3d">Build bills in the Lab</button>',
+                mount: blPlay },
+              { kind: "notice", title: "What changed as you slid?", hl: ".x-nl",
+                viz: cpBox(blSVG(7), "7 classes: A $40, B $42"),
+                q: "As classes went up, what happened to each bill?",
+                options: ["A stayed at $40; B grew $6 a class until it passed A", "Both grew by $6 a class", "A shrank as you used it more"],
+                say: "The flat fee never moves; the per-use bill climbs every class. Where they meet is break-even." },
+              { kind: "plate", plate: "linear", title: "Fixed + rate × use" },
+              { kind: "play", title: "Build the rule",
+                body: '<p class="x-q">Electric bill: $9 customer charge + $0.14 per kWh. What does 500 kWh cost?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input type="text" inputmode="decimal" autocomplete="off" placeholder="$ total" aria-label="Cost of 500 kWh, in dollars"></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden><b>Hint:</b> Do the per-use part first, then add the fixed fee.</p>' +
+                  '<div class="x-res" hidden><p class="why"><b>9 + 0.14 × 500 = 9 + 70 = $79.</b></p></div>',
+                mount: blFill(79) },
+              { kind: "formalize", title: "Name it: y = m·x + b",
+                body: cpBox(svgLinear(), "m = how steep · b = where the line starts", "Bars on a fixed base, with a line through their tops") +
+                  '<ol class="x-wk"><li><span>Bill</span><span>cost = rate × use + fixed</span><b>9 + 0.14x</b></li>' +
+                  "<li><span>m</span><span>The rate: how steep the line climbs</span><b>0.14</b></li>" +
+                  "<li><span>b</span><span>The fixed fee: where the line starts at zero use</span><b>9</b></li></ol>",
+                so: "cost = rate × use + fixed is y = m·x + b: m is the rate, b is the fixed fee." },
+              { kind: "play", title: "Label the bill",
+                body: '<p class="x-q">Tap the rate: that’s m.</p><p>Bill = $0.14 per kWh × kWh used + $9 fee</p>' +
+                  [["m", "$0.14 per kWh"], ["x", "kWh used"], ["b", "$9 fee"]].map(function (p) { return '<button type="button" class="qopt press" data-p="' + p[0] + '">' + p[1] + "</button>"; }).join("") +
+                  '<div class="x-res" hidden><p class="why"><b>y = 0.14x + 9.</b> m sets the slope; b sets the start.</p></div>',
+                mount: blLabel },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "A bill is $9 + $0.14/kWh. Someone says 1,000 kWh costs $140. What went wrong?",
+                options: ["They forgot the $9 fee", "They doubled the rate", "Nothing: $140 is right"], answer: 0, tags: [null, null, "LIN-IGNORE-FIXED"], concept: "l13-model",
+                hints: ["0.14 × 1,000 = 140. Is that the whole bill?", "The $9 comes on top, even at zero use."],
+                why: "0.14 × 1,000 = $140, plus the $9 fee is $149." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "$6 per class. Someone says 4 classes cost $6. What went wrong?",
+                options: ["They used the rate as the total", "They forgot a fixed fee", "Nothing: $6 is right"], answer: 0, tags: [null, null, "LIN-RATE-AS-TOTAL"], concept: "l13-model",
+                hints: ["$6 is the price of one class.", "Multiply the rate by the number of classes."],
+                why: "4 × $6 = $24. The rate is per class, not the bill." },
+              { kind: "fade", title: "Own a car or share one?",
+                q: "Own: $350/month + $0.15/mile. Share: $0.60/mile. At 500 miles: own $425, share $300. At 1,000: own $500, share $600. Around how many miles does owning start to win?",
+                lines: ["Share costs $0.45 more per mile (0.60 − 0.15)", "Those extra cents must cover the $350 fee", "350 ÷ 0.45 ≈ 780 miles"],
+                blank: 2, options: ["350 ÷ 0.45 ≈ 780 miles", "350 ÷ 0.60 ≈ 580 miles", "350 ÷ 0.15 ≈ 2,330 miles"], answer: 0, tags: [null, null, null], concept: "l13-breakeven",
+                hints: ["Break-even is where the extra per-mile cost pays off the fee."],
+                why: "Each mile, sharing costs $0.45 more. $350 ÷ $0.45 ≈ 780 miles: drive more and owning wins." },
+              { kind: "quiz", title: "Quick check",
+                q: "Phone plan: $20 a month plus $5 per GB. What are m and b?",
+                options: ["m = 5, b = 20", "m = 20, b = 5", "m = 25, b = 0"], answer: 0, tags: [null, null, "LIN-IGNORE-FIXED"], concept: "l13-read",
+                hints: ["m is the price per GB.", "b is what you pay at 0 GB."],
+                why: "The rate is $5 per GB (m); the $20 comes even at zero use (b)." },
+              { kind: "quiz", title: "Quick check",
+                q: "Your bill was $65 with a $15 fee at $0.10 per kWh. How many kWh?",
+                options: ["500", "650", "800"], answer: 0, tags: [null, "LIN-IGNORE-FIXED", null], concept: "l13-reverse",
+                hints: ["Take the fixed fee off first: 65 − 15.", "Then divide what’s left by the rate."],
+                why: "65 − 15 = $50, and 50 ÷ 0.10 = 500 kWh. 650 forgets the fee; 800 adds it." },
+              { kind: "quiz", title: "Quick check",
+                q: "Plan A: $10 + $2 per use. Plan B: $30 + $0.50 per use. Which line is steeper?",
+                options: ["A: its rate is bigger", "B: its fee is bigger", "Same steepness"], answer: 0, tags: [null, null, null], concept: "l13-steep",
+                hints: ["Steepness is how much each use adds.", "Compare $2 with $0.50."],
+                why: "Steepness is the rate, m. A adds $2 a use, B only $0.50. B’s bigger fee just starts it higher." },
+              { kind: "transfer", title: "New costume: streaming",
+                q: "Streaming bundle $15/month vs $3.99 per rental movie. When is the bundle worth it?",
+                options: ["4 or more movies", "2 or more movies", "15 or more movies"], answer: 0, tags: [null, null, null], concept: "l13-breakeven",
+                hints: ["3 rentals = $11.97. 4 rentals = ?", "Break-even: 15 ÷ 3.99 ≈ 3.8."],
+                why: "4 × $3.99 = $15.96, more than $15. At 4 or more movies a month, the bundle wins." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Memberships.</b> Divide the fee by the per-visit price to see if it pays off.</li><li><b>Electric bill.</b> Estimate next month: fee + rate × your usage.</li>" +
+                  "<li><b>Car budget.</b> Fixed payment and insurance, plus cost per mile.</li><li><b>Counseling clinics.</b> Compare a sliding-scale per-session fee with a flat monthly fee.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>Fixed + rate × use.</b> Every bill splits into a fee and a price per use.</li><li><b>Break-even = where the lines cross.</b> Fee gap ÷ rate gap.</li>" +
+                  "<li><b>Use more than break-even → the fixed plan wins.</b> Use less and pay as you go.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> cost = rate × use + fixed is y = m·x + b: m is the rate, b is the fixed fee.</p>' }
+            ]
+          },
           22: {
             home: ["Pythagoras: Squares on the Sides", "pour the squares on two sides into the third."],
             flow: true,
