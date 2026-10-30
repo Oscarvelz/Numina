@@ -5193,6 +5193,103 @@
               env.view(0.5, 0.35); reset();
             }
           },
+          {
+            id: "billbuilder3d", name: "Bill Builder: Fixed + Per-Use", day: 13, n: "10", level: "foundlab", warm: true, hue: ["#ffcc4d", "#4fc3ff"],
+            kicker: "FOUNDATIONS · EVERY BILL IS START + RATE × USE",
+            idea: "Most bills are a fixed fee plus a price per use. Stack them as bars, and the line through their tops is y = mx + b — and it tells you which deal wins.",
+            cap: "The dark base is what you pay even if you use nothing. Each lighter block is one more use. The line through the tops climbs by the rate every step and starts at the fixed fee — that's all y = mx + b means. Where two lines cross, the deals cost the same; past it, the cheaper per-use price stops winning.",
+            see: "Dark block = fixed fee, light blocks = cost per use, line = the total for any amount of use.",
+            why: "Linear equations feel abstract until you see they describe ordinary bills. Splitting fixed from per-use cost shows why a membership pays off only if you use it enough.",
+            use: "Gym or class memberships, electric and water bills, subscriptions vs pay-as-you-go, deciding whether a membership or bulk deal is worth it, budgeting a monthly bill from your usage.",
+            build: function (box, ctl, env) {
+              var T = env.THREE, root = new T.Group(), N = 20, L = 14, SX = L / N, BW = 0.42, HM = 4.5, GOLD = 0xffcc4d, BLUE = 0x4fc3ff;
+              var STORIES = {
+                gym: { ax: "uses (classes)", at: "uses", per: "class", be: "uses", an: "A · unlimited", bn: "B · per class", A: [40, 0], B: [0, 6], fmax: 100 },
+                elec: { ax: "uses (×50 kWh)", at: "× 50 kWh", per: "50 kWh", be: "× 50 kWh", an: "Your bill", A: [9, 7], B: null, fmax: 100 },
+                car: { ax: "uses (×50 miles)", at: "× 50 miles", per: "50 miles", be: "× 50 mi", an: "A · own car", bn: "B · car share", A: [350, 7.5], B: [0, 30], fmax: 400 }
+              };
+              var st = { s: "gym", A: [40, 0], B: [0, 6], ca: [40, 0], cb: [0, 6], u: 12, sc: 1, csc: 1, xb: -1 }, D = new T.Object3D();
+              env.scene.add(root); galLights(env); labFloor(env, 24);
+              function X(i) { return (i - N / 2) * SX; }
+              function money(v) { v = Math.round(v * 100) / 100; return "$" + v.toLocaleString("en-US", Number.isInteger(v) ? {} : { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+              function cost(p, x) { return p[0] + p[1] * x; }
+              function say(a, b) { env.read.innerHTML = '<b class="x-mg-big">' + esc(a) + "</b>" + esc(b); }
+              var ug = new T.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), cg = new T.CylinderGeometry(0.035, 0.035, 1, 10), hg = new T.CylinderGeometry(0.11, 0.11, 1, 12);
+              function plan(z, col, dark, hex) {
+                var g = new T.Group(), bars = [];
+                var md = new T.MeshStandardMaterial({ color: dark, emissive: col, emissiveIntensity: 0.12, roughness: 0.5, metalness: 0.3 });
+                var ml = new T.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.45, roughness: 0.3, metalness: 0.2 });
+                for (var i = 0; i <= N; i++) { var b = new T.Mesh(ug, md); b.position.set(X(i), 0, z); g.add(b); bars.push(b); }
+                var inst = new T.InstancedMesh(ug, ml, N * (N + 1) / 2); inst.frustumCulled = false; inst.instanceMatrix.setUsage(T.DynamicDrawUsage);
+                var core = new T.Mesh(cg, new T.MeshBasicMaterial({ color: col })), halo = new T.Mesh(hg, new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.25, depthWrite: false, blending: T.AdditiveBlending }));
+                var lab = labSprite(T, hex, 0.34);
+                g.add(inst, core, halo, lab); root.add(g);
+                return { g: g, z: z, bars: bars, inst: inst, core: core, halo: halo, lab: lab };
+              }
+              var PB = plan(-0.5, BLUE, 0x1f5f86, "#4fc3ff"), PA = plan(0.5, GOLD, 0x8a6a1a, "#ffcc4d");
+              var hl = new T.Mesh(new T.BoxGeometry(SX * 0.9, 1, 2).translate(0, 0.5, 0), new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.1, depthWrite: false }));
+              var mk = new T.Mesh(new T.SphereGeometry(0.16, 20, 14), new T.MeshBasicMaterial({ color: 0xffffff })), mkLab = labSprite(T, "#ffffff", 0.36);
+              var axLab = labSprite(T, "#bfe8ff", 0.3);
+              axLab.position.set(0, 0.1, 2.1); root.add(hl, mk, mkLab, axLab);
+              [0, 5, 10, 15, 20].forEach(function (v) { var s = labSprite(T, "#9fdcff", 0.28).text(String(v)); s.position.set(X(v), 0.1, 1.45); root.add(s); });
+              function draw(p, c) {
+                var fh = Math.max(0.001, c[0] * st.csc), uh = c[1] * st.csc, m = 0;
+                p.bars.forEach(function (b, i) {
+                  b.scale.set(BW, fh, BW);
+                  for (var k = 0; k < i; k++) {
+                    D.position.set(X(i), fh + k * uh + uh * 0.06, p.z); D.scale.set(BW * 0.94, Math.max(0.001, uh * 0.88), BW * 0.94);
+                    D.updateMatrix(); p.inst.setMatrixAt(m++, D.matrix);
+                  }
+                });
+                p.inst.instanceMatrix.needsUpdate = true;
+                var dx = X(N) - X(0), dy = N * uh, len = Math.hypot(dx, dy), a = Math.atan2(dy, dx) - Math.PI / 2;
+                [p.core, p.halo].forEach(function (o) { o.position.set(0, fh + dy / 2, p.z); o.rotation.z = a; o.scale.y = len; });
+                p.lab.position.set(X(N) + 1.2, fh + dy + 0.4, p.z);
+              }
+              function label(p, nm, c) { p.lab.text(nm + ": " + money(c[0]) + " + " + money(c[1]) + " each"); }
+              function update() {
+                var S = STORIES[st.s];
+                st.sc = HM / Math.max(cost(st.A, N), S.B ? cost(st.B, N) : 0, 1);
+                label(PA, S.an.split(" · ")[0], st.A); if (S.B) label(PB, "B", st.B);
+                st.xb = S.B && st.A[1] !== st.B[1] ? (st.B[0] - st.A[0]) / (st.A[1] - st.B[1]) : -1;
+                if (st.xb >= 0 && st.xb <= N) mkLab.text("Break-even: " + (Number.isInteger(st.xb) ? st.xb : "≈ " + st.xb.toFixed(1)) + " " + S.be);
+                var a = cost(st.A, st.u), head = "At " + st.u + " " + S.at + ": ";
+                if (!S.B) return say(head + money(a) + " · 1,000 kWh ≈ " + money(cost(st.A, N)), "Bill = " + money(st.A[0]) + " fixed + " + money(st.A[1]) + " per " + S.per + ".");
+                var b = cost(st.B, st.u), d = Math.abs(a - b);
+                say(head + "A " + money(a) + " · B " + money(b) + (d < 0.005 ? " → same cost" : " → " + (a < b ? "A" : "B") + " saves " + money(d)),
+                  S.an + " = " + money(st.A[0]) + " + " + money(st.A[1]) + " per " + S.per + "; " + S.bn + " = " + money(st.B[0]) + " + " + money(st.B[1]) + " per " + S.per + "." +
+                  (st.xb >= 0 && st.xb <= N ? "" : " The lines don't cross in this range."));
+              }
+              function setIn(inp, v, txt) { inp.value = String(v); inp.closest(".x-sl").querySelector("output").textContent = txt; }
+              function setStory(s) {
+                var S = STORIES[s]; st.s = s; st.A = S.A.slice(); st.B = S.B ? S.B.slice() : [0, 0];
+                PB.g.visible = !!S.B; axLab.text(S.ax);
+                inF.max = String(S.fmax); setIn(inF, st.A[0], money(st.A[0])); setIn(inR, st.A[1], money(st.A[1]));
+                update();
+              }
+              env.tick(function (dt, t) {
+                var k = Math.min(1, dt * 4);
+                for (var j = 0; j < 2; j++) { st.ca[j] += (st.A[j] - st.ca[j]) * k; st.cb[j] += (st.B[j] - st.cb[j]) * k; }
+                st.csc += (st.sc - st.csc) * k;
+                draw(PA, st.ca); if (PB.g.visible) draw(PB, st.cb);
+                hl.position.x += (X(st.u) - hl.position.x) * Math.min(1, dt * 8); hl.scale.y = HM + 0.6; hl.material.opacity = 0.08 + 0.04 * Math.sin(t * 3);
+                var on = PB.g.visible && st.xb >= 0 && st.xb <= N; mk.visible = mkLab.visible = on;
+                if (on) {
+                  var y = (st.ca[0] + st.ca[1] * st.xb) * st.csc, p = 1 + 0.3 * Math.sin(t * 4);
+                  mk.position.set(X(st.xb), y, 0); mk.scale.setScalar(p); mkLab.position.set(X(st.xb), y + 0.55, 0);
+                }
+              });
+              labRadio(env, ctl, [{ t: "Gym", v: "gym" }, { t: "Electric bill", v: "elec" }, { t: "Car share vs own", v: "car" }], st.s, "Story", setStory);
+              var storyRow = ctl.lastElementChild;
+              var inF = env.slider("Fixed", 0, 100, 5, st.A[0], money, function (v) { st.A[0] = v; update(); });
+              var inR = env.slider("Per use", 0, 20, 0.5, st.A[1], money, function (v) { st.A[1] = v; update(); });
+              env.slider("Uses", 0, N, 1, st.u, String, function (v) { st.u = v; update(); });
+              [["Gym", "Gym: unlimited vs pay per class", 0], ["Electric bill", "Electric bill: fixed charge plus per kWh", 1], ["Car share vs own", "Own a car vs car share", 2]].forEach(function (k) {
+                env.keys.push({ t: k[0], label: k[1], fn: function () { storyRow.children[k[2]].click(); } });
+              });
+              env.spin = true; env.view(0.35, 0.45); env.frame(HM / 2 + 0.3, HM + 6, (L + 4) / (HM + 2)); setStory(st.s);
+            }
+          },
           /* ============ GRAPH GALLERY: showpiece, full-color graphs ============ */
           {
             id: "ciskyline", name: "Compound Interest Skyline", unit: "Growth & money", day: 18, level: "gallery", gallery: true, hue: ["#3fe6ff", "#ffc23a"],
