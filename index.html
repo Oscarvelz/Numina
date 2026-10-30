@@ -1891,7 +1891,7 @@
             env.read = read;
             sc.build(box, ctl, env);
             /* the first one or two sliders, as steppers in the docked bar */
-            env.sliders.slice(0, 2).forEach(function (s) {
+            env.sliders.slice(0, env.stepN || 2).forEach(function (s) {
               var k = doc.createElement("div"); k.className = "x-key";
               k.innerHTML = '<button type="button" class="x-step press" aria-label="Decrease ' + esc(s.label) + '">−</button><span><small>' + esc(s.label) + "</small><b>" + s.fmt(+s.inp.value) + '</b></span><button type="button" class="x-step press" aria-label="Increase ' + esc(s.label) + '">+</button>';
               var b = k.querySelectorAll("button"), v = $("b", k);
@@ -4510,6 +4510,240 @@
               env.keys.push({ t: "Pour", label: "Pour the tiles into the square on the long side", fn: function () { act.children[0].click(); } });
               env.keys.push({ t: "Reset", label: "Put the tiles back on the short sides", fn: function () { act.children[1].click(); } });
               env.spin = true; env.view(0.6, 0.85); layout();
+            }
+          },
+          {
+            id: "fourviews3d", name: "Four Views Theatre", day: "b2-views", n: "04", level: "foundlab", warm: true, hue: ["#3ddbd9", "#ffd23f"],
+            kicker: "FOUNDATIONS · ONE RELATIONSHIP, FOUR VIEWS",
+            idea: "A phone plan — $15 + $5 per GB — shown on four glowing stage panels at once; move one slider and every view moves together.",
+            cap: "Four panels tell the same phone plan four ways: a sentence, a table, a bar graph and a rule. The GB slider lights the same moment in all four. Change the start or the price per GB and every panel rewrites at once — they're one relationship.",
+            see: "The base slab is the $15 start; each new bar is one more GB adding $5.",
+            why: "Real problems arrive in one costume (a story, a spreadsheet, a chart, a formula). Seeing all four move together trains you to translate between them. It hides that not every relationship is a straight climb — the Straight or Curved lesson shows the bending kind.",
+            use: "Comparing phone plans, gym memberships, rideshare fares, hourly pay plus tips.",
+            build: function (box, ctl, env) {
+              var T = env.THREE, R = 7, PW = 3.2, PH = 2.4, ANG = [-45, -15, 15, 45].map(function (d) { return (d * Math.PI) / 180; });
+              var st = { g: 3, b: 15, m: 5, spot: 0, sc: 0.01 }, arc = new T.Group(), panels = [], FONT = " Geist, system-ui, sans-serif";
+              env.scene.add(arc); arc.position.set(0, 0, R - 1); galLights(env); labFloor(env, 24);
+              /* a thin rounded slab, shared by the four panels */
+              var sh = new T.Shape(), w = PW / 2, h = PH / 2, q = 0.18;
+              sh.moveTo(-w + q, -h); sh.lineTo(w - q, -h); sh.quadraticCurveTo(w, -h, w, -h + q); sh.lineTo(w, h - q); sh.quadraticCurveTo(w, h, w - q, h);
+              sh.lineTo(-w + q, h); sh.quadraticCurveTo(-w, h, -w, h - q); sh.lineTo(-w, -h + q); sh.quadraticCurveTo(-w, -h, -w + q, -h);
+              var slabG = new T.ExtrudeGeometry(sh, { depth: 0.06, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2, curveSegments: 6 }); slabG.center();
+              var faceG = new T.PlaneGeometry(PW, PH);
+              ["STORY", "TABLE", "GRAPH", "RULE"].forEach(function (nm, i) {
+                var p = new T.Group(); p.position.set(R * Math.sin(ANG[i]), 1.5, -R * Math.cos(ANG[i])); p.rotation.y = -ANG[i];
+                var slab = new T.Mesh(slabG, new T.MeshStandardMaterial({ color: 0x141c3e, emissive: 0x3ddbd9, emissiveIntensity: 0.08, roughness: 0.5, metalness: 0.2 }));
+                var c = doc.createElement("canvas"); c.width = 512; c.height = 384;
+                var tex = new T.CanvasTexture(c), fm = new T.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
+                var fd = fm.dispose.bind(fm); fm.dispose = function () { tex.dispose(); fd(); };
+                var face = new T.Mesh(faceG, fm); face.position.z = 0.07;
+                p.add(slab, face); arc.add(p); panels.push({ g: p, slab: slab, x: c.getContext("2d"), tex: tex, nm: nm });
+              });
+              /* the graph panel's 3D bars: a cyan start slab plus a gold rise per GB */
+              var unit = new T.BoxGeometry(0.17, 1, 0.17); unit.translate(0, 0.5, 0);
+              var GX = function (k) { return -1.25 + k * 0.25; }, GY = -0.72, GZ = 0.2, bars = [];
+              for (var k = 0; k <= 10; k++) {
+                var bs = new T.Mesh(unit, galMat(T, 0x3ddbd9)), tp = new T.Mesh(unit, galMat(T, 0xffd23f));
+                bs.position.set(GX(k), GY, GZ); tp.position.set(GX(k), GY, GZ); panels[2].g.add(bs, tp); bars.push([bs, tp]);
+              }
+              var lp = new Float32Array(33), ln = env.line(lp, 0xfff2b0, 0.95), dot = env.glow(new Float32Array(3), new Float32Array([1, 0.85, 0.3]), 0.22);
+              ln.frustumCulled = false; panels[2].g.add(ln, dot);
+              /* the gold beam and its spotlight */
+              var coneG = new T.ConeGeometry(1, 1, 32, 1, true); coneG.translate(0, -0.5, 0);
+              var beam = new T.Mesh(coneG, new T.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: 0.14, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide }));
+              var spot = new T.SpotLight(0xffd23f, 40, 20, 0.4, 0.5, 1); env.scene.add(beam, spot, spot.target);
+              function bg(x, nm) {
+                x.clearRect(0, 0, 512, 384); x.fillStyle = "rgba(20,30,70,0.55)"; x.beginPath();
+                if (x.roundRect) x.roundRect(6, 6, 500, 372, 26); else x.rect(6, 6, 500, 372); x.fill();
+                x.textAlign = "left"; x.textBaseline = "middle"; x.font = "600 22px" + FONT; x.fillStyle = "#7fe9e7"; x.fillText(nm, 28, 36);
+              }
+              function txt(x, s, px, py, font, col, al) { x.font = font + FONT; x.fillStyle = col; x.textAlign = al || "left"; x.fillText(s, px, py, 470); }
+              function paint() {
+                var g = st.g, b = st.b, m = st.m, cost = b + m * g, P = panels, x = P[0].x, r, lo = Math.max(0, g - 6);
+                bg(x, "STORY");
+                txt(x, "A phone plan costs $" + b + " to start,", 28, 104, "400 26px", "#c8d4ff"); txt(x, "plus $" + m + " for every GB.", 28, 140, "400 26px", "#c8d4ff");
+                txt(x, "Using " + g + " GB costs", 28, 222, "600 40px", "#ffffff"); txt(x, "$" + cost, 28, 300, "600 72px", "#ffd23f");
+                x = P[1].x; bg(x, "TABLE"); txt(x, "GB", 150, 84, "500 20px", "#9fb4ff", "center"); txt(x, "cost", 360, 84, "500 20px", "#9fb4ff", "center");
+                for (r = 0; r < 7; r++) {
+                  var kk = lo + r, y = 122 + r * 36, on = kk === g;
+                  if (on) { x.fillStyle = "rgba(255,210,63,0.22)"; x.fillRect(40, y - 17, 432, 34); }
+                  txt(x, String(kk), 150, y, (on ? "600" : "400") + " 26px", on ? "#ffd23f" : "#ffffff", "center"); txt(x, "$" + (b + m * kk), 360, y, (on ? "600" : "400") + " 26px", on ? "#ffd23f" : "#ffffff", "center");
+                }
+                x = P[2].x; bg(x, "GRAPH");
+                x.fillStyle = "#3ddbd9"; x.fillRect(236, 28, 16, 16); txt(x, "start $" + b, 260, 36, "500 18px", "#c8d4ff");
+                x.fillStyle = "#ffd23f"; x.fillRect(372, 28, 16, 16); txt(x, "+$" + m + " / GB", 396, 36, "500 18px", "#c8d4ff");
+                x.strokeStyle = "rgba(200,212,255,0.5)"; x.lineWidth = 2; x.beginPath(); x.moveTo(40, 307); x.lineTo(472, 307); x.stroke();
+                [0, 5, 10].forEach(function (kk) { txt(x, kk === 10 ? "10 GB" : String(kk), ((GX(kk) + 1.6) / 3.2) * 512, 340, "400 20px", "#9fb4ff", "center"); });
+                x = P[3].x; bg(x, "RULE");
+                txt(x, "cost = " + b + " + " + m + " × g", 256, 124, "600 44px", "#ffffff", "center");
+                txt(x, "= " + b + " + " + m + " × " + g, 256, 200, "500 40px", "#c8d4ff", "center"); txt(x, "= $" + cost, 256, 290, "600 72px", "#ffd23f", "center");
+                P.forEach(function (p) { p.tex.needsUpdate = true; });
+                env.read.innerHTML = '<b class="x-mg-big">' + esc("Using " + g + " GB costs $" + cost) + "</b>" + esc("cost = " + b + " + " + m + " × " + g + " · tap a panel to spotlight it");
+              }
+              function setSpot(i) { st.spot = i; env.frame(1.8, 6, 2.7); }
+              var cur = { r: 0, ap: new T.Vector3(), tg: new T.Vector3(), init: false }, wp = new T.Vector3(), apx = new T.Vector3(), dn = new T.Vector3(0, -1, 0), dir = new T.Vector3();
+              env.tick(function (dt, t) {
+                cur.r += (ANG[st.spot] * 0.6 - cur.r) * Math.min(1, dt * 2.5);
+                arc.rotation.y = cur.r + 0.05 * Math.sin(t * 0.35);
+                panels[st.spot].g.getWorldPosition(wp); apx.copy(wp).add(dir.set(0, 5, 3));
+                var e = cur.init ? Math.min(1, dt * 4) : 1; cur.init = true; cur.ap.lerp(apx, e); cur.tg.lerp(wp, e);
+                dir.subVectors(cur.tg, cur.ap); var L = dir.length();
+                beam.position.copy(cur.ap); beam.quaternion.setFromUnitVectors(dn, dir.normalize()); beam.scale.set(1.8, L, 1.8);
+                beam.material.opacity = 0.12 + 0.03 * Math.sin(t * 2); spot.position.copy(cur.ap); spot.target.position.copy(cur.tg);
+                panels.forEach(function (p, i) {
+                  var mt = p.slab.material, on = i === st.spot; mt.emissive.setHex(on ? 0xffd23f : 0x3ddbd9);
+                  mt.emissiveIntensity += ((on ? 0.45 : 0.08) - mt.emissiveIntensity) * Math.min(1, dt * 4);
+                });
+                st.sc += (1.55 / Math.max(1, st.b + st.m * 10) - st.sc) * Math.min(1, dt * 4);
+                bars.forEach(function (bb, kk) {
+                  var hb = st.b * st.sc, ht = st.m * kk * st.sc, lit = kk === st.g ? 1.1 + 0.25 * Math.sin(t * 4) : kk < st.g ? 0.4 : 0.15;
+                  bb[0].scale.y = Math.max(0.001, hb); bb[0].visible = hb > 0.002;
+                  bb[1].position.y = GY + hb; bb[1].scale.y = Math.max(0.001, ht); bb[1].visible = ht > 0.002;
+                  bb[0].material.emissiveIntensity = bb[1].material.emissiveIntensity = lit;
+                  lp.set([GX(kk), GY + hb + ht + 0.01, GZ], kk * 3);
+                  if (kk === st.g) dot.position.set(GX(kk), GY + hb + ht + 0.01, GZ);
+                });
+                ln.geometry.attributes.position.needsUpdate = true;
+              });
+              /* tap a panel (not a drag) to move the spotlight to it */
+              var ray = new T.Raycaster(), nd = new T.Vector2(), down = null, slabs = panels.map(function (p) { return p.slab; });
+              env.on(box, "pointerdown", function (e) { down = { x: e.clientX, y: e.clientY }; });
+              env.on(box, "pointerup", function (e) {
+                if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) { down = null; return; } down = null;
+                var rc = box.getBoundingClientRect(); nd.set(((e.clientX - rc.left) / rc.width) * 2 - 1, -((e.clientY - rc.top) / rc.height) * 2 + 1);
+                ray.setFromCamera(nd, env.camera); var hit = ray.intersectObjects(slabs, false)[0];
+                if (hit) setSpot(slabs.indexOf(hit.object));
+              });
+              env.slider("GB", 0, 10, 1, st.g, function (v) { return v + " GB"; }, function (v) { st.g = v; paint(); });
+              env.slider("Start", 0, 30, 1, st.b, function (v) { return "$" + v; }, function (v) { st.b = v; paint(); });
+              env.slider("Per GB", 0, 10, 1, st.m, function (v) { return "$" + v; }, function (v) { st.m = v; paint(); });
+              env.buttons([{ t: "Spotlight", fn: function () { setSpot((st.spot + 1) % 4); } }]);
+              var act = ctl.lastElementChild;
+              env.keys.push({ t: "Spotlight", label: "Move the spotlight to the next panel", fn: function () { act.children[0].click(); } });
+              env.stepN = 3; env.spin = false; env.frame(1.8, 6, 3); env.view(0, 0.22); paint();
+            }
+          },
+          {
+            id: "dicegrid3d", name: "Sample Space City", day: "b6-grid", n: "05", level: "foundlab", warm: true, hue: ["#ffd23f", "#ff4d6d"],
+            kicker: "FOUNDATIONS · EVERY POSSIBILITY, COUNTED",
+            idea: "Two dice make a 6 × 6 city of 36 tiles; roll and each outcome raises its tower — and the totals' skyline peaks at 7.",
+            cap: "A board of 36 tiles: every way two dice can land, from (1,1) to (6,6). Each roll raises its tile. Color by total and the diagonals appear; build the skyline and the tiles stack into a triangle peaking at 7 — six of the 36 cells make 7.",
+            see: "Each tile is one equally likely outcome; a total's chance is how many tiles make it, out of 36.",
+            why: "Listing the whole sample space turns probability into counting, and the skyline shows why 7 wins in every dice game. It hides that real rolls wobble — the random rolls only approach the triangle as the count grows.",
+            use: "Board games and casinos, password and PIN combinations, menu combos, genetics squares.",
+            build: function (box, ctl, env) {
+              var T = env.THREE, root = new T.Group(); env.scene.add(root); galLights(env);
+              var st = { n: 0, tot: [], color: false, sky: false, roll: null, rest: null, last: null, land: 0 }, tiles = [], dice = [], cols = [], colN = [];
+              var BAND = [0xffd23f, 0xff9f43, 0xff4d6d, 0xc45bff, 0x6f7bff, 0x3ddbd9], PLAIN = 0x34437e, FONT = " Geist, system-ui, sans-serif";
+              function canvasMat(draw, Mat, o) {
+                var c = doc.createElement("canvas"); c.width = c.height = 128; draw(c.getContext("2d"));
+                var tex = new T.CanvasTexture(c); o.map = tex; var m = new Mat(o), md = m.dispose.bind(m); m.dispose = function () { tex.dispose(); md(); }; return m;
+              }
+              /* a rounded tower: an extruded rounded square, 1 unit tall, base at y = 0 */
+              var sh = new T.Shape(), a0 = 0.4, q = 0.1;
+              sh.moveTo(-a0 + q, -a0); sh.lineTo(a0 - q, -a0); sh.quadraticCurveTo(a0, -a0, a0, -a0 + q); sh.lineTo(a0, a0 - q); sh.quadraticCurveTo(a0, a0, a0 - q, a0);
+              sh.lineTo(-a0 + q, a0); sh.quadraticCurveTo(-a0, a0, -a0, a0 - q); sh.lineTo(-a0, -a0 + q); sh.quadraticCurveTo(-a0, -a0, -a0 + q, -a0);
+              var geo = new T.ExtrudeGeometry(sh, { depth: 0.9, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.04, bevelSegments: 3, curveSegments: 4 }); geo.rotateX(-Math.PI / 2);
+              geo.computeBoundingBox(); var bb = geo.boundingBox; geo.translate(0, -bb.min.y, 0); geo.scale(1, 1 / (bb.max.y - bb.min.y), 1);
+              var labG = new T.PlaneGeometry(0.62, 0.62).rotateX(-Math.PI / 2);
+              var base = new T.Mesh(new T.BoxGeometry(6.7, 0.16, 6.7), new T.MeshStandardMaterial({ color: 0x141c3e, roughness: 0.8, metalness: 0.1 })); base.position.y = -0.08; root.add(base);
+              function bpos(a, b) { return new T.Vector3(a - 3.5, 0, 3.5 - b); }
+              for (var a = 1; a <= 6; a++) for (var b = 1; b <= 6; b++) (function (a, b) {
+                var s = a + b, k = colN[s] = colN[s] || 0; colN[s]++;
+                var g = new T.Group(), tower = new T.Mesh(geo, new T.MeshStandardMaterial({ color: PLAIN, emissive: PLAIN, emissiveIntensity: 0.2, roughness: 0.4, metalness: 0.1 }));
+                var lab = new T.Mesh(labG, canvasMat(function (x) { x.font = "600 64px" + FONT; x.textAlign = "center"; x.textBaseline = "middle"; x.fillStyle = "#fff"; x.fillText(String(s), 64, 68); }, T.MeshBasicMaterial, { transparent: true, depthWrite: false }));
+                g.add(tower, lab); g.position.copy(bpos(a, b)); root.add(g);
+                tiles.push({ g: g, tower: tower, lab: lab, a: a, b: b, s: s, n: 0, h: 0.3, glow: 0, home: bpos(a, b), sky: new T.Vector3((s - 7) * 0.95, k * 0.5, 5.6), from: new T.Vector3(), to: new T.Vector3(), p: 1, dl: 0 });
+              })(a, b);
+              for (var i = 1; i <= 6; i++) {
+                var s1 = labSprite(T, "#ffd23f", 0.42).text(String(i)), s2 = labSprite(T, "#ff4d6d", 0.42).text(String(i));
+                s1.position.set(i - 3.5, 0.1, 3.9); s2.position.set(-3.9, 0.1, 3.5 - i); root.add(s1, s2);
+              }
+              var t1 = labSprite(T, "#ffd23f", 0.34).text("Die 1"), t2 = labSprite(T, "#ff4d6d", 0.34).text("Die 2");
+              t1.position.set(0, 0.1, 4.5); t2.position.set(-4.6, 0.1, 0); root.add(t1, t2);
+              for (var c = 2; c <= 12; c++) { var cl = labSprite(T, c === 7 ? "#ffd23f" : "#c8d4ff", 0.5).text(String(c)); cl.position.set((c - 7) * 0.95, 0.25, 6.5); cl.visible = false; root.add(cl); cols.push(cl); }
+              /* two rounded-cube dice with pip faces (+x 3, −x 4, +y 1, −y 6, +z 2, −z 5) */
+              var dg = new T.BoxGeometry(0.42, 0.42, 0.42, 5, 5, 5), dp = dg.attributes.position, v3 = new T.Vector3(), c3 = new T.Vector3(), hh = 0.21 - 0.08;
+              for (i = 0; i < dp.count; i++) {
+                v3.fromBufferAttribute(dp, i); c3.set(Math.max(-hh, Math.min(hh, v3.x)), Math.max(-hh, Math.min(hh, v3.y)), Math.max(-hh, Math.min(hh, v3.z)));
+                v3.sub(c3).normalize().multiplyScalar(0.08).add(c3); dp.setXYZ(i, v3.x, v3.y, v3.z);
+              }
+              dg.computeVertexNormals();
+              var PIP = { 1: [[1, 1]], 2: [[0, 0], [2, 2]], 3: [[0, 0], [1, 1], [2, 2]], 4: [[0, 0], [2, 0], [0, 2], [2, 2]], 5: [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]], 6: [[0, 0], [2, 0], [0, 1], [2, 1], [0, 2], [2, 2]] };
+              var ROT = { 1: [0, 0], 6: [Math.PI, 0], 2: [-Math.PI / 2, 0], 5: [Math.PI / 2, 0], 3: [0, Math.PI / 2], 4: [0, -Math.PI / 2] };
+              ["#d9a400", "#ff4d6d"].forEach(function (col) {
+                var mats = [3, 4, 1, 6, 2, 5].map(function (fv) {
+                  return canvasMat(function (x) { x.fillStyle = "#fff8e6"; x.fillRect(0, 0, 128, 128); x.fillStyle = col; PIP[fv].forEach(function (p) { x.beginPath(); x.arc(28 + p[0] * 36, 28 + p[1] * 36, 12, 0, 7); x.fill(); }); }, T.MeshStandardMaterial, { roughness: 0.35, metalness: 0.05 });
+                });
+                var grp = new T.Group(), m = new T.Mesh(dg, mats); grp.add(m); grp.visible = false; root.add(grp);
+                dice.push({ g: grp, m: m, from: new T.Vector3(), to: new T.Vector3(), spin: new T.Vector3(), v: 1 });
+              });
+              function hideDice() { st.roll = null; st.rest = null; dice.forEach(function (d) { d.g.visible = false; }); }
+              function recolor() { tiles.forEach(function (t) { var cc = st.color ? BAND[Math.abs(t.s - 7)] : PLAIN; t.tower.material.color.setHex(cc); t.tower.material.emissive.setHex(cc); }); }
+              function paint() {
+                var big = "Rolls: " + st.n + (st.last ? " · last (" + st.last.a + ", " + st.last.b + ") = " + st.last.s : ""), sub;
+                if (st.sky) sub = "Every tile stacked by its total: 1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1 — six of the 36 make 7.";
+                else if (st.n >= 20) {
+                  var best = 0, top = [];
+                  for (var s = 2; s <= 12; s++) { var k = st.tot[s] || 0; if (k > best) { best = k; top = [s]; } else if (k === best) top.push(s); }
+                  sub = "Most common total so far: " + top.join(" & ") + " (" + best + " of " + st.n + " rolls).";
+                } else sub = st.n ? "Keep rolling: the most common total shows after 20 rolls." : "Tap Roll: each roll raises the tile for its pair.";
+                env.read.innerHTML = '<b class="x-mg-big">' + esc(big) + "</b>" + esc(sub);
+              }
+              function count(t) { t.n++; t.glow = 1; st.n++; st.tot[t.s] = (st.tot[t.s] || 0) + 1; st.last = t; }
+              function pick() { return tiles[Math.floor(Math.random() * 36)]; }
+              function sky(on) {
+                st.sky = on; st.land = 0; hideDice(); cols.forEach(function (cl) { cl.visible = false; });
+                tiles.forEach(function (t, i) {
+                  t.from.copy(t.g.position); t.to.copy(on ? t.sky : t.home); t.p = 0;
+                  t.dl = on ? (t.sky.y / 0.5) * 0.25 + (t.s - 2) * 0.04 : i * 0.02;
+                });
+                if (on) env.frame(1, 12.5, 1.25); else env.frame(0.6, 9.5, 1.15); paint();
+              }
+              function roll() {
+                if (st.sky) skyBtn.click(); if (st.roll) return;
+                var t = pick(); st.roll = { t: t, p: 0 }; st.rest = null;
+                dice.forEach(function (d, i) {
+                  d.v = i ? t.b : t.a; d.g.visible = true; d.from.set(-5 + i * 0.6, 4.5, 4.5 - i * 0.5); d.g.rotation.y = Math.random() * 6.28;
+                  d.spin.set((Math.random() * 2 + 2) * Math.PI, Math.random() * 2 * Math.PI, (Math.random() * 2 + 2) * Math.PI);
+                });
+              }
+              function batch() { if (st.sky) skyBtn.click(); hideDice(); for (var j = 0; j < 50; j++) count(pick()); paint(); }
+              function reset() { if (st.sky) skyBtn.click(); hideDice(); tiles.forEach(function (t) { t.n = 0; }); st.n = 0; st.tot = []; st.last = null; paint(); }
+              function diceOn(t) { dice.forEach(function (d, i) { d.to.set(t.g.position.x + (i ? 0.22 : -0.22), t.g.position.y + t.h + 0.21, t.g.position.z); }); }
+              env.tick(function (dt, tm) {
+                var mx = 1; tiles.forEach(function (t) { mx = Math.max(mx, t.n); }); var sp = Math.min(0.32, 3.2 / mx);
+                if (st.roll) {
+                  var r = st.roll; r.p = Math.min(1, r.p + dt / 0.9); var e = r.p * r.p * (3 - 2 * r.p); diceOn(r.t);
+                  dice.forEach(function (d) {
+                    d.g.position.lerpVectors(d.from, d.to, e); d.g.position.y += Math.sin(Math.PI * r.p) * 2.2;
+                    var R = ROT[d.v]; d.m.rotation.set(R[0] + d.spin.x * (1 - e), d.spin.y * (1 - e), R[1] + d.spin.z * (1 - e));
+                  });
+                  if (r.p >= 1) { count(r.t); st.rest = r.t; st.roll = null; paint(); }
+                } else if (st.rest) { diceOn(st.rest); dice.forEach(function (d) { d.g.position.copy(d.to); }); }
+                tiles.forEach(function (t) {
+                  if (t.p < 1) {
+                    t.dl -= dt;
+                    if (t.dl <= 0) {
+                      t.p = Math.min(1, t.p + dt / 0.9); var e = t.p * t.p * (3 - 2 * t.p);
+                      t.g.position.lerpVectors(t.from, t.to, e); t.g.position.y += Math.sin(Math.PI * t.p) * 1.6;
+                      if (t.p >= 1 && st.sky && ++st.land >= 36) cols.forEach(function (cl) { cl.visible = true; });
+                    }
+                  }
+                  var hT = st.sky ? 0.42 : 0.3 + t.n * sp; t.h += (hT - t.h) * Math.min(1, dt * 6);
+                  t.tower.scale.y = t.h; t.lab.position.y = t.h + 0.015; t.glow = Math.max(0, t.glow - dt * 0.8);
+                  t.tower.material.emissiveIntensity = (st.color ? 0.35 : 0.18) + t.glow * 0.9 + (st.color && t.s === 7 ? 0.15 + 0.1 * Math.sin(tm * 3) : 0);
+                });
+                root.position.z += ((st.sky ? -2.6 : 0) - root.position.z) * Math.min(1, dt * 3);
+              });
+              env.buttons([{ t: "Roll", fn: roll }, { t: "Roll ×50", fn: batch }, { t: "Reset", fn: reset }]);
+              var act = ctl.lastElementChild;
+              env.buttons([{ t: "Color by total", on: false, fn: function (v) { st.color = v; recolor(); } }, { t: "Build skyline", on: false, fn: sky }]);
+              var skyBtn = ctl.lastElementChild.children[1];
+              env.keys.push({ t: "Roll", label: "Roll two dice", fn: function () { act.children[0].click(); } });
+              env.keys.push({ t: "×50", label: "Roll 50 times", fn: function () { act.children[1].click(); } });
+              env.keys.push({ t: "Skyline", label: "Build the skyline of totals", fn: function () { skyBtn.click(); } });
+              env.spin = true; env.view(0.5, 0.75); env.frame(0.6, 9.5, 1.15); paint();
             }
           },
           /* ============ GRAPH GALLERY: showpiece, full-color graphs ============ */
