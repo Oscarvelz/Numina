@@ -1542,6 +1542,8 @@
           "EXP-DOUBLE-SIDE-DOUBLE-AREA": "Area uses two lengths, so doubling both sides multiplies area by 2² = 4. Tripling both sides multiplies it by 9.",
           "EXPG-SAME-AMOUNT": "A percent grows on the new total each year, so the raise gets bigger every year: $100, $105, $110.25…",
           "EXPG-DECAY-REACHES-ZERO": "Each half-life removes half of what's LEFT: after 2 half-lives ¼ remains, after 3 it's ⅛. It fades but doesn't vanish on schedule.",
+          "CI-SIMPLE-ADD": "Compound interest isn't rate × years. Each year earns interest on last year's interest, so 10 years at 4% is ×1.48, not ×1.40.",
+          "CI-SMALL-RATE-GAP": "Over long stretches a 1-point rate difference compounds into thousands. Shop the rate on savings AND on debt.",
           "FUNC-IN-OUT-SWAP": "f(11) means feed 11 in, not find what gives 11: with f(x) = 2x + 3, f(11) = 2 × 11 + 3 = 25. The 4 solves 2x + 3 = 11, which runs the machine backward.",
           "SYS-CROSS-MEANS-CHEAPER": "The crossing is where the plans are equal, not where one wins: at month 5 both gyms cost $200. Before it B is cheaper; after it A is.",
           "INEQ-EXACT-ONLY": "“At most $60” is a range, not one exact value, and you round in the safe direction: at $6.75 a pack, 18 + 6.75p ≤ 60 gives p ≤ 6.2, so at most 6 packs. 7 packs is $65.25, over the limit.",
@@ -6315,6 +6317,11 @@
             see: "The curve halving. 200 mg at 8 AM, 100 at 1 PM, 50 at 6 PM, 25 at 11 PM, 12.5 at 4 AM. Each dashed marker is one more × ½. amount = start × factor^steps: 200 × ½³ = 25.",
             why: "Each step takes a percent of what’s left, not a fixed amount. So growth speeds up (5% of a bigger rent is more dollars) and decay slows down (half of a smaller amount is less), but never quite hits zero.",
             use: "Caffeine and meds, savings, rent, inflation: anything that changes by a percent each step." },
+          compound: { term: "Interest on interest", svg: svgCI, scene: "ciskyline", short: "Each year’s interest is figured on a bigger balance.",
+            alt: "$5,000 at 4% over 30 years: a straight simple-interest line and a compound curve pulling away above it, the gold gap between them labelled interest on interest",
+            see: "The gold curve pulling away from the straight line. The straight line adds the same $200 every year; the curve adds 4% of a balance that keeps growing. The gold gap is interest earned on earlier interest.",
+            why: "Each year’s interest is figured on a bigger balance, so the raise itself grows. The gap is tiny early ($401 after 10 years) and huge later: time does the heavy lifting.",
+            use: "Savings and retirement accounts, and debt: on a credit card it works against you just as hard." },
           number: { term: "Number", svg: svgNumber, short: "Keeps only how many.",
             alt: "A cookie, a music note and a calendar day become three identical dots, then the numeral 3",
             see: "Three unlike things (a cookie, a song, a day) turn into three identical dots, then one mark: 3. Each dot stands for one thing; the numeral stands for the whole group.",
@@ -8157,6 +8164,70 @@
           $(".x-go", card).addEventListener("click", check);
           [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
           $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "2205"; check(); } if (st === 1) { b.value = "2315.25"; check(); } });
+          paint();
+        }
+        /* Day 18 compound interest: $5,000 at r% a year. Compound = 5000 × (1 + r)^t, simple = 5000 × (1 + r·t); 4% for 10 years → $7,401 vs $7,000 */
+        var LAB_CISKY = '<button type="button" class="start press x-3dbtn" data-scene="ciskyline">Walk the Compound Interest Skyline in the Lab</button>';
+        function ciC(r, t) { return 5000 * Math.pow(1 + r / 100, t); }
+        function ciS(r, t) { return 5000 * (1 + r / 100 * t); }
+        function ciUSD(v) { return "$" + Math.round(v).toLocaleString("en-US"); }
+        function ciX(t) { return +(40 + t * 7.6).toFixed(1); }
+        /* x runs 0–30 years; y fits the 30-year compound value at this rate, so the gap's growth stays visible */
+        function ciSVG(r, t, head) {
+          var m = ciC(r, 30) * 1.05, p = Math.pow(10, Math.floor(Math.log10(m))), top = Math.ceil(m / p * 2) / 2 * p, k, h;
+          var Y = function (v) { return +(166 - v / top * 130).toFixed(1); }, kf = function (v) { return "$" + +(v / 1000).toFixed(1) + "k"; };
+          var s = SVG_OPEN(196), cAll = "", cNow = "", gap = "";
+          s += '<path d="M40 166H276M40 166V30" stroke-opacity=".5"/>';
+          [top / 2, top].forEach(function (v) { s += '<path d="M40 ' + Y(v) + 'H276" stroke-opacity=".12"/>' + LBL(34, Y(v) + 4, kf(v), "text-anchor:end;font-size:12px"); });
+          s += LBL(34, 170, "$0", "text-anchor:end;font-size:12px");
+          for (k = 0; k <= 30; k += 10) s += LBL(ciX(k), 184, k ? k + " yr" : "0", "font-size:12px");
+          for (k = 0; k <= 60; k++) { h = k / 2; cAll += (k ? "L" : "M") + ciX(h) + " " + Y(ciC(r, h)); if (h <= t) cNow += (k ? "L" : "M") + ciX(h) + " " + Y(ciC(r, h)); }
+          s += '<path d="' + cAll + '" stroke-opacity=".2"/><path d="M' + ciX(0) + " " + Y(5000) + "L" + ciX(30) + " " + Y(ciS(r, 30)) + '" stroke-opacity=".2" stroke-dasharray="4 4"/>';
+          if (t > 0) {
+            gap = cNow + "L" + ciX(t) + " " + Y(ciS(r, t)) + "L" + ciX(0) + " " + Y(5000) + "Z";
+            s += '<path d="' + gap + '" stroke="none" style="fill:var(--gold);fill-opacity:.28"/>';
+            s += '<path d="M' + ciX(0) + " " + Y(5000) + "L" + ciX(t) + " " + Y(ciS(r, t)) + '" stroke-width="2.5" style="stroke:var(--cyan)"/>';
+            s += '<path d="' + cNow + '" stroke-width="3" style="stroke:var(--gold)"/>';
+            if (ciC(r, t) - ciS(r, t) >= 1) s += ciX(t) > 170 ? LBL(ciX(t) - 10, (Y(ciS(r, t)) + Y(ciC(r, t))) / 2 + 4, "interest on interest", "text-anchor:end;font-size:12px;fill:var(--gold);font-weight:600")
+              : LBL(ciX(t) + 10, Y(ciC(r, t)) - 4, "← interest on interest", "text-anchor:start;font-size:12px;fill:var(--gold);font-weight:600");
+          }
+          s += '<circle cx="' + ciX(t) + '" cy="' + Y(ciS(r, t)) + '" r="5" stroke="none" style="fill:var(--cyan)"/><circle cx="' + ciX(t) + '" cy="' + Y(ciC(r, t)) + '" r="6" stroke="none" style="fill:var(--gold)"/>';
+          return s + LBL(160, 16, head || "Compound " + ciUSD(ciC(r, t)) + " · simple " + ciUSD(ciS(r, t)), "font-weight:600" + (head || (r === 4 && t === 10) ? ";fill:var(--ok)" : "")) + "</svg>";
+        }
+        /* the plate: 4% over 30 years, where the gap is wide */
+        function svgCI() { return ciSVG(4, 30, "Interest on interest: the gold gap"); }
+        function ciName() {
+          return SVG_OPEN(150) + LBL(150, 26, "A = P · (1 + r/n)ⁿᵗ", "font-weight:600;font-size:18px") + LBL(150, 54, "P start · r yearly rate") +
+            LBL(150, 78, "n times a year · t years") + LBL(150, 104, "APY already counts the compounding") + LBL(150, 132, "5,000 × 1.04¹⁰ = $7,401", "font-weight:600;fill:var(--ok)") + "</svg>";
+        }
+        /* Day 18 play: Rate 0–10% (0.5) and Years 0–30. Solved when he stops on 4% and 10 years */
+        function ciPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), ins = card.querySelectorAll(".x-ctl input"), rr = ins[0], ty = ins[1], res = $(".x-res", card), done = !!api.solved;
+          function paint(stop) {
+            var r = +rr.value, t = +ty.value, c = ciC(r, t), si = ciS(r, t), hit = r === 4 && t === 10;
+            if (stop && hit && !done) { done = true; api.solve(10); }
+            box.innerHTML = ciSVG(r, t);
+            out.textContent = r + "% for " + t + " year" + (t === 1 ? "" : "s") + ": compound " + ciUSD(c) + ", simple " + ciUSD(si) + ", gap " + ciUSD(c - si) + "." + (hit ? " That’s the $401 of interest on interest." : done ? "" : " Try 4% for 10 years.");
+            res.hidden = !done;
+          }
+          [rr, ty].forEach(function (i) { i.addEventListener("input", function () { paint(false); }); i.addEventListener("change", function () { paint(true); }); });
+          $(".x-do", card).addEventListener("click", function () { rr.value = 4; ty.value = 10; paint(true); });
+          if (done) { rr.value = 4; ty.value = 10; }
+          paint(false);
+        }
+        /* Day 18 build: $1,000 at 7%: 20 years ($3,869.68) first, then 30 years ($7,612.26); ±$2 accepted */
+        function ciBuild(card, api) {
+          var a = $(".x-a", card), b = $(".x-b", card), two = $(".x-st2", card), res = $(".x-res", card), h = $(".x-hint", card), st = api.solved ? 2 : 0;
+          function num(i) { return parseFloat(i.value.replace(/[$,\s]/g, "")); }
+          function paint() { a.disabled = st > 0; b.disabled = st !== 1; two.hidden = st < 1; res.hidden = st < 2; if (st > 0) a.value = "3,870"; if (st > 1) b.value = "7,612"; }
+          function check() {
+            if (st === 0) { if (Math.abs(num(a) - 3869.68) <= 2) { st = 1; h.hidden = true; } else { h.innerHTML = "<b>Hint:</b> 1,000 × 1.07^years: here 1,000 × 1.07²⁰. Not 1,000 + 20 × $70."; h.hidden = false; } }
+            else if (st === 1) { if (Math.abs(num(b) - 7612.26) <= 2) { st = 2; h.hidden = true; api.solve(10); } else { h.innerHTML = "<b>Hint:</b> 1,000 × 1.07^years: here 1,000 × 1.07³⁰."; h.hidden = false; } }
+            paint();
+          }
+          $(".x-go", card).addEventListener("click", check);
+          [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
+          $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "3870"; check(); } if (st === 1) { b.value = "7612"; check(); } });
           paint();
         }
         /* Day 22 proof puzzle: a 7 × 7 square (a = 3, b = 4), 26px a unit; four legs-3-4 triangles, each [x1, y1, x2, y2, turn]: corners (st 0) → two rectangles (st 1), translation only */
@@ -12488,6 +12559,103 @@
                 body: "<ul><li><b>Percent change = multiply each step.</b> amount = start × factor^steps: 200 × ½³ = 25 mg.</li><li><b>Growth speeds up.</b> Rent raises: $100, $105, $110.25.</li>" +
                   "<li><b>Decay slows down but never quite hits zero.</b> After 2 half-lives ¼ is left; after 5, about 3%.</li><li><b>Rule of 72 for doubling, half-life for fading.</b> 8% doubles in about 9 years.</li></ul>" +
                   '<p class="x-so"><b>So:</b> When something changes by a percent, multiply each step: growth speeds up, decay fades but lingers.</p>' + LAB_RACE }
+            ]
+          },
+          /* Day 18: compound interest. $5,000 at 4% for 10 years = $7,401 (simple: $7,000); $1,000 at 7%: 20 yr $3,870, 30 yr $7,612 */
+          18: {
+            home: ["Compound Interest", "why starting 10 years earlier nearly doubles your money."],
+            flow: true,
+            scene: "ciskyline",
+            steps: [
+              { kind: "predict", title: "Leave it alone",
+                body: '<p class="x-q">You put $5,000 in a savings account that pays 4% a year, then leave it alone for 10 years. What’s there at the end?</p>' +
+                  ["$5,000", "$7,000", "About $7,400"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden>' + cpBox(ciSVG(4, 10), "Year 10: compound $7,401 · simple $7,000", "Compound curve reaches $7,401 after 10 years; the simple-interest line reaches $7,000") +
+                  '<p class="why"><b>$7,401.</b> 5,000 × 1.04¹⁰ = $7,401.22. $7,000 would be simple interest: $200 a year, never growing.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l18save", 2)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "Straight line vs curve",
+                body: '<p class="x-q">Start with $5,000. Set the rate and the years. Then try 4% for 10 years.</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">Blue: simple interest (straight) · gold: compound (curve) · shaded: interest on interest</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="x-ctl"><label>Rate <input type="range" min="0" max="10" step="0.5" value="2" aria-label="Interest rate, percent a year"></label>' +
+                  '<label>Years <input type="range" min="0" max="30" step="1" value="5" aria-label="Years left alone"></label></div>' +
+                  '<button type="button" class="prev press x-do">Do it for me</button>' +
+                  '<div class="x-res" hidden><p class="why"><b>4% for 10 years: $7,401 compound vs $7,000 simple.</b> The $401 gap is interest earned on interest. Now push Years to 30.</p></div>' +
+                  LAB_CISKY,
+                mount: ciPlay },
+              { kind: "notice", title: "Time does the heavy lifting", hl: ".x-nl",
+                viz: cpBox(ciSVG(4, 30, "4% on $5,000: gap $401 at 10 yr, $5,217 at 30"), "The gold gap: a sliver early, a wedge later"),
+                q: "Watch the shaded gap as the years go up. What does it do?",
+                options: ["It’s tiny early and huge later: time does the heavy lifting", "It grows by the same amount every year", "It stays about the same size"],
+                say: "The gap is tiny early ($401 after 10 years) and huge later ($5,217 after 30). Time does the heavy lifting." },
+              { kind: "plate", plate: "compound", title: "Interest on interest" },
+              { kind: "play", title: "Build it: start 10 years earlier",
+                body: '<p class="x-q">$1,000 earns 7% a year. What’s it worth after 20 years?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-a" type="text" inputmode="decimal" autocomplete="off" placeholder="$ after 20 years" aria-label="Value after 20 years in dollars"></div>' +
+                  '<div class="x-st2" hidden><p class="why"><b>$3,870.</b> 1,000 × 1.07²⁰ = $3,869.68.</p>' +
+                  '<p class="x-q">And after 30 years?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-b" type="text" inputmode="decimal" autocomplete="off" placeholder="$ after 30 years" aria-label="Value after 30 years in dollars"></div></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden></p>' +
+                  '<div class="x-res" hidden><p class="why"><b>$7,612.</b> 1,000 × 1.07³⁰ = $7,612.26. Starting 10 years earlier nearly doubles the result: $3,870 → $7,612.</p></div>',
+                mount: ciBuild },
+              { kind: "formalize", title: "Name it: the compound interest formula",
+                body: cpBox(ciName(), "A = P(1 + r/n)^(n·t)", "A equals P times 1 plus r over n, to the power n times t. P is the start, r the yearly rate, n how many times a year interest is added, t the years. APY already includes compounding") +
+                  '<ol class="x-wk"><li><span>P</span><span>What you start with</span><b>$5,000</b></li>' +
+                  "<li><span>r</span><span>Yearly rate, as a decimal</span><b>4% → 0.04</b></li>" +
+                  "<li><span>n</span><span>Times per year interest is added</span><b>12 = monthly</b></li>" +
+                  "<li><span>t</span><span>Years</span><b>10</b></li>" +
+                  "<li><span>APY</span><span>Already includes compounding: compare accounts by APY</span><b>A = P(1 + r/n)^(n·t)</b></li></ol>",
+                so: "A = P(1 + r/n)^(n·t). APY already counts the compounding, so compare accounts by APY." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "A friend says: “4% for 10 years is 40% more, so $7,000.” What went wrong?",
+                options: ["Each year’s 4% is on a bigger balance: 5,000 × 1.04¹⁰ = $7,401", "Nothing: 4% × 10 = 40%, so $7,000", "Nothing, but it’s about $9,000"], answer: 0, tags: [null, "CI-SIMPLE-ADD", null], concept: "l18-compound",
+                hints: ["Year 2’s 4% is taken of $5,200, not $5,000."],
+                why: "10 years at 4% is ×1.48, not ×1.40: $7,401. The extra $401 is interest earned on interest." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“4% vs 5% is only 1%: no big deal over 30 years.” On $5,000, what went wrong?",
+                options: ["4% → $16,217, 5% → $21,610: about $5,393 apart", "Nothing: 1% of $5,000 is $50 a year, so $1,500 over 30 years", "Nothing: it’s under $100"], answer: 0, tags: [null, "CI-SMALL-RATE-GAP", "CI-SMALL-RATE-GAP"], concept: "l18-rate",
+                hints: ["Work out 5,000 × 1.04³⁰ and 5,000 × 1.05³⁰."],
+                why: "5,000 × 1.04³⁰ = $16,217; 5,000 × 1.05³⁰ = $21,610. One point compounds into about $5,393. Shop the rate on savings and on debt." },
+              { kind: "fade", title: "Cash under the mattress",
+                q: "$1,000 in cash under the mattress, with 3% inflation for 10 years. Fill in the missing line.",
+                lines: ["Prices grow by 1.03¹⁰ ≈ 1.344", "$1,000 ÷ 1.344 ≈ $744 of today’s buying power", "Money that doesn’t grow quietly loses about a quarter of its value"],
+                blank: 1, options: ["$1,000 ÷ 1.344 ≈ $744 of today’s buying power", "$1,000 − 10 × $30 = $700 of today’s buying power", "$1,000 × 1.344 ≈ $1,344 of today’s buying power"], answer: 0, tags: [null, "CI-SIMPLE-ADD", null], concept: "l18-inflation",
+                hints: ["Prices went up, so the same $1,000 buys less: divide by the price growth."],
+                why: "$1,000 ÷ 1.344 ≈ $744. Inflation compounds too, and against idle cash: about a quarter of its value, gone." },
+              { kind: "quiz", title: "Quick check: two years",
+                q: "$1,000 at 10% compounded yearly for 2 years. What’s there?",
+                options: ["$1,210", "$1,200", "$1,100"], answer: 0, tags: [null, "CI-SIMPLE-ADD", null], concept: "l18-compound",
+                hints: ["Year 1: $1,100. Year 2’s 10% is of $1,100."],
+                why: "$1,000 × 1.10 = $1,100. $1,100 × 1.10 = $1,210. The extra $10 is interest on year 1’s interest." },
+              { kind: "quiz", title: "Quick check: rate or time?",
+                q: "Same money: 6% for 12 years, or 12% for 6 years. Which ends higher?",
+                options: ["6% for 12 years: ×2.01 vs ×1.97", "12% for 6 years: the higher rate always wins", "They tie: 6 × 12 = 12 × 6"], answer: 0, tags: [null, null, "CI-SIMPLE-ADD"], concept: "l18-time",
+                hints: ["Compare 1.06¹² and 1.12⁶."],
+                why: "1.06¹² ≈ 2.01 and 1.12⁶ ≈ 1.97. More years of interest on interest edges out the higher rate. They’d only tie if it were simple interest." },
+              { kind: "quiz", title: "Quick check: Rule of 72",
+                q: "Money grows 9% a year. About how long to double?",
+                options: ["About 8 years", "About 11 years", "About 648 years"], answer: 0, tags: [null, "CI-SIMPLE-ADD", null], concept: "l18-time",
+                hints: ["Doubling time ≈ 72 ÷ rate%."],
+                why: "72 ÷ 9 = 8 years. 11 years would be simple interest (100 ÷ 9); compounding gets there sooner." },
+              { kind: "transfer", title: "New costume: recovery savings",
+                q: "In substance-abuse counseling: a client who stops spending $10 a day on a substance saves $3,650 a year. Deposited at the end of each year at 4%, about how much is there after 5 years?",
+                options: ["About $19,770", "$18,250: 5 × $3,650", "About $22,200"], answer: 0, tags: [null, "CI-SIMPLE-ADD", null], concept: "l18-compound",
+                hints: ["Each year: last balance × 1.04, then add $3,650.", "Year 2: 3,650 × 1.04 + 3,650 = $7,446."],
+                why: "$3,650 → $7,446 → $11,394 → $15,500 → $19,770. In sessions: make recovery savings concrete and visible. Seeing the curve is motivating." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>High-yield savings.</b> Compare by APY; a point higher adds up.</li><li><b>Retirement accounts.</b> Starting 10 years earlier nearly doubles the result.</li>" +
+                  "<li><b>Credit-card debt.</b> The same curve, working against you.</li><li><b>Inflation.</b> Prices compound too, against idle cash.</li>" +
+                  "<li><b>The Managua trip.</b> Save early and the interest helps pay for it.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>Interest earns interest.</b> $5,000 at 4% for 10 years: $7,401, not $7,000.</li><li><b>Time matters more than you think.</b> $1,000 at 7%: $3,870 after 20 years, $7,612 after 30.</li>" +
+                  "<li><b>Small rate gaps become big money.</b> 4% vs 5% on $5,000 over 30 years: about $5,393.</li><li><b>Inflation compounds against idle cash.</b> 3% for 10 years leaves $1,000 worth about $744.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> Start early, shop the rate, and don’t let cash sit still.</p>' + LAB_CISKY }
             ]
           },
           22: {
