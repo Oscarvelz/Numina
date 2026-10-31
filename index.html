@@ -1432,6 +1432,8 @@
           "INEQ-FLIP-FORGOT": "Multiplying or dividing both sides by a negative flips the fence: from −2x ≤ 10, ÷ −2 gives x ≥ −5, not x ≤ −5. Check: x = 0 works (0 ≤ 10), and 0 is not ≤ −5.",
           "SYS-ONE-EQUATION": "One equation with two unknowns has many answers: 12a + 8c = 72 fits a = 6, c = 0 and a = 4, c = 3. The second rule, a + c = 7 tickets, picks the one pair that fits both.",
           "FUNC-NOTATION-MULTIPLY": "f(3) is not f × 3: f is the machine’s name, and the number in brackets is what you feed in. With the tip machine, f(45) means feed $45 in: f(45) = 54.",
+          "SLOPE-RUN-OVER-RISE": "Slope is change in y ÷ change in x, output on top: savings rose $750 over 5 months, so 750 ÷ 5 = $150 per month. 5 ÷ 750 flips it into months per dollar, which answers a different question.",
+          "SLOPE-ONE-POINT": "Slope uses the change between two points, not one point’s y ÷ x: 1,150 ÷ 6 ≈ $191.67 ignores the $400 already saved by month 1. (1,150 − 400) ÷ (6 − 1) = 750 ÷ 5 = $150 per month.",
           "FUNC-IN-OUT-SWAP": "f(11) means feed 11 in, not find what gives 11: with f(x) = 2x + 3, f(11) = 2 × 11 + 3 = 25. The 4 solves 2x + 3 = 11, which runs the machine backward.",
           "SYS-CROSS-MEANS-CHEAPER": "The crossing is where the plans are equal, not where one wins: at month 5 both gyms cost $200. Before it B is cheaper; after it A is.",
           "INEQ-EXACT-ONLY": "“At most $60” is a range, not one exact value, and you round in the safe direction: at $6.75 a pack, 18 + 6.75p ≤ 60 gives p ≤ 6.2, so at most 6 packs. 7 packs is $65.25, over the limit.",
@@ -6178,6 +6180,11 @@
             see: "A bill drops into the hopper, the rule panel multiplies it by 1.2, and the total slides out the chute as a dot on the graph. $45 in, $54 out. Every dot lands on the same line, and the table logs each pair.",
             why: "Once the rule is fixed, you never redo the thinking: feed any number in and the answer comes out. One input can’t give two outputs, or the machine would be no use for planning. It only knows its rule: a 20% tip machine knows nothing about tax.",
             use: "Spreadsheet formulas, tip and paycheck estimates, °C to °F for the family in Nicaragua, minutes per session to weekly load: write the rule once, then feed in each number." },
+          slope: { term: "Slope = how much the output changes for each 1 step of input — a rate", svg: svgSlope, scene: "skater", short: "Rise ÷ run: the change per 1 step, with units.",
+            alt: "A rent line from $1,300 in 2022 to $1,500 in 2026, with a right triangle under it: run 4 years, rise $200",
+            see: "Rent climbs from $1,300 in 2022 to $1,500 in 2026. The triangle under the line shows the run, 4 years across, and the rise, $200 up. 200 ÷ 4 = $50 for each 1 year.",
+            why: "A rate says how fast, not just how much, so you can compare two trends on one scale. A straight line has the same slope between any two of its points; a curve’s rate keeps changing, so one slope only describes a stretch of it.",
+            use: "Rent and price trends, your savings pace, fuel economy, a client’s weekly scores, any chart in the news: ask how much it changes per step, and say the units." },
           number: { term: "Number", svg: svgNumber, short: "Keeps only how many.",
             alt: "A cookie, a music note and a calendar day become three identical dots, then the numeral 3",
             see: "Three unlike things (a cookie, a song, a day) turn into three identical dots, then one mark: 3. Each dot stands for one thing; the numeral stands for the whole group.",
@@ -7713,6 +7720,65 @@
           $(".x-do", card).addEventListener("click", function () { rng.value = 50; feed(); });
           if (done) { rng.value = 50; out.textContent = "$50 in → $60 out. Exactly $60: found it."; }
           else out.textContent = "Bill: " + fnMoney(+rng.value) + ". Press Feed.";
+          paint(false);
+        }
+        /* Day 12 slope: rent 1,300 + 50 a year over 2022–2026; a and b are the two dot years, the rise/run triangle sits under the line between them */
+        function slR(t) { return 1300 + 50 * (t - 2022); }
+        function slX(t) { return 50 + (t - 2022) * 46; }
+        function slY(v) { return 176 - (v - 1200) * 0.36; }
+        function slRead(a, b) {
+          var lo = Math.min(a, b), hi = Math.max(a, b), n = hi - lo;
+          return "rise $" + (slR(hi) - slR(lo)) + " / run " + n + (n === 1 ? " year" : " years") + " = $50 per year";
+        }
+        function slSVG(a, b) {
+          var lo = Math.min(a, b), hi = Math.max(a, b), x1 = slX(lo), y1 = slY(slR(lo)), x2 = slX(hi), y2 = slY(slR(hi)), s = SVG_OPEN(200), t;
+          s += '<path d="M50 176H240M50 176V26" stroke-opacity=".5"/>';
+          [1300, 1500].forEach(function (v) { s += '<path d="M50 ' + slY(v) + 'H240" stroke-opacity=".15"/>' + LBL(44, slY(v) + 4, "$" + (v / 1000).toFixed(3).replace(".", ","), "text-anchor:end"); });
+          for (t = 2022; t <= 2026; t++) s += LBL(slX(t), 194, t);
+          s += '<path d="M' + x1 + " " + y1 + "L" + x2 + " " + y1 + "L" + x2 + " " + y2 + 'Z" stroke="none" style="fill:var(--gold);fill-opacity:.18"/>' +
+            '<path d="M' + x1 + " " + y1 + "H" + x2 + "V" + y2 + '" stroke-dasharray="4 3" style="stroke:var(--gold)"/>' +
+            '<path d="M' + slX(2022) + " " + slY(1300) + "L" + slX(2026) + " " + slY(1500) + '" stroke-width="3" style="stroke:var(--cyan)"/>' +
+            LBL((x1 + x2) / 2, y1 + 16, "run " + (hi - lo) + (hi - lo === 1 ? " yr" : " yrs"), "font-weight:600") +
+            LBL(x2 + 6, (y1 + y2) / 2 + 4, "rise $" + (slR(hi) - slR(lo)), "text-anchor:start;font-weight:600;fill:var(--gold)");
+          [lo, hi].forEach(function (y) { s += '<circle cx="' + slX(y) + '" cy="' + slY(slR(y)) + '" r="7" stroke="none" style="fill:var(--coral)"/>'; });
+          return s + LBL(150, 14, slRead(a, b), "font-weight:600") + "</svg>";
+        }
+        function svgSlope() { return slSVG(2022, 2026); }
+        /* Day 12 name-it: rise ÷ run on the savings numbers */
+        function slName() {
+          return SVG_OPEN(120) + LBL(150, 24, "slope = rise ÷ run", "font-weight:600") + LBL(150, 50, "= change in y ÷ change in x") +
+            LBL(150, 78, "(1,150 − 400) ÷ (6 − 1) = 750 ÷ 5") + LBL(150, 106, "$150 per month", "font-weight:600;fill:var(--ok)") + "</svg>";
+        }
+        /* Day 12 play: drag either dot (or use the sliders) to any year on the line; solved at 2022 and 2026, or after three different pairs */
+        function slPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), ra = $('[data-k="a"]', card), rb = $('[data-k="b"]', card), res = $(".x-res", card),
+            done = !!api.solved, grab = null, seen = {};
+          function paint(stop) {
+            var a = +ra.value, b = +rb.value, lo = Math.min(a, b), hi = Math.max(a, b);
+            if (stop) { seen[lo + "-" + hi] = 1; if (!done && ((lo === 2022 && hi === 2026) || Object.keys(seen).length >= 3)) { done = true; api.solve(10); } }
+            box.innerHTML = slSVG(a, b);
+            out.textContent = lo + " to " + hi + ": " + slRead(a, b) + "." + (done ? " Any two points give $50 per year." : " Now set the dots on 2022 and 2026.");
+            res.hidden = !done;
+          }
+          function set(inp, other, y) { if (y !== +other.value) inp.value = y; }
+          function at(e, first) {
+            var r = box.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * 300, y = Math.max(2022, Math.min(2026, Math.round((x - 50) / 46) + 2022));
+            if (first) grab = Math.abs(y - ra.value) <= Math.abs(y - rb.value) ? ra : rb;
+            set(grab, grab === ra ? rb : ra, y); paint(false);
+          }
+          box.style.touchAction = "none"; box.style.cursor = "ew-resize";
+          box.addEventListener("pointerdown", function (e) { box.setPointerCapture(e.pointerId); at(e, true); });
+          box.addEventListener("pointermove", function (e) { if (grab) at(e, false); });
+          box.addEventListener("pointerup", function () { if (grab) { grab = null; paint(true); } });
+          box.addEventListener("pointercancel", function () { grab = null; });
+          [[ra, rb], [rb, ra]].forEach(function (p) {
+            var last = p[0].value;
+            p[0].addEventListener("input", function () { if (p[0].value === p[1].value) p[0].value = last; last = p[0].value; paint(false); });
+            p[0].addEventListener("change", function () { paint(true); });
+          });
+          $(".x-do", card).addEventListener("click", function () { ra.value = 2022; rb.value = 2026; paint(true); });
+          if (done) { ra.value = 2022; rb.value = 2026; }
+          seen[Math.min(+ra.value, +rb.value) + "-" + Math.max(+ra.value, +rb.value)] = 1;
           paint(false);
         }
         /* Day 22 proof puzzle: a 7 × 7 square (a = 3, b = 4), 26px a unit; four legs-3-4 triangles, each [x1, y1, x2, y2, turn]: corners (st 0) → two rectangles (st 1), translation only */
@@ -11478,6 +11544,99 @@
                 body: "<ul><li><b>Input → rule → output.</b> $45 → × 1.2 → $54.</li><li><b>f(x) means feed x in.</b> f(45) = 54; f(3) is never f × 3.</li>" +
                   "<li><b>One input, one output — that’s what makes it a function.</b> Person → birthday works; birthday → person doesn’t.</li></ul>" +
                   '<p class="x-so"><b>So:</b> Write the rule once, then feed in any number: one in, exactly one out.</p>' }
+            ]
+          },
+          /* Day 12: slope as rate of change. Rise ÷ run between two points, always read with its units */
+          12: {
+            home: ["Slope as Rate of Change", "rent, savings, gas: how fast it changes, in $ per year."],
+            flow: true,
+            scene: "skater",
+            steps: [
+              { kind: "predict", title: "Rent per year",
+                body: '<p class="x-q">Rent was $1,300 in 2022 and $1,500 in 2026. On average, how much did it rise per year?</p>' +
+                  ["$50", "$200", "$75"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden>' + cpBox(slSVG(2022, 2026), "rise $200 / run 4 years = $50 per year", "Rent line from $1,300 in 2022 to $1,500 in 2026: rise $200 over a run of 4 years") +
+                  '<p class="why"><b>$50 a year.</b> Up $200 over 4 years: 200 ÷ 4 = 50. $200 is the whole rise, not the rise per year.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l12rent", 0)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "Drag the triangle",
+                body: '<p class="x-q">Drag the two dots along the rent line. Set them on 2022 and 2026, then try other years.</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">Line: rent by year · triangle: run across, rise up</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="x-ctl"><label>Dot 1 <input type="range" data-k="a" min="2022" max="2026" step="1" value="2023" aria-label="First dot year"></label>' +
+                  '<label>Dot 2 <input type="range" data-k="b" min="2022" max="2026" step="1" value="2024" aria-label="Second dot year"></label></div>' +
+                  '<button type="button" class="prev press x-do">Do it for me</button>' +
+                  '<div class="x-res" hidden><p class="why"><b>$50 per year, every time.</b> 2022 to 2026: 200 ÷ 4 = 50. 2023 to 2024: 50 ÷ 1 = 50.</p></div>' +
+                  LAB_SKATER,
+                mount: slPlay },
+              { kind: "notice", title: "Same slope anywhere", hl: ".x-nl",
+                viz: cpBox(slSVG(2023, 2025), "2023 to 2025: rise $100 / run 2 years = $50 per year"),
+                q: "You tried different pairs of dots. What stayed the same?",
+                options: ["Any two points on a straight line gave the same $50 per year", "Wider apart gave a bigger slope", "Only 2022 and 2026 gave $50"],
+                say: "Any two points on a straight line give the same slope. A bigger run just brings a bigger rise with it." },
+              { kind: "plate", plate: "slope", title: "Slope: change per 1 step" },
+              { kind: "play", title: "Build it: your savings pace",
+                body: '<p class="x-q">You had $400 saved by month 1 (January) and $1,150 by month 6 (June). How many dollars per month did you save?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input type="text" inputmode="decimal" autocomplete="off" placeholder="$ per month" aria-label="Savings per month, in dollars"></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden><b>Hint:</b> Change in money on top, change in months on the bottom.</p>' +
+                  '<div class="x-res" hidden><p class="why"><b>$150 per month.</b> (1,150 − 400) ÷ (6 − 1) = 750 ÷ 5 = 150.</p></div>',
+                mount: blFill(150) },
+              { kind: "formalize", title: "Name it: rise ÷ run",
+                body: cpBox(slName(), "Change in y on top, change in x on the bottom", "slope = rise ÷ run = change in y ÷ change in x; (1,150 − 400) ÷ (6 − 1) = 750 ÷ 5 = $150 per month") +
+                  '<ol class="x-wk"><li><span>Rise</span><span>Change in y, the output</span><b>$750</b></li>' +
+                  "<li><span>Run</span><span>Change in x, the input</span><b>5 months</b></li>" +
+                  "<li><span>Units</span><span>Always read them: y-units per x-unit</span><b>$ per month</b></li>" +
+                  "<li><span>Steeper</span><span>A bigger slope means faster change</span><b>faster</b></li></ol>",
+                so: "Slope = rise ÷ run = change in y ÷ change in x, said with its units. It’s the m in Day 13’s y = mx + b." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "For the savings, a friend writes: slope = 5 ÷ 750. What went wrong?",
+                options: ["It’s flipped: change in money goes on top, 750 ÷ 5 = $150 per month", "Nothing: 5 months and $750", "It should be 6 ÷ 1,150"], answer: 0, tags: [null, "SLOPE-RUN-OVER-RISE", "SLOPE-ONE-POINT"], concept: "l12-rise",
+                hints: ["Which change is the output: money or months?"],
+                why: "Rise over run: 750 ÷ 5 = $150 per month. 5 ÷ 750 gives months per dollar, which isn’t what you asked." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "Another friend writes: slope = 1,150 ÷ 6 ≈ $191.67 per month. What went wrong?",
+                options: ["It uses one point and ignores the $400 already saved: (1,150 − 400) ÷ (6 − 1) = $150", "Nothing: $1,150 over 6 months", "It should be 6 ÷ 1,150"], answer: 0, tags: [null, "SLOPE-ONE-POINT", "SLOPE-RUN-OVER-RISE"], concept: "l12-two",
+                hints: ["Slope needs the change between two points."],
+                why: "That ignores the $400 you started with. Slope is the change: 750 ÷ 5 = $150 per month." },
+              { kind: "fade", title: "Down the highway",
+                q: "Gas tank: 14 gallons at mile 0, 6 gallons at mile 240. Fill in the missing line.",
+                lines: ["Change in gas: 6 − 14 = −8 gallons", "Change in miles: 240 − 0 = 240", "Slope = −8 ÷ 240 = −1/30 gallon per mile", "So 1 gallon lasts about 30 miles: about 30 mpg"],
+                blank: 2, options: ["Slope = −8 ÷ 240 = −1/30 gallon per mile", "Slope = 240 ÷ −8 = −30 gallons per mile", "Slope = 6 ÷ 240 = 1/40 gallon per mile"], answer: 0, tags: [null, "SLOPE-RUN-OVER-RISE", "SLOPE-ONE-POINT"], concept: "l12-rise",
+                hints: ["Gas on top, miles on the bottom."],
+                why: "−8 ÷ 240 = −1/30: the tank drops 1/30 gallon each mile. Negative means going down. Flip it and 1 gallon lasts about 30 miles." },
+              { kind: "quiz", title: "Quick check: two pay lines",
+                q: "Two pay lines: $27 an hour and $32 an hour. Which line is steeper?",
+                options: ["$32 an hour", "$27 an hour", "Same steepness: both start at $0"], answer: 0, tags: [null, null, null], concept: "l12-steep",
+                hints: ["Steeper = more dollars for each hour."],
+                why: "Each hour adds $32 on one line and $27 on the other. Bigger slope, steeper line, faster pay." },
+              { kind: "quiz", title: "Quick check: from a table",
+                q: "2 hours pays $54. 5 hours pays $135. What’s the slope?",
+                options: ["$27 per hour", "$81 per hour", "About 0.037 hours per dollar"], answer: 0, tags: [null, null, "SLOPE-RUN-OVER-RISE"], concept: "l12-rise",
+                hints: ["Change in pay ÷ change in hours."],
+                why: "(135 − 54) ÷ (5 − 2) = 81 ÷ 3 = $27 per hour. $81 is the rise before dividing by the run; 3 ÷ 81 is flipped." },
+              { kind: "quiz", title: "Quick check: a flat line",
+                q: "Your rent line is flat for the whole year. What’s its slope?",
+                options: ["0: nothing changes, rent is locked for the year", "1: rent rises $1 each month", "There is none: flat lines have no slope"], answer: 0, tags: [null, null, null], concept: "l12-steep",
+                hints: ["What’s the rise on a flat line?"],
+                why: "Rise 0 ÷ any run = 0. A slope of 0 means no change: same rent every month." },
+              { kind: "transfer", title: "New costume: a client’s progress",
+                q: "A client’s weekly craving score went from 18 in week 1 to 8 in week 6. What’s the slope?",
+                options: ["−2 points per week: improving", "−0.5 points per week", "About 1.33 points per week"], answer: 0, tags: [null, "SLOPE-RUN-OVER-RISE", "SLOPE-ONE-POINT"], concept: "l12-two",
+                hints: ["Change in score: 8 − 18.", "Change in weeks: 6 − 1."],
+                why: "(8 − 18) ÷ (6 − 1) = −10 ÷ 5 = −2 points per week. Down is good here: cravings are easing." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Rent and prices.</b> How fast is rent, gas or groceries climbing per year?</li><li><b>Savings pace.</b> Dollars per month toward a trip to Nicaragua.</li>" +
+                  "<li><b>Fuel economy.</b> Gallons per mile, flipped into miles per gallon.</li><li><b>Client progress.</b> Points per week on a score you track.</li>" +
+                  "<li><b>Any chart in the news.</b> Ask: how fast is it changing?</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>Slope = change in output ÷ change in input.</b> (1,150 − 400) ÷ (6 − 1) = $150.</li><li><b>Always say the units.</b> $ per month, points per week.</li>" +
+                  "<li><b>Up = positive, down = negative, flat = 0.</b> Rent +$50 a year, gas −1/30 gallon a mile, locked rent 0.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> Pick two points, take rise ÷ run, and say it with units: that’s how fast it changes.</p>' }
             ]
           },
           /* Day 13: linear models as bills. Fixed fee + rate × use, built from bills before y = mx + b gets a name */
