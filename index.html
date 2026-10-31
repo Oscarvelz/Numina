@@ -622,6 +622,9 @@
       @keyframes x-nl-in { 0% { opacity: 0; } 60% { opacity: 1; filter: drop-shadow(0 0 6px var(--coral)); } 100% { opacity: 1; } }
       .x-nl__out { margin-top: 6px; text-align: center; font: 500 15px/1.4 var(--display); min-height: 1.4em; }
       @media (prefers-reduced-motion: reduce) { .x-nl .x-nl__neg.is-in { animation: none; } .x-fp summary .chev { transition: none; } }
+      .x-fn-new { animation: x-fn-drop .7s var(--ease) both; }
+      @keyframes x-fn-drop { from { transform: translate(var(--dx), var(--dy)); opacity: .3; } }
+      @media (prefers-reduced-motion: reduce) { .x-fn-new { animation: none; } }
       .lessons[data-view="list"] .x-meta { display: none; }
       .lessons[data-view="grid"] .lesson__t { font-family: var(--display); font-weight: 600; }
       @media (max-width: 959px) { .lessons[data-view="grid"][style*="--cols: 3"] .x-meta, .lessons[data-view="grid"][style*="--cols: 4"] .x-meta { display: none; } }
@@ -1428,6 +1431,8 @@
           "FORM-SWAP-NOT-INVERT": "Moving a letter across the = means undoing it on both sides: from d = r · t, ÷ r on both sides gives t = d ÷ r, not t = d · r.",
           "INEQ-FLIP-FORGOT": "Multiplying or dividing both sides by a negative flips the fence: from −2x ≤ 10, ÷ −2 gives x ≥ −5, not x ≤ −5. Check: x = 0 works (0 ≤ 10), and 0 is not ≤ −5.",
           "SYS-ONE-EQUATION": "One equation with two unknowns has many answers: 12a + 8c = 72 fits a = 6, c = 0 and a = 4, c = 3. The second rule, a + c = 7 tickets, picks the one pair that fits both.",
+          "FUNC-NOTATION-MULTIPLY": "f(3) is not f × 3: f is the machine’s name, and the number in brackets is what you feed in. With the tip machine, f(45) means feed $45 in: f(45) = 54.",
+          "FUNC-IN-OUT-SWAP": "f(11) means feed 11 in, not find what gives 11: with f(x) = 2x + 3, f(11) = 2 × 11 + 3 = 25. The 4 solves 2x + 3 = 11, which runs the machine backward.",
           "SYS-CROSS-MEANS-CHEAPER": "The crossing is where the plans are equal, not where one wins: at month 5 both gyms cost $200. Before it B is cheaper; after it A is.",
           "INEQ-EXACT-ONLY": "“At most $60” is a range, not one exact value, and you round in the safe direction: at $6.75 a pack, 18 + 6.75p ≤ 60 gives p ≤ 6.2, so at most 6 packs. 7 packs is $65.25, over the limit.",
           "FORM-PARTIAL-DIVIDE": "Divide the whole side, not one term: from cost = 6c + 10, take 10 off both sides first, then ÷ 6: c = (cost − 10) ÷ 6, not cost/6 + 10.",
@@ -6168,6 +6173,11 @@
             see: "Gym A is 50 + 30m, Gym B is 40m. Every point on a line fits that gym’s rule. Only one point sits on both lines: month 5, $200.",
             why: "One rule with two unknowns has endless answers; a second rule cuts them down to the one pair that fits both. Setting the totals equal finds it. Parallel lines (same rate) never cross, so there’s no such point.",
             use: "Gyms and phone plans, job offers with commission, rentals, buying vs leasing, mixed ticket prices: find the crossing, then pick by which side of it you’re on." },
+          func: { term: "A function = a machine with a rule: one input in, one output out", svg: svgFn, scene: "fourviews3d", short: "Feed x in, get f(x) out: one input, one output.",
+            alt: "A machine with a hopper on top, a rule panel reading × 1.2 and a chute; bills of $20, $45, $50 and $80 come out as dots that line up on a graph",
+            see: "A bill drops into the hopper, the rule panel multiplies it by 1.2, and the total slides out the chute as a dot on the graph. $45 in, $54 out. Every dot lands on the same line, and the table logs each pair.",
+            why: "Once the rule is fixed, you never redo the thinking: feed any number in and the answer comes out. One input can’t give two outputs, or the machine would be no use for planning. It only knows its rule: a 20% tip machine knows nothing about tax.",
+            use: "Spreadsheet formulas, tip and paycheck estimates, °C to °F for the family in Nicaragua, minutes per session to weekly load: write the rule once, then feed in each number." },
           number: { term: "Number", svg: svgNumber, short: "Keeps only how many.",
             alt: "A cookie, a music note and a calendar day become three identical dots, then the numeral 3",
             see: "Three unlike things (a cookie, a song, a day) turn into three identical dots, then one mark: 3. Each dot stands for one thing; the numeral stands for the whole group.",
@@ -7655,6 +7665,54 @@
           rng.addEventListener("change", function () { paint(true); });
           $(".x-do", card).addEventListener("click", function () { rng.value = 5; paint(true); });
           if (done) rng.value = 5;
+          paint(false);
+        }
+        /* Day 11 function machine: hopper (input), rule panel (× 1.2), chute out to a graph (bill $0–100, out $0–120) and an in/out table of the last 5 feeds.
+           rows: bills fed, in order; cur: the bill in the hopper; anim: drop the newest dot from the chute; goal: a dashed $60 guide */
+        function fnMoney(v) { v = Math.round(v * 100) / 100; return "$" + (v % 1 ? v.toFixed(2) : v); }
+        function fnX(b) { return 130 + b * 1.6; }
+        function fnY(v) { return 150 - v * 1.1; }
+        function fnSVG(rows, cur, anim, goal) {
+          var s = SVG_OPEN(244), last = rows.length ? rows[rows.length - 1] : null;
+          s += '<path d="M20 10H96L76 34H40Z" style="fill:currentColor;fill-opacity:.08"/>' + LBL(58, 26, cur == null ? "in" : fnMoney(cur), "font-weight:600") +
+            '<rect x="14" y="34" width="88" height="56" rx="8" style="fill:var(--cyan);fill-opacity:.12;stroke:var(--cyan)"/>' + LBL(58, 52, "RULE") + LBL(58, 78, "× 1.2", "font-weight:600;font-size:18px") +
+            '<path d="M102 62H120" stroke-width="3" style="stroke:var(--cyan)"/>' + LBL(58, 108, last == null ? "out" : fnMoney(last * 1.2) + " out", "font-weight:600");
+          s += '<path d="M130 150H290M130 150V14" stroke-opacity=".5"/>' + LBL(130, 10, "out") + LBL(210, 178, "bill in");
+          [0, 50, 100].forEach(function (b) { s += LBL(fnX(b), 164, "$" + b); });
+          [60, 120].forEach(function (v) { s += LBL(124, fnY(v) + 4, "$" + v, "text-anchor:end"); });
+          if (goal) s += '<path d="M130 ' + fnY(60) + 'H290" stroke-dasharray="4 3" stroke-opacity=".4"/>';
+          var xs = rows.slice().sort(function (a, b) { return a - b; });
+          if (xs.length > 1 && xs[0] !== xs[xs.length - 1]) s += '<path d="M' + fnX(xs[0]) + " " + fnY(xs[0] * 1.2) + "L" + fnX(xs[xs.length - 1]) + " " + fnY(xs[xs.length - 1] * 1.2) + '" stroke-dasharray="4 3" style="stroke:var(--cyan)"/>';
+          rows.forEach(function (b, i) {
+            var x = fnX(b), y = fnY(b * 1.2), nw = anim && i === rows.length - 1;
+            s += '<circle cx="' + x + '" cy="' + y + '" r="5" stroke="none"' + (nw ? ' class="x-fn-new"' : "") +
+              ' style="fill:var(' + (goal && b === 50 ? "--gold" : "--cyan") + ")" + (nw ? ";--dx:" + (120 - x) + "px;--dy:" + (62 - y) + "px" : "") + '"/>';
+          });
+          var t = rows.slice(-5);
+          s += '<path d="M14 192H290M14 216H290M14 240H290" stroke-opacity=".25"/>' + LBL(36, 209, "in", "font-weight:600") + LBL(36, 233, "out", "font-weight:600");
+          t.forEach(function (b, i) { s += LBL(84 + i * 48, 209, fnMoney(b)) + LBL(84 + i * 48, 233, fnMoney(b * 1.2), "font-weight:600"); });
+          return s + "</svg>";
+        }
+        function svgFn() { return fnSVG([20, 45, 50, 80], 80, false, false); }
+        /* Day 11 play: slide a bill, press Feed; each feed logs a row and drops a dot. Solved when $50 goes in ($60 out) */
+        function fnPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), rng = $("input", card), res = $(".x-res", card), done = !!api.solved, rows = done ? [45, 50] : [];
+          function paint(anim) {
+            var b = +rng.value;
+            box.innerHTML = fnSVG(rows, b, anim, true);
+            res.hidden = !done;
+          }
+          function feed() {
+            var b = +rng.value; rows.push(b); if (rows.length > 8) rows.shift();
+            out.textContent = fnMoney(b) + " in → " + fnMoney(b * 1.2) + " out." + (b === 50 ? " Exactly $60: found it." : " Find the bill that gives exactly $60.");
+            if (b === 50 && !done) { done = true; api.solve(10); }
+            paint(true);
+          }
+          rng.addEventListener("input", function () { out.textContent = "Bill: " + fnMoney(+rng.value) + ". Press Feed."; paint(false); });
+          $(".x-go", card).addEventListener("click", feed);
+          $(".x-do", card).addEventListener("click", function () { rng.value = 50; feed(); });
+          if (done) { rng.value = 50; out.textContent = "$50 in → $60 out. Exactly $60: found it."; }
+          else out.textContent = "Bill: " + fnMoney(+rng.value) + ". Press Feed.";
           paint(false);
         }
         /* Day 22 proof puzzle: a 7 × 7 square (a = 3, b = 4), 26px a unit; four legs-3-4 triangles, each [x1, y1, x2, y2, turn]: corners (st 0) → two rectangles (st 1), translation only */
@@ -11329,6 +11387,97 @@
                 body: "<ul><li><b>Two unknowns need two rules.</b> a + c = 7 and 12a + 8c = 72 → a = 4, c = 3.</li><li><b>The crossing = where they’re equal.</b> Gyms at month 5: both $200.</li>" +
                   "<li><b>Pick by which side of the crossing you’re on.</b> Before 5, B; after 5, A.</li></ul>" +
                   '<p class="x-so"><b>So:</b> Set the two totals equal to find the crossing, then choose by how long or how much you’ll use it.</p>' }
+            ]
+          },
+          /* Day 11: functions as machines. Feed a number in, the rule turns it into exactly one number out */
+          11: {
+            home: ["Functions as Machines", "tips, take-home pay, °C to °F: feed a number in, get one out."],
+            flow: true,
+            scene: "fourviews3d",
+            steps: [
+              { kind: "predict", title: "The tip machine",
+                body: '<p class="x-q">A tip machine: put in a bill, it adds 20%. $45 goes in. What comes out?</p>' +
+                  ["$54", "$65", "$49"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden>' + cpBox(fnSVG([45], 45, false, false), "$45 in, × 1.2, $54 out", "The machine takes in $45, multiplies by 1.2 and puts out $54, one dot on the graph") +
+                  '<p class="why"><b>$54.</b> 20% of 45 is 9, and 45 + 9 = 54. Adding 20% is the same as × 1.2.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l11tip", 0)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "Feed the machine",
+                body: '<p class="x-q">Slide a bill and press Feed. Find the bill that comes out at exactly $60.</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">Each feed adds a table column and a dot · dashed line: $60</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="x-ctl"><label>Bill <input type="range" min="0" max="100" step="1" value="45" aria-label="Bill in dollars"></label></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Feed</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<div class="x-res" hidden><p class="why"><b>$50 in, $60 out.</b> 50 × 1.2 = 60. Feed the same bill twice and you get the same total twice.</p></div>' +
+                  '<button type="button" class="start press x-3dbtn" data-scene="fourviews3d">See it in the Lab</button>',
+                mount: fnPlay },
+              { kind: "notice", title: "One in, one out", hl: ".x-nl",
+                viz: cpBox(svgFn(), "Every bill gave one total, and the dots line up"),
+                q: "Look at the table and the dots. What did the machine always do?",
+                options: ["Each bill gave exactly one total, every time, and the dots fell on one line", "Bigger bills sometimes gave smaller totals", "The same bill gave different totals"],
+                say: "One input, exactly one output, every time. A fixed rule makes the dots line up." },
+              { kind: "plate", plate: "func", title: "A function: a machine with a rule" },
+              { kind: "play", title: "Build it: your take-home",
+                body: '<p class="x-q">With 22% withheld, the take-home machine is take-home = 0.78 × gross. Feed in a $3,000 paycheck. What comes out?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input type="text" inputmode="decimal" autocomplete="off" placeholder="$ take-home" aria-label="Take-home from $3,000 gross, in dollars"></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden><b>Hint:</b> Feed the number into the rule: 0.78 × 3,000.</p>' +
+                  '<div class="x-res" hidden><p class="why"><b>$2,340.</b> 0.78 × 3,000 = 2,340: the $660 withheld never reaches you.</p></div>',
+                mount: blFill(2340) },
+              { kind: "formalize", title: "Name it: f(x)",
+                body: cpBox(svgFn(), "f is the machine · x goes in · f(x) comes out", "The tip machine named f: input x in the hopper, output f(x) from the chute") +
+                  '<ol class="x-wk"><li><span>f</span><span>The machine’s name</span><b>tip machine</b></li>' +
+                  "<li><span>x</span><span>The input: what you feed in</span><b>45</b></li>" +
+                  "<li><span>f(x)</span><span>The output: “f of x”</span><b>f(x) = 1.2x</b></li>" +
+                  "<li><span>f(45)</span><span>“f of 45”: feed 45 in</span><b>f(45) = 54</b></li></ol>",
+                so: "f(x) names the machine and its input: “f of 45” means feed 45 in. Input x, output f(x)." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "A friend reads f(3) as “f times 3.” What went wrong?",
+                options: ["f(3) means feed 3 into f: the brackets hold the input", "Nothing: a letter next to brackets multiplies", "It means 3 × f(x)"], answer: 0, tags: [null, "FUNC-NOTATION-MULTIPLY", "FUNC-NOTATION-MULTIPLY"], concept: "l11-name",
+                hints: ["Is f a number, or the machine’s name?"],
+                why: "f is the machine, not a number. For the tip machine, f(3) = 1.2 × 3 = 3.60: feed $3 in." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“f(x) = 2x + 3, so f(11) = 4.” What went wrong?",
+                options: ["4 is the input that gives 11; feed 11 in instead: f(11) = 25", "Nothing: 2 × 4 + 3 = 11", "f(11) = 2 × 11 = 22"], answer: 0, tags: [null, "FUNC-IN-OUT-SWAP", null], concept: "l11-feed",
+                hints: ["f(11): is 11 going in, or coming out?"],
+                why: "f(11) puts 11 in the hopper: 2 × 11 + 3 = 25. Solving 2x + 3 = 11 runs the machine backward and finds the input 4." },
+              { kind: "fade", title: "Weather for the family",
+                q: "Your family in Nicaragua says it’s 30 °C. The machine is f(C) = 1.8C + 32. Fill in the missing line.",
+                lines: ["f(C) = 1.8C + 32", "f(30) = 1.8 × 30 + 32", "= 54 + 32 = 86 °F"],
+                blank: 1, options: ["f(30) = 1.8 × 30 + 32", "f(30) = 1.8 × (30 + 32)", "30 = 1.8C + 32"], answer: 0, tags: [null, null, "FUNC-IN-OUT-SWAP"], concept: "l11-feed",
+                hints: ["Swap C for 30."],
+                why: "Feed 30 in: 1.8 × 30 = 54, then + 32 = 86 °F. Hot, as usual." },
+              { kind: "quiz", title: "Quick check: find the rule",
+                q: "A machine turns 1 into 5, 2 into 8, 3 into 11. What is its rule?",
+                options: ["3x + 2", "x + 4", "4x + 1"], answer: 0, tags: [null, null, null], concept: "l11-rule",
+                hints: ["Each step in, the output grows by 3.", "3 × 1 = 3. What gets you to 5?"],
+                why: "Up 3 each time, so × 3; 3 × 1 + 2 = 5. Check: 3 × 3 + 2 = 11. x + 4 gives 6 for 2; 4x + 1 gives 9." },
+              { kind: "quiz", title: "Quick check: two machines in a row",
+                q: "Dinner is $50. Machine 1 adds tax (× 1.07); its output feeds machine 2, which adds a $10 tip. What comes out?",
+                options: ["$63.50", "$53.50", "$64.20"], answer: 0, tags: [null, null, null], concept: "l11-feed",
+                hints: ["Machine 1 first: 50 × 1.07.", "Feed that output into machine 2."],
+                why: "50 × 1.07 = $53.50, then + $10 = $63.50. $53.50 stops after machine 1; $64.20 runs them in the wrong order." },
+              { kind: "quiz", title: "Quick check: is it a function?",
+                q: "Which is a function: “each person → their birthday” or “each birthday → the person”?",
+                options: ["Person → birthday: each person has exactly one", "Birthday → person: each date names one person", "Both are functions"], answer: 0, tags: [null, null, null], concept: "l11-one",
+                hints: ["Can one input give two outputs?"],
+                why: "Every person has one birthday, so one in, one out. Many people share a birthday, so one date would give several people: not a function." },
+              { kind: "transfer", title: "New costume: your weekly load",
+                q: "From Day 6: each session is 65 minutes, so f(s) = 65s. You have 18 sessions this week. What is f(18)?",
+                options: ["1,170 minutes = 19.5 hours", "83 minutes", "About 0.28"], answer: 0, tags: [null, null, "FUNC-IN-OUT-SWAP"], concept: "l11-feed",
+                hints: ["Feed 18 in: 65 × 18.", "÷ 60 for hours."],
+                why: "65 × 18 = 1,170 minutes, and 1,170 ÷ 60 = 19.5 hours. 83 added instead of multiplied; 0.28 divided the wrong way." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Spreadsheets.</b> A cell formula IS a function: =B2*1.2 feeds B2 in.</li><li><b>Calculators and conversions.</b> °C to °F, dollars to córdobas, minutes to hours.</li>" +
+                  "<li><b>Paycheck estimates.</b> Gross in, take-home out.</li><li><b>App settings.</b> A camera’s exposure or a tip slider: your inputs in, one result out.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>Input → rule → output.</b> $45 → × 1.2 → $54.</li><li><b>f(x) means feed x in.</b> f(45) = 54; f(3) is never f × 3.</li>" +
+                  "<li><b>One input, one output — that’s what makes it a function.</b> Person → birthday works; birthday → person doesn’t.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> Write the rule once, then feed in any number: one in, exactly one out.</p>' }
             ]
           },
           /* Day 13: linear models as bills. Fixed fee + rate × use, built from bills before y = mx + b gets a name */
