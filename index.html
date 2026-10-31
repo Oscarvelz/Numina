@@ -1422,6 +1422,8 @@
           "PROP-ADD-NOT-MULTIPLY": "Scale by multiplying, not adding: 2 cups for 4 people is ½ cup each, so 6 people need 3 cups, not 2 + 2 = 4.",
           "SCALE-AREA-LINEAR": "Area grows by the factor twice: double every side and the area is 2 × 2 = 4 times, not 2. A 5×8 rug is 40 sq ft; a 10×16 rug is 160.",
           "SCALE-FACTOR-INVERTED": "New on top, old on the bottom: going from 6 servings to 4 is × 4/6, not × 6/4. Shrinking needs a factor below 1.",
+          "VAR-AS-LABEL": "A letter holds a number, not a thing: in 6p + 3, p is the price of one pastelito, so 6p means 6 × the price, not “6 pastelitos”.",
+          "VAR-SAME-LETTER-DIFFERENT-VALUE": "Same letter, same number, everywhere in that line: in 2x + x with x = 4, both are 4, so 2 × 4 + 4 = 12.",
           "CONV-WRONG-DIRECTION": "Converting to a bigger unit gives a smaller number, so divide: 1,000 C$ ÷ 36.6 ≈ $27, not × 36.6.",
           "EXP-TIMES-TWO": "3² means 3 × 3, not 3 × 2. The exponent counts how many times the base is multiplied.",
           "EXP-SMALL-JUMP": "Exponential growth looks slow at first and then explodes. Each step multiplies, so late steps add far more than early ones.",
@@ -6128,6 +6130,11 @@
             see: "One small square, then the same square scaled by 2 and by 3. Each side grows by k, but the copies inside grow by k × k: 4 copies at k = 2, 9 at k = 3.",
             why: "Area has two directions, width and height, and both get multiplied by k, so area gets k twice. That’s why a 12-inch pizza beats two 8-inch ones. Volume has three directions, so it grows by k × k × k.",
             use: "Recipes and programs (one k for every amount), maps and floor plans (lengths × k), photo prints, rugs and paint (areas × k²)." },
+          variable: { term: "A variable = a box with a name that holds a number", svg: svgVar, scene: "billbuilder3d", short: "A named box: 6p means 6 × whatever p holds.",
+            alt: "A box named p holding $1.50, copied into six small boxes that all show 1.5, plus a $3 café: total $12",
+            see: "One box named p holds the price of a pastelito. Every place p appears shows the same number, so six pastelitos are six copies of the same box, plus $3 for the café.",
+            why: "Naming the unknown lets you write the whole rule before you know the number, then drop any value in and get the answer. It only works if the letter means one number in that line; it hides nothing about what the number should be.",
+            use: "Budgets with one changing line, spreadsheet cells, pricing a service per hour, scaling recipes, calculator apps: put the number in the box, then do the math." },
           linear: { term: "Every bill = fixed part + rate × use", svg: svgLinear, scene: "billbuilder3d", short: "Fixed fee plus a price per use.",
             alt: "Six bars, each on the same dark base block, with one more light block per use; a line runs through their tops",
             see: "The dark block is the fee you pay even at zero use. Each light block is one use at the rate. The line through the tops is the total for any amount of use.",
@@ -7363,6 +7370,54 @@
           inp.addEventListener("input", function () { set(+inp.value); });
           $(".x-do", card).addEventListener("click", function () { set(2); });
           set(done ? 2 : 1);
+        }
+        /* Day 6: a box named p holds one number; the six pastelito boxes all show it, so total = 6 × p + 3 recomputes as it changes */
+        var vrF = function (v) { return v % 1 ? v.toFixed(2) : String(v); };
+        function vrSVG(v) {
+          var on = v != null, col = on && 6 * v + 3 === 12 ? "var(--ok)" : "var(--gold)", s = SVG_OPEN(170), i;
+          s += '<rect x="115" y="12" width="70" height="46" rx="6" style="fill:' + col + ";fill-opacity:.2;stroke:" + col + '"/><path d="M115 12L150 32L185 12" stroke-opacity=".45"/>' +
+            LBL(150, 52, on ? "$" + vrF(v) : "?", "font-weight:600") + LBL(100, 40, "p", "font-weight:600;fill:" + col);
+          for (i = 0; i < 6; i++) s += '<rect x="' + (10 + i * 34) + '" y="82" width="30" height="28" rx="4" style="fill:' + col + ";fill-opacity:.15;stroke:" + col + '"/>' + LBL(25 + i * 34, 101, on ? String(v) : "?");
+          return s + LBL(246, 101, "+ café $3") + LBL(110, 128, "6 pastelitos: the same box p, 6 times") +
+            LBL(150, 156, "total = 6 × p + 3 = " + (on ? "$" + vrF(6 * v + 3) : "?"), "font-weight:600") + "</svg>";
+        }
+        function svgVar() { return vrSVG(1.5); }
+        /* Day 6 name-it: box p = 2 goes through the recipe 6p + 3 and comes out 15 */
+        function vrRecipe() {
+          return SVG_OPEN(110) + '<rect x="14" y="30" width="60" height="40" rx="6" style="fill:var(--gold);fill-opacity:.2;stroke:var(--gold)"/>' + LBL(44, 55, "p = 2", "font-weight:600") +
+            '<path d="M80 50H104M98 44L104 50L98 56"/>' + LBL(160, 46, "6p + 3", "font-weight:600") + LBL(160, 66, "6 × 2 + 3") +
+            '<path d="M214 50H238M232 44L238 50L232 56"/>' + LBL(266, 55, "15", "font-weight:600;fill:var(--gold)") + LBL(150, 100, "The recipe turns a box value into an answer") + "</svg>";
+        }
+        /* Day 6 play: drag (or tap) a number tile into box p; solved when the total reads $12 */
+        function vrPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), res = $(".x-res", card), done = !!api.solved;
+          function set(v) {
+            box.innerHTML = vrSVG(v);
+            var t = v == null ? null : 6 * v + 3;
+            out.textContent = v == null ? "Drop a number into box p." : "p = $" + vrF(v) + ": 6 × " + vrF(v) + " + 3 = $" + vrF(t) + ". " + (t === 12 ? "Found it: $12." : "Make the total $12.");
+            if (!done && t === 12) { done = true; api.solve(10); }
+            res.hidden = !done;
+          }
+          Array.prototype.forEach.call(card.querySelectorAll("[data-v]"), function (b) {
+            var sx = 0, sy = 0, moved = false, id = null;
+            var end = function () { id = null; b.style.transform = ""; };
+            b.addEventListener("pointerdown", function (e) { id = e.pointerId; sx = e.clientX; sy = e.clientY; moved = false; b.setPointerCapture(id); });
+            b.addEventListener("pointermove", function (e) {
+              if (id !== e.pointerId) return;
+              var dx = e.clientX - sx, dy = e.clientY - sy;
+              if (Math.abs(dx) + Math.abs(dy) > 6) moved = true;
+              if (moved) b.style.transform = "translate(" + dx + "px," + dy + "px)";
+            });
+            b.addEventListener("pointerup", function (e) {
+              if (id !== e.pointerId) return; end();
+              var r = box.getBoundingClientRect();
+              if (moved && e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) set(+b.dataset.v);
+            });
+            b.addEventListener("pointercancel", end);
+            b.addEventListener("click", function () { if (!moved) set(+b.dataset.v); moved = false; });
+          });
+          $(".x-do", card).addEventListener("click", function () { set(1.5); });
+          set(done ? 1.5 : null);
         }
         /* Day 22 proof puzzle: a 7 × 7 square (a = 3, b = 4), 26px a unit; four legs-3-4 triangles, each [x1, y1, x2, y2, turn]: corners (st 0) → two rectangles (st 1), translation only */
         var PZ_T = [[0, 0, 3, 0, 0], [7, 0, 3, 3, 90], [7, 7, 7, 3, 180], [0, 7, 0, 7, 270]], PZ_TR = EX_RM ? "none" : "transform 1s var(--ease),opacity .6s var(--ease)";
@@ -10553,6 +10608,11 @@
                 options: ["2", "4", "½"], answer: 0, tags: [null, "SCALE-AREA-LINEAR", "SCALE-FACTOR-INVERTED"], concept: "l5-factor",
                 hints: ["New ÷ old, on one side.", "8 ÷ 4."],
                 why: "8 ÷ 4 = 2 and 12 ÷ 6 = 2, so k = 2. 4 is what happened to the area; ½ is old ÷ new." },
+              { kind: "quiz", title: "Quick check: a dose chart",
+                q: "A children’s dose chart says 2.5 mL for 12 kg. Your nephew is 18 kg. Using the same scale factor, what does the chart scale to? (Reading practice, not medical advice: follow the label or a pharmacist.)",
+                options: ["3.75 mL", "1.67 mL", "8.5 mL"], answer: 0, tags: [null, "SCALE-FACTOR-INVERTED", "PROP-ADD-NOT-MULTIPLY"], concept: "l5-factor",
+                hints: ["k = new weight ÷ old weight.", "18 ÷ 12 = 1.5. Now 2.5 × 1.5."],
+                why: "k = 18 ÷ 12 = 1.5, so 2.5 × 1.5 = 3.75 mL. 1.67 mL used the flipped factor 12/18; 8.5 mL added 6. Always follow the label or a pharmacist." },
               { kind: "transfer", title: "New costume: a group program",
                 q: "Your 8-week group program was planned for 10 clients, with 20 handouts each session. Now 15 clients signed up. How many handouts per session?",
                 options: ["30 handouts", "25 handouts", "About 13 handouts"], answer: 0, tags: [null, "PROP-ADD-NOT-MULTIPLY", "SCALE-FACTOR-INVERTED"], concept: "l5-factor",
@@ -10566,6 +10626,97 @@
                 body: "<ul><li><b>k = new ÷ old.</b> 8 → 12 servings is k = 1.5.</li><li><b>Lengths × k, areas × k².</b> Double the sides, 4 × the paint.</li>" +
                   "<li><b>Bigger pizza beats more pizzas surprisingly often.</b> 12-inch: 113 sq in; two 8-inch: 101.</li></ul>" +
                   '<p class="x-so"><b>So:</b> The scale factor k is new ÷ old. Lengths multiply by k, areas by k².</p>' }
+            ]
+          },
+          /* Day 6: a variable as a named box that holds a number. The box shows up holding a price before any letter does the work */
+          6: {
+            home: ["Variables as Placeholders", "a letter is a box holding a number: pastelitos, budgets, photo gigs."],
+            flow: true,
+            scene: "billbuilder3d",
+            steps: [
+              { kind: "predict", title: "Pastelitos and a café",
+                body: '<p class="x-q">Uber Eats? No: a Cuban bakery. Pastelitos cost the same each. 6 pastelitos + a $3 café con leche cost $9. How much is one pastelito?</p>' +
+                  ["$1", "$1.50", "$2"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden>' + cpBox(vrSVG(1), "The price you don’t know yet sits in a box named p", "A box named p holding $1, copied six times, plus a $3 café: total $9") +
+                  '<p class="why"><b>$1.</b> $9 − $3 for the café leaves $6 for 6 pastelitos, so $1 each. The unknown price is a box: 6 boxes + $3 = $9.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l6pan", 0)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "The mystery box machine",
+                body: '<p class="x-q">Prices went up. Drag a number into box p and watch the total. Which price makes it $12?</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">Box p: the price of one pastelito</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="links">' + [1, 1.25, 1.5, 2, 2.5].map(function (v) { return '<button type="button" class="prev press" style="touch-action:none" data-v="' + v + '">$' + vrF(v) + "</button>"; }).join("") + "</div>" +
+                  '<button type="button" class="prev press x-do">Do it for me</button>' +
+                  '<div class="x-res" hidden><p class="why"><b>p = $1.50.</b> 6 × 1.50 = 9, plus the $3 café is $12.</p></div>' +
+                  '<button type="button" class="start press x-3dbtn" data-scene="billbuilder3d">Build bills in the Lab</button>',
+                mount: vrPlay },
+              { kind: "notice", title: "One box, many places", hl: ".x-nl",
+                viz: cpBox(vrSVG(1.5), "Every copy of p shows the same $1.50"),
+                q: "The box p shows up six times. What do those six copies hold?",
+                options: ["The same number: one box, wherever it appears", "Six different prices", "The number 6"],
+                say: "It’s the same box everywhere it appears. It holds one number we don’t know yet, or one that changes." },
+              { kind: "plate", plate: "variable", title: "A variable: a box with a name" },
+              { kind: "play", title: "Build it: your monthly budget",
+                body: '<p class="x-q">Rent $1,450 + groceries g + gas $160. Total = 1,450 + g + 160. What’s the total when g = $400?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input type="text" inputmode="decimal" autocomplete="off" placeholder="$" aria-label="Monthly total when groceries are $400"></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden><b>Hint:</b> Put the number in the box, then do the math: 1,450 + 400 + 160.</p>' +
+                  '<div class="x-res" hidden><p class="why"><b>1,450 + 400 + 160 = $2,010.</b> Change g next month and the same rule still works.</p></div>',
+                mount: blFill(2010) },
+              { kind: "formalize", title: "Name it: letter, product, expression",
+                body: cpBox(vrRecipe(), "Box in, answer out", "Box p equals 2 goes into 6p plus 3, which is 6 times 2 plus 3, and comes out 15") +
+                  '<ol class="x-wk"><li><span>Letter</span><span>A box with a name; it holds one number</span><b>p = 1.50</b></li>' +
+                  "<li><span>6p</span><span>A number next to a letter means times</span><b>6 × p</b></li>" +
+                  "<li><span>Expression</span><span>A recipe that turns a box value into an answer</span><b>6p + 3 → $12</b></li></ol>",
+                so: "A letter is a box holding a number. 6p means 6 × p. An expression is a recipe: put the number in, get the answer out." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "A friend reads the bakery bill as: “6p + 3 means 6 pastelitos and 3 cafés.” What went wrong?",
+                options: ["p is a price, a number: 6p is 6 × the price, and 3 is $3", "Nothing: p stands for pastelitos", "It should be 3 pastelitos and 6 cafés"], answer: 0, tags: [null, "VAR-AS-LABEL", "VAR-AS-LABEL"], concept: "l6-box",
+                hints: ["What does box p hold: a thing, or a number?", "p = $1.50, so 6p = 6 × 1.50 = $9."],
+                why: "p holds the price of one pastelito. 6p is 6 × that price, and + 3 is the $3 café, not 3 cafés." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "Someone works out 2x + x and says: “The first x is 4 and the second x is 5.” What went wrong?",
+                options: ["Same letter, same number: both x’s are 4, so 2 × 4 + 4 = 12", "Nothing: each x can be different", "x has to be 2 because of the 2 in front"], answer: 0, tags: [null, "VAR-SAME-LETTER-DIFFERENT-VALUE", "ALG-JUXTAPOSE"], concept: "l6-same",
+                hints: ["How many boxes named x are there in one line?", "One box, one number: put 4 in every x."],
+                why: "One letter is one box, so inside that line every x holds the same number. With x = 4: 2 × 4 + 4 = 12." },
+              { kind: "fade", title: "Pricing a photo gig",
+                q: "You charge $75 per hour h, plus $40 for editing. Write the price, then price a 3-hour shoot. Fill in the missing line.",
+                lines: ["Price = 75h + 40", "h = 3: 75 × 3 + 40", "= $265"],
+                blank: 0, options: ["Price = 75h + 40", "Price = 75 + 40h", "Price = 115h"], answer: 0, tags: [null, "LIN-RATE-AS-TOTAL", "LIN-IGNORE-FIXED"], concept: "l6-box",
+                hints: ["The $75 goes with each hour; the $40 comes once."],
+                why: "75h + 40 with h = 3 is 225 + 40 = $265. 75 + 40h charges editing per hour; 115h adds the $40 to every hour." },
+              { kind: "quiz", title: "Quick check",
+                q: "Bowling night: $20 entry plus $4 per game g. Which expression matches?",
+                options: ["20 + 4g", "24g", "4 + 20g"], answer: 0, tags: [null, "LIN-IGNORE-FIXED", "LIN-RATE-AS-TOTAL"], concept: "l6-box",
+                hints: ["Which part is paid once? Which part is per game?"],
+                why: "$20 once, plus $4 times the number of games: 20 + 4g. 24g charges the entry every game." },
+              { kind: "quiz", title: "Quick check",
+                q: "Evaluate 3n − 5 when n = 7.",
+                options: ["16", "32", "2"], answer: 0, tags: [null, "ALG-JUXTAPOSE", null], concept: "l6-box",
+                hints: ["Put 7 in the box: 3 × 7 − 5."],
+                why: "3 × 7 = 21, and 21 − 5 = 16. 32 read 3n as the digits 3 and 7 side by side: 37 − 5." },
+              { kind: "quiz", title: "Quick check: a spreadsheet",
+                q: "Cell B2 holds hours worked. Cell C2 says =B2*27 for pay. You type 30 into B2. What does C2 show?",
+                options: ["$810", "$57", "$3,027"], answer: 0, tags: [null, null, "ALG-JUXTAPOSE"], concept: "l6-box",
+                hints: ["B2 is the box. Put 30 in it, then do 30 × 27."],
+                why: "B2 is a box with a name. With 30 inside, =B2*27 gives 30 × 27 = $810. 57 added instead of multiplying." },
+              { kind: "transfer", title: "New costume: your work week",
+                q: "Each session is 50 minutes plus 15 minutes of notes, so weekly minutes = 65s for s sessions. This week s = 20. How much time is that?",
+                options: ["1,300 min ≈ 21.7 h", "1,015 min ≈ 16.9 h", "85 min"], answer: 0, tags: [null, null, "ALG-JUXTAPOSE"], concept: "l6-box",
+                hints: ["65s means 65 × s.", "65 × 20, then ÷ 60 for hours."],
+                why: "65 × 20 = 1,300 minutes, about 21.7 hours. 1,015 counted notes for only one session; 85 added 65 + 20." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Budgets.</b> One line changes each month (groceries g); the rule stays.</li><li><b>Spreadsheet cells.</b> B2 is a letter with a box: change it and every formula updates.</li>" +
+                  "<li><b>Pricing a service.</b> 75h + 40 quotes any photo shoot in seconds.</li><li><b>Recipes on autopilot.</b> Cups per person × p people, for any guest list.</li>" +
+                  "<li><b>Calculator apps.</b> Tip, loan and fuel apps run an expression on the number you type.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>A letter is a box holding a number.</b> p = $1.50 for one pastelito.</li><li><b>6p = 6 × p.</b> 6 × 1.50 + 3 = $12.</li>" +
+                  "<li><b>Same letter, same number: everywhere in that line.</b> 2x + x with x = 4 is 12.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> A letter is a box holding a number. 6p means 6 × p. An expression is a recipe: put the number in, get the answer out.</p>' }
             ]
           },
           /* Day 13: linear models as bills. Fixed fee + rate × use, built from bills before y = mx + b gets a name */
