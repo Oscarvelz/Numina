@@ -1425,6 +1425,8 @@
           "VAR-AS-LABEL": "A letter holds a number, not a thing: in 6p + 3, p is the price of one pastelito, so 6p means 6 × the price, not “6 pastelitos”.",
           "VAR-SAME-LETTER-DIFFERENT-VALUE": "Same letter, same number, everywhere in that line: in 2x + x with x = 4, both are 4, so 2 × 4 + 4 = 12.",
           "EQ-ONE-SIDE-ONLY": "Whatever you do to one side, do to the other: from 6p + 3 = 12, take 3 off both sides to get 6p = 9, not 6p = 12.",
+          "FORM-SWAP-NOT-INVERT": "Moving a letter across the = means undoing it on both sides: from d = r · t, ÷ r on both sides gives t = d ÷ r, not t = d · r.",
+          "FORM-PARTIAL-DIVIDE": "Divide the whole side, not one term: from cost = 6c + 10, take 10 off both sides first, then ÷ 6: c = (cost − 10) ÷ 6, not cost/6 + 10.",
           "EQ-WRONG-UNDO-ORDER": "Undo in reverse order: 6p + 3 was built × 6 first, then + 3, so take off the 3 first, then ÷ 6: p = 9 ÷ 6 = 1.5, not 12/6 − 3.",
           "CONV-WRONG-DIRECTION": "Converting to a bigger unit gives a smaller number, so divide: 1,000 C$ ÷ 36.6 ≈ $27, not × 36.6.",
           "EXP-TIMES-TWO": "3² means 3 × 3, not 3 × 2. The exponent counts how many times the base is multiplied.",
@@ -6147,6 +6149,11 @@
             see: "The left pan holds 6 boxes p and 3 coins; the right pan holds 12 coins. The scale is level, so both sides weigh the same: 6p + 3 = 12.",
             why: "Any move made to both pans keeps the scale level, so the equation stays true while you strip away everything but p. Undoing in reverse order (the + 3 first, then the × 6) keeps every step clean. It assumes one unknown; two unknowns need a second equation.",
             use: "Work backward from a paycheck to hours, find how many months to save for a trip, how many sessions fit a budget, or check a bill: undo, then plug the answer back in." },
+          rearrange: { term: "Rearranging = making the letter you want stand alone, using balance moves", svg: svgFm, scene: "billbuilder3d", short: "Get the letter you want alone; same move on both sides.",
+            alt: "A level balance: d ÷ r on the left pan, t alone on the right pan",
+            see: "d = r × t sat on the scale. Dividing both pans by r kept it level and left t alone: t = d ÷ r. The letters stayed letters.",
+            why: "It’s the same solving as Day 7, done once with letters, so the result works for every trip, not just one. Undo the outer operation first. It assumes you never divide by zero: a speed of 0 has no travel time.",
+            use: "Travel time from distance and speed, hourly pay from a salary, °C from °F, a bill before the tip: rearrange once, then type numbers into the new formula." },
           number: { term: "Number", svg: svgNumber, short: "Keeps only how many.",
             alt: "A cookie, a music note and a calendar day become three identical dots, then the numeral 3",
             see: "Three unlike things (a cookie, a song, a day) turn into three identical dots, then one mark: 3. Each dot stands for one thing; the numeral stands for the whole group.",
@@ -7492,6 +7499,60 @@
           $(".x-do", card).addEventListener("click", function () { st = { b: 1, l: 0, r: 1.5 }; msg = "−3 on both sides, then ÷ 6 on both."; draw(); });
           if (done) st = { b: 1, l: 0, r: 1.5 }; else reset();
           draw();
+        }
+        /* Day 8 formula machine: the Day 7 beam with a formula on each pan; tilt in degrees (0 = level) */
+        function fmSVG(L, R, tilt) {
+          var th = (tilt || 0) * Math.PI / 180, dx = 90 * Math.cos(th), dy = 90 * Math.sin(th), lvl = !tilt;
+          var E = [[150 - dx, 30 - dy], [150 + dx, 30 + dy]], s = SVG_OPEN(186) + '<path d="M150 30V160M112 160H188" stroke-opacity=".5"/>';
+          E.forEach(function (e, k) {
+            var cx = e[0], py = e[1] + 64;
+            s += '<path d="M' + cx + " " + e[1] + "L" + (cx - 50) + " " + py + "M" + cx + " " + e[1] + "L" + (cx + 50) + " " + py + '" stroke-width="1" stroke-opacity=".35"/>' +
+              '<path d="M' + (cx - 55) + " " + py + "Q" + cx + " " + (py + 14) + " " + (cx + 55) + " " + py + 'Z" style="fill:currentColor;fill-opacity:.08"/>' +
+              LBL(cx, py - 8, k ? R : L, "font-weight:600;font-size:15px;fill:" + (k ? "var(--cyan)" : "var(--gold)"));
+          });
+          return s + '<path d="M' + E[0][0] + " " + E[0][1] + "L" + E[1][0] + " " + E[1][1] + '" stroke-width="3"/><circle cx="150" cy="30" r="4" stroke="none" style="fill:currentColor"/>' +
+            LBL(150, 180, L + " = " + R + (lvl ? " · level" : " · tipped"), "font-weight:600;fill:" + (lvl ? "var(--ok)" : "var(--coral)")) + "</svg>";
+        }
+        function svgFm() { return fmSVG("d ÷ r", "t", 0); }
+        /* Day 8 name-it: cost built from c (× 6, then + 10), undone back to c (− 10, then ÷ 6) */
+        function fmUndo() {
+          return SVG_OPEN(120) + LBL(150, 16, "Built: × 6 first, then + 10") + LBL(36, 44, "c", "font-weight:600") + LBL(96, 44, "→ × 6 →") + LBL(156, 44, "6c", "font-weight:600") + LBL(216, 44, "→ + 10 →") + LBL(272, 44, "cost", "font-weight:600") +
+            LBL(150, 76, "Undone: − 10 first, then ÷ 6", "fill:var(--gold)") + LBL(272, 104, "cost", "font-weight:600") + LBL(216, 104, "← − 10 ←") + LBL(150, 104, "cost − 10", "font-weight:600") + LBL(86, 104, "← ÷ 6 ←") +
+            LBL(30, 104, "c", "font-weight:600;fill:var(--gold)") + "</svg>";
+        }
+        /* Day 8 play: tap the target letter on the card, then a move; solved when the card reads t = d ÷ r */
+        function fmPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), log = $(".x-log", card), res = $(".x-res", card), plug = $(".x-plug", card), done = !!api.solved, st;
+          var LOGS = ["d = r × t", "÷ r on both sides: d ÷ r = r × t ÷ r", "r ÷ r cancels: d ÷ r = t", "Read it the other way: t = d ÷ r"];
+          function paint(msg) {
+            box.innerHTML = fmSVG(st.L, st.R, st.tilt);
+            out.textContent = msg;
+            log.innerHTML = st.log.map(function (l) { return "<li>" + l + "</li>"; }).join("");
+            Array.prototype.forEach.call(card.querySelectorAll("[data-l]"), function (b) { b.classList.toggle("is-picked", b.dataset.l === st.pick); });
+            res.hidden = !done; plug.hidden = !done;
+          }
+          function reset() { st = { L: "d", R: "r × t", tilt: 0, pick: "", log: [LOGS[0]] }; }
+          function win(msg) { st = { L: "t", R: "d ÷ r", tilt: 0, pick: "t", log: LOGS.slice() }; if (!done) { done = true; api.solve(10); } paint(msg); }
+          card.addEventListener("click", function (e) {
+            var l = e.target.closest("[data-l]"), m = e.target.closest("[data-m]");
+            if (l) {
+              st.pick = l.dataset.l;
+              paint(st.pick === "t" ? "Target: t alone. t is stuck × r. Which move frees it?" : st.pick === "d" ? "d is already alone: that’s the formula you have, not the one you want." : "r alone gives speed. You want time: tap t.");
+              return;
+            }
+            if (!m) return;
+            var a = m.dataset.m;
+            if (a === "reset") { reset(); return paint("Back to d = r × t. Tap the letter you want."); }
+            if (done && st.L === "t") return paint("Solved: t = d ÷ r. Plug in the numbers.");
+            if (st.pick !== "t") return paint("Tap the letter you want alone first: time is t.");
+            if (st.tilt) return paint("The scale is tipped. Reset and keep both sides equal.");
+            if (a === "div") win("Same move on both sides, still level. t stands alone.");
+            else if (a === "left") { st.L = "d ÷ r"; st.tilt = -12; st.log.push("÷ r on the left only"); paint("One side only: the scale tipped. That’s how t = d · r mistakes happen."); }
+            else if (a === "mul") { st.L = "d × r"; st.R = "r × r × t"; st.log.push("× r on both sides: d × r = r × r × t"); paint("Still level, but t got more company, not less. × is undone by ÷."); }
+          });
+          plug.addEventListener("click", function () { plug.disabled = true; out.textContent = "t = 235 ÷ 65 ≈ 3.6 hours. Next trip: just swap the numbers."; });
+          $(".x-do", card).addEventListener("click", function () { win("÷ r on both sides: t = d ÷ r."); });
+          if (done) win("Solved: t = d ÷ r."); else { reset(); paint("Tap the letter you want alone."); }
         }
         /* Day 22 proof puzzle: a 7 × 7 square (a = 3, b = 4), 26px a unit; four legs-3-4 triangles, each [x1, y1, x2, y2, turn]: corners (st 0) → two rectangles (st 1), translation only */
         var PZ_T = [[0, 0, 3, 0, 0], [7, 0, 3, 3, 90], [7, 7, 7, 3, 180], [0, 7, 0, 7, 270]], PZ_TR = EX_RM ? "none" : "transform 1s var(--ease),opacity .6s var(--ease)";
@@ -10884,6 +10945,103 @@
                 body: "<ul><li><b>Same move on both sides.</b> 6p + 3 = 12 → 6p = 9.</li><li><b>Undo in reverse order.</b> − 3 first, then ÷ 6: p = 1.5.</li>" +
                   "<li><b>Check by plugging the answer back in.</b> 6 × 1.5 + 3 = 12.</li></ul>" +
                   '<p class="x-so"><b>So:</b> An equation is a balanced scale. Undo steps in reverse order, with the same move on both sides.</p>' }
+            ]
+          },
+          /* Day 8: rearranging formulas. Day 7's balance moves, done once with letters, give a calculator-ready formula */
+          8: {
+            home: ["Rearranging Formulas", "rearrange once, reuse forever: trip times, hourly pay, °C for family."],
+            flow: true,
+            scene: "billbuilder3d",
+            steps: [
+              { kind: "predict", title: "Miami to Orlando",
+                body: '<p class="x-q">Distance = speed × time. Miami to Orlando is about 235 miles at 65 mph. How long is the drive?</p>' +
+                  ["~3.6 h", "~4.5 h", "~2.8 h"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden>' + cpBox(fmSVG("d", "r × t", 0), "d = r × t: distance balances speed × time", "A level scale: d on the left pan, r times t on the right pan") +
+                  '<p class="why"><b>About 3.6 h.</b> 235 ÷ 65 ≈ 3.6. Now: what if you had to do this for 10 trips? Rearrange once, and every trip is one calculator step.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l8trip", 0)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "The formula machine",
+                body: '<p class="x-q">Make a time formula. Tap the letter you want alone, then pick a move.</p>' +
+                  '<div class="links">' + ["d", "r", "t"].map(function (v) { return '<button type="button" class="prev press" data-l="' + v + '">' + v + "</button>"; }).join("") + "</div>" +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">The formula card on the scale · d distance, r speed, t time</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<ol class="why x-log"></ol>' +
+                  '<div class="links"><button type="button" class="prev press" data-m="div">÷ r both sides</button>' +
+                  '<button type="button" class="prev press" data-m="left">÷ r left side only</button>' +
+                  '<button type="button" class="prev press" data-m="mul">× r both sides</button>' +
+                  '<button type="button" class="prev press" data-m="reset">Reset</button></div>' +
+                  '<button type="button" class="prev press x-do">Do it for me</button>' +
+                  '<button type="button" class="start press x-plug" hidden>Plug in 235 and 65</button>' +
+                  '<div class="x-res" hidden><p class="why"><b>t = d ÷ r.</b> One move on both sides. Now any trip is distance ÷ speed.</p></div>' +
+                  '<button type="button" class="start press x-3dbtn" data-scene="billbuilder3d">Build bills in the Lab</button>',
+                mount: fmPlay },
+              { kind: "notice", title: "Solving, with letters kept", hl: ".x-nl",
+                viz: cpBox(svgFm(), "÷ r on both sides: d ÷ r = t, still level"),
+                q: "Day 7 you got a number at the end. What did you get this time?",
+                options: ["A formula: the same solving moves, but the letters stay letters", "A number for t", "A brand-new kind of math"],
+                say: "Rearranging is solving: same balance moves, but you stop with letters, so it works for every trip." },
+              { kind: "plate", plate: "rearrange", title: "Rearranging: get the letter alone" },
+              { kind: "play", title: "Build it: classes from your bill",
+                body: '<p class="x-q">The gym bill from Bill Builder: cost = 6c + 10. Rearranged, c = (cost − 10) ÷ 6. You spent $70. How many classes c?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input type="text" inputmode="decimal" autocomplete="off" placeholder="classes" aria-label="Classes for a $70 bill"></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden><b>Hint:</b> Undo the + 10 first, then the × 6.</p>' +
+                  '<div class="x-res" hidden><p class="why"><b>(70 − 10) ÷ 6 = 60 ÷ 6 = 10 classes.</b> Next month’s bill? Same formula, new number.</p></div>',
+                mount: blFill(10) },
+              { kind: "formalize", title: "Name it: subject of the formula",
+                body: cpBox(fmUndo(), "Undo the outer operation first", "cost = 6c + 10 is built by × 6 then + 10; it is undone by − 10 then ÷ 6, leaving c") +
+                  '<ol class="x-wk"><li><span>Subject</span><span>The letter standing alone on one side</span><b>c = …</b></li>' +
+                  "<li><span>Balance rules</span><span>Same move on both sides, as on Day 7</span><b>− 10 both sides</b></li>" +
+                  "<li><span>Outer first</span><span>Undo the last thing done to the letter first</span><b>− 10, then ÷ 6</b></li></ol>",
+                so: "The subject is the letter standing alone. Make a new subject with Day 7’s balance moves, undoing outer operations first." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "A friend rearranges d = r · t and writes t = d · r. What went wrong?",
+                options: ["r was moved across but not undone: ÷ r both sides gives t = d ÷ r", "Nothing: letters can swap sides", "It should be t = r ÷ d"], answer: 0, tags: [null, "FORM-SWAP-NOT-INVERT", "FORM-SWAP-NOT-INVERT"], concept: "l8-invert",
+                hints: ["Test it: 235 miles at 65 mph. Is the trip 15,275 hours?", "t is × r. What undoes × r?"],
+                why: "t is multiplied by r, so ÷ r on both sides: t = d ÷ r. d · r would make a 235-mile trip take 15,275 hours." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "Someone rearranges cost = 6c + 10 as c = cost/6 + 10. What went wrong?",
+                options: ["Only one term was divided: take off 10 first, then ÷ 6: c = (cost − 10) ÷ 6", "Nothing: that’s right", "It should be c = 6 × cost + 10"], answer: 0, tags: [null, "FORM-PARTIAL-DIVIDE", "FORM-SWAP-NOT-INVERT"], concept: "l8-whole",
+                hints: ["Test it with $70: does 70/6 + 10 give 10 classes?", "Undo the outer operation, + 10, first."],
+                why: "− 10 on both sides: cost − 10 = 6c. Then ÷ 6 on the whole side: c = (cost − 10) ÷ 6. With $70: 10 classes, not about 21.7." },
+              { kind: "fade", title: "Your hourly from a salary",
+                q: "A job offer lists a salary: annual = hourly × 40 × 52. What is $52,000 a year per hour? Fill in the missing line.",
+                lines: ["annual = hourly × 2,080", "÷ 2,080 both sides", "hourly = annual ÷ 2,080", "52,000 ÷ 2,080 = $25/h"],
+                blank: 2, options: ["hourly = annual ÷ 2,080", "hourly = annual × 2,080", "hourly = annual − 2,080"], answer: 0, tags: [null, "FORM-SWAP-NOT-INVERT", null], concept: "l8-invert",
+                hints: ["40 × 52 = 2,080 hours a year."],
+                why: "÷ 2,080 on both sides: hourly = annual ÷ 2,080, so $52,000 is $25/h. Now any offer converts in one step." },
+              { kind: "quiz", title: "Quick check: Miami in °C",
+                q: "°F = 1.8 · °C + 32, so °C = (°F − 32) ÷ 1.8. Miami hits 91 °F. What do you tell family in Nicaragua?",
+                options: ["About 32.8 °C", "About 18.6 °C", "About 106.2 °C"], answer: 0, tags: [null, "FORM-PARTIAL-DIVIDE", "FORM-SWAP-NOT-INVERT"], concept: "l8-whole",
+                hints: ["Undo the + 32 first: 91 − 32.", "Then ÷ 1.8."],
+                why: "91 − 32 = 59, and 59 ÷ 1.8 ≈ 32.8 °C. 18.6 divided before subtracting; 106.2 multiplied instead of dividing." },
+              { kind: "quiz", title: "Quick check: backing out a tip",
+                q: "total = bill × 1.18 with an 18% tip, so bill = total ÷ 1.18. You paid $59 in total. What was the bill?",
+                options: ["$50", "About $69.62", "About $48.38"], answer: 0, tags: [null, "FORM-SWAP-NOT-INVERT", null], concept: "l8-invert",
+                hints: ["59 ÷ 1.18."],
+                why: "59 ÷ 1.18 = $50. Check: 50 × 1.18 = 59. Taking 18% off $59 gives $48.38, which takes the tip off the wrong amount." },
+              { kind: "quiz", title: "Quick check: a photo print",
+                q: "area = w × h, so h = area ÷ w. A print is 80 sq in and 8 in wide. How tall is it?",
+                options: ["10 in", "640 in", "72 in"], answer: 0, tags: [null, "FORM-SWAP-NOT-INVERT", null], concept: "l8-invert",
+                hints: ["h = 80 ÷ 8."],
+                why: "80 ÷ 8 = 10 in, an 8 × 10 print. 640 multiplied; 72 subtracted." },
+              { kind: "transfer", title: "New costume: your caseload",
+                q: "Each 50-minute session is 0.83 h: hours = sessions × 0.83. You need 20 hours. About how many sessions?",
+                options: ["About 24 sessions", "About 17 sessions", "About 21 sessions"], answer: 0, tags: [null, "FORM-SWAP-NOT-INVERT", null], concept: "l8-invert",
+                hints: ["Rearrange first: sessions = hours ÷ 0.83."],
+                why: "sessions = 20 ÷ 0.83 ≈ 24. 17 multiplied by 0.83 instead of dividing; 21 added it." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Travel time.</b> t = d ÷ r for any drive or flight.</li><li><b>Job offers.</b> Salary vs hourly: hourly = annual ÷ 2,080.</li>" +
+                  "<li><b>Talking to family in Nicaragua.</b> °C = (°F − 32) ÷ 1.8.</li><li><b>Receipts.</b> Back out a tip or tax: bill = total ÷ 1.18.</li>" +
+                  "<li><b>Spreadsheets.</b> Any formula you’ll reuse: rearrange it once, then fill it down.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>Get the letter you want alone.</b> d = r × t → t = d ÷ r.</li><li><b>Undo outer operations first.</b> cost = 6c + 10 → c = (cost − 10) ÷ 6.</li>" +
+                  "<li><b>Rearrange once, reuse forever.</b> One formula, every trip.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> The subject is the letter standing alone. Make a new subject with Day 7’s balance moves, undoing outer operations first.</p>' }
             ]
           },
           /* Day 13: linear models as bills. Fixed fee + rate × use, built from bills before y = mx + b gets a name */
