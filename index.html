@@ -15197,6 +15197,7 @@
           var pk = function (r, a) { return a[Math.floor(r() * a.length)]; };
           var nf = function (x) { return rr(x).toLocaleString("en-US", { maximumFractionDigits: 2 }); };
           var money = function (x) { x = rr(x); return "$" + (x % 1 ? x.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : x.toLocaleString("en-US")); };
+          var pl = function (n, w) { var p = w.split(" "), h = p[0]; if (!/^(lb|mi|km|kg|oz|mg|GB)$/.test(h)) h = n === 1 ? h.replace(/([^s])s$/, "$1") : /s$/.test(h) ? h : h + "s"; p[0] = h; return nf(n) + " " + p.join(" "); };
           var F = function (x, u) { return u === "$" ? money(x) : /^\$\//.test(u) ? "$" + rr(x).toFixed(2) + " per " + u.slice(2) : u === "%" ? nf(x) + "%" : nf(x) + (u ? " " + u : ""); };
           var mk = function (q, a, unit, why, ctx) { a = rr(a); return { q: q, a: a, unit: unit, tol: Math.max(0.01, Math.abs(a) * 0.01), why: why, ctx: ctx }; };
           REMIX = {
@@ -15245,12 +15246,12 @@
               function (r) {
                 var c = pk(r, [["Coffee beans", "oz", [12, 16], [32, 40]], ["Photo paper", "sheet", [25, 50], [100, 200]], ["Miami groceries", "lb", [2, 5], [10, 20]]]), u1 = pk(r, [0.5, 0.6, 0.75, 0.8, 0.9]), u2 = pk(r, [0.4, 0.45, 0.55, 0.65, 0.7]);
                 var s1 = pk(r, c[2]), s2 = pk(r, c[3]), P1 = rr(s1 * u1), P2 = rr(s2 * u2), lo = Math.min(P1 / s1, P2 / s2);
-                return mk(c[0] + ": " + s1 + " " + c[1] + "s for " + money(P1) + ", or " + s2 + " " + c[1] + "s for " + money(P2) + ". What is the cheaper price per " + c[1] + "?", lo, "$/" + c[1],
+                return mk(c[0] + ": " + pl(s1, c[1]) + " for " + money(P1) + ", or " + pl(s2, c[1]) + " for " + money(P2) + ". What is the cheaper price per " + c[1] + "?", lo, "$/" + c[1],
                   money(P1) + " ÷ " + s1 + " = $" + (P1 / s1).toFixed(2) + "; " + money(P2) + " ÷ " + s2 + " = $" + (P2 / s2).toFixed(2) + ". Cheaper: $" + lo.toFixed(2) + " per " + c[1] + ".", c[0]);
               },
               function (r) {
                 var c = pk(r, [["Driving", "miles", "mph", [40, 50, 60], "You drive "], ["Photo editing", "photos", "photos per hour", [20, 30, 45], "You edit "], ["Counseling notes", "notes", "notes per hour", [3, 4, 5], "You finish "]]), v = pk(r, c[3]), t = pk(r, [1.5, 2, 2.5, 3, 4]), d = v * t;
-                return mk(c[4] + nf(d) + " " + c[1] + " in " + t + " hours. What is your rate in " + c[2] + "?", v, c[2], "Rate = amount ÷ time = " + nf(d) + " ÷ " + t + " = " + v + " " + c[2] + ".", c[0]);
+                return mk(c[4] + pl(d, c[1]) + " in " + pl(t, "hours") + ". What is your rate in " + c[2] + "?", v, c[2], "Rate = amount ÷ time = " + nf(d) + " ÷ " + t + " = " + v + " " + c[2] + ".", c[0]);
               },
               function (r) {
                 var a = pk(r, [2, 3, 3, 5]), b = pk(r, [1, 2, 4]), u = pk(r, [20, 40, 50, 100]), T = (a + b) * u, c = pk(r, [
@@ -15283,7 +15284,7 @@
             5: [
               function (r) {
                 var c = pk(r, [["Gallo pinto for family", "cups of rice", [4, 6], [10, 12, 15]], ["Gym meal prep", "cups of oats", [2, 4], [6, 10, 14]], ["Coffee", "cups of grounds", [4, 8], [6, 12, 20]]]), s = pk(r, c[2]), n = pk(r, c[3]), q = pk(r, [1, 1.5, 2, 3]), a = q * n / s;
-                return mk(c[0] + ": the recipe serves " + s + " and uses " + q + " " + c[1] + ". How many " + c[1] + " for " + n + " servings?", a, c[1], "Scale factor " + n + " ÷ " + s + " = " + nf(n / s) + "; " + q + " × " + nf(n / s) + " = " + nf(a) + ".", c[0]);
+                return mk(c[0] + ": the recipe serves " + s + " and uses " + pl(q, c[1]) + ". How many " + c[1] + " for " + n + " servings?", a, c[1], "Scale factor " + n + " ÷ " + s + " = " + nf(n / s) + "; " + q + " × " + nf(n / s) + " = " + nf(a) + ".", c[0]);
               },
               function (r) {
                 var k = pk(r, [5, 10, 20, 25]), d = pk(r, [1.5, 2, 2.5, 3.5, 4]), c = pk(r, [["Miami map", "On a South Florida road map"], ["Nicaragua map", "On a map of Nicaragua"], ["Photo trip", "On the map for your next photo trip"]]);
@@ -15319,8 +15320,158 @@
                 var b = pk(r, c[5]), a = pk(r, c[6]), x = pk(r, [3, 4, 5, 6, 8]), left = b - a * x;
                 return mk(c[1] + b + c[2] + a + c[3] + left + c[4], x, c[7], b + " − " + a + "x = " + left + " → " + a + "x = " + b + " − " + left + " = " + (b - left) + " → x = " + x + ".", c[0]);
               }
+            ],
+            8: [
+              function (r) {
+                var c = pk(r, [["Driving", "Driving down to Key West you cover ", "miles", " at ", " mph", [30, 40, 50, 60]], ["Photo editing", "You edit ", "photos", " at ", " photos per hour", [20, 25, 30, 40]], ["Counseling notes", "You write ", "notes", " at ", " notes per hour", [3, 4, 5, 6]]]), v = pk(r, c[5]), t = pk(r, [2, 3, 4, 5]), d = v * t;
+                return mk(c[1] + pl(d, c[2]) + c[3] + v + c[4] + ". Rearrange d = r·t to solve for t: how many hours?", t, "hours", "d = r·t → t = d ÷ r = " + nf(d) + " ÷ " + v + " = " + pl(t, "hours") + ".", c[0]);
+              },
+              function (r) {
+                var c = pk(r, [["Family in Nicaragua", "A transfer app charges a ", " monthly fee plus ", " per transfer", "transfers", [5, 8, 10], [3, 4, 6]], ["Coffee", "Your café membership is ", " a month plus ", " per latte", "lattes", [10, 15, 20], [3.5, 4, 4.5]], ["Photo prints", "A print lab charges a ", " setup fee plus ", " per print", "prints", [10, 15, 20], [1.5, 2, 3]]]);
+                var f = pk(r, c[5]), p = pk(r, c[6]), n = pk(r, [4, 6, 8, 10, 12]), T = rr(f + p * n);
+                return mk(c[1] + money(f) + c[2] + money(p) + c[3] + ". You were billed " + money(T) + ". Solve total = fixed + rate·n for n: how many " + c[4] + "?", n, c[4], "n = (total − fixed) ÷ rate = (" + nf(T) + " − " + f + ") ÷ " + p + " = " + nf(T - f) + " ÷ " + p + " = " + n + ".", c[0]);
+              }
+            ],
+            9: [
+              function (r) {
+                var c = pk(r, [["Photo prints", "You have $", " for prints. The lab charges a $", " setup fee and ", " per print. What is the most prints you can order?", "prints"], ["Gym", "You set aside $", " for the gym this season. There’s a $", " sign-up fee and classes cost ", " each. What is the most classes you can take?", "classes"], ["Coffee", "Your coffee budget is $", " this month. You already bought a $", " bag of beans, and lattes cost ", " each. What is the most lattes you can buy?", "lattes"]]);
+                var B = pk(r, [100, 120, 150, 200]), f = pk(r, [10, 15, 20, 25]), p = pk(r, [3.5, 4.75, 6, 7]), x = (B - f) / p, n = Math.floor(x + 1e-9);
+                return mk(c[1] + B + c[2] + f + c[3] + money(p) + c[4], n, c[5], f + " + " + p + "n ≤ " + B + " → n ≤ (" + B + " − " + f + ") ÷ " + p + " = " + nf(B - f) + " ÷ " + p + " = " + nf(x) + " → at most " + n + (n === x ? "." : " (round down: you can’t buy part of one)."), c[0]);
+              },
+              function (r) {
+                var c = pk(r, [["Family in Nicaragua", "You want to send at least $", " to family in Nicaragua this month."], ["Miami rent", "You need at least $", " for your share of Miami rent."], ["Photo gear", "A new lens costs $", ", and you want at least that much saved."]]), G = pk(r, [500, 800, 1000, 1200]), w = pk(r, [15, 18, 22, 25, 28]), x = G / w, h = Math.ceil(x - 1e-9);
+                return mk(c[1] + nf(G) + c[2] + " A side job pays $" + w + " an hour. How many whole hours do you need to work?", h, "hours", w + "h ≥ " + nf(G) + " → h ≥ " + nf(G) + " ÷ " + w + " = " + nf(x) + " → " + pl(h, "hours") + (h === x ? " exactly." : " (round up to reach the goal)."), c[0]);
+              }
+            ],
+            10: [
+              function (r) {
+                var c = pk(r, [["Gym", "classes", "class", "Gym A", "Gym B", [5, 10, 20], [15, 18, 20], [6, 8, 10], [4, 5, 6, 8]], ["Photo prints", "prints", "print", "Lab A", "Lab B", [5, 10], [1.5, 2], [0.5, 0.75, 1], [20, 40, 60]], ["Car rental", "miles", "mile", "Company A", "Company B", [30, 40], [0.5, 0.6], [0.2, 0.25], [100, 200, 300]]]);
+                var a1 = pk(r, c[5]), b1 = pk(r, c[6]), b2 = pk(r, c[7]), x = pk(r, c[8]), a2 = rr(a1 + (b1 - b2) * x);
+                return mk(c[0] + ": " + c[3] + " charges " + money(a1) + " plus " + money(b1) + " per " + c[2] + "; " + c[4] + " charges " + money(a2) + " plus " + money(b2) + " per " + c[2] + ". At how many " + c[1] + " do they cost the same?", x, c[1],
+                  a1 + " + " + b1 + "x = " + a2 + " + " + b2 + "x → " + nf(b1 - b2) + "x = " + nf(a2 - a1) + " → x = " + nf(a2 - a1) + " ÷ " + nf(b1 - b2) + " = " + pl(x, c[1]) + ".", c[0]);
+              },
+              function (r) {
+                var c = pk(r, [["Gym", "classes", "class", "Gym A", "Gym B", [5, 10, 20], [15, 18, 20], [6, 8, 10], [4, 6, 8]], ["Coffee", "lattes", "latte", "The café", "The coffee club", [3, 5], [4.5, 5], [2, 2.5], [10, 12, 20]], ["Car rental", "miles", "mile", "Company A", "Company B", [30, 40], [0.5, 0.6], [0.2, 0.25], [100, 200, 300]]]);
+                var a1 = pk(r, c[5]), b1 = pk(r, c[6]), b2 = pk(r, c[7]), x = pk(r, c[8]), a2 = rr(a1 + (b1 - b2) * x * pk(r, [0.5, 1.5, 2])), T1 = rr(a1 + b1 * x), T2 = rr(a2 + b2 * x), lo = Math.min(T1, T2);
+                return mk(c[0] + ": " + c[3] + " charges " + money(a1) + " plus " + money(b1) + " per " + c[2] + "; " + c[4] + " charges " + money(a2) + " plus " + money(b2) + " per " + c[2] + ". For " + pl(x, c[1]) + ", what is the cheaper total?", lo, "$",
+                  c[3] + ": " + a1 + " + " + b1 + " × " + x + " = " + money(T1) + ". " + c[4] + ": " + a2 + " + " + b2 + " × " + x + " = " + money(T2) + ". Cheaper: " + (T1 < T2 ? c[3] : c[4]) + " at " + money(lo) + ".", c[0]);
+              }
+            ],
+            11: (function () {
+              var C = [["Gas", "g", "gallons", [3.4, 3.6, 3.8], [2, 3, 5], [8, 10, 12, 15], "A Miami gas station plus car wash"], ["Photo prints", "p", "prints", [0.5, 0.75, 1.5], [6, 8, 10], [20, 40, 60], "The print lab’s price machine"],
+                ["Gym", "c", "classes", [10, 12, 15], [25, 30, 40], [4, 6, 8, 10], "Your gym’s monthly machine"], ["Family in Nicaragua", "n", "transfers", [4, 5, 6], [3, 5, 8], [2, 3, 4, 5], "A transfer app’s monthly fee machine"]];
+              var D = function (c, m, b) { return c[6] + ": f(" + c[1] + ") = " + m + "·" + c[1] + " + " + b + " dollars for " + c[1] + " " + c[2] + "."; };
+              return [
+                function (r) {
+                  var c = pk(r, C), m = pk(r, c[3]), b = pk(r, c[4]), x = pk(r, c[5]), y = rr(m * x + b);
+                  return mk(D(c, m, b) + " What is f(" + x + ")?", y, "$", "f(" + x + ") = " + m + " × " + x + " + " + b + " = " + nf(m * x) + " + " + b + " = " + money(y) + ".", c[0]);
+                },
+                function (r) {
+                  var c = pk(r, C), m = pk(r, c[3]), b = pk(r, c[4]), x = pk(r, c[5]), y = rr(m * x + b);
+                  return mk(D(c, m, b) + " The machine put out " + money(y) + ". Run it backwards: how many " + c[2] + " went in?", x, c[2], m + "·" + c[1] + " + " + b + " = " + nf(y) + " → " + c[1] + " = (" + nf(y) + " − " + b + ") ÷ " + m + " = " + nf(y - b) + " ÷ " + m + " = " + pl(x, c[2]) + ".", c[0]);
+                }
+              ];
+            })(),
+            12: (function () {
+              var C = [["Family in Nicaragua", "Your send-home fund", 1, [50, 75, 100, 150], [200, 400, 600]], ["Photo gear", "Your lens savings", 1, [40, 60, 80, 120], [100, 300, 500]],
+                ["Miami rent", "Your rent cushion", 1, [50, 100, 150], [400, 800, 1000]], ["Coffee", "Your coffee gift card", -1, [10, 15, 20], [250, 300, 350]]];
+              var S = function (r) { var c = pk(r, C), s = c[2] * pk(r, c[3]), m1 = pk(r, [1, 2, 3]), m2 = m1 + pk(r, [3, 4, 5]), B1 = pk(r, c[4]); return { c: c, s: s, m1: m1, m2: m2, B1: B1, B2: B1 + s * (m2 - m1) }; };
+              var T = function (o) { return o.c[1] + " was " + money(o.B1) + " in month " + o.m1 + " and " + money(o.B2) + " in month " + o.m2 + "."; };
+              var W = function (o) { return "Slope = (" + nf(o.B2) + " − " + nf(o.B1) + ") ÷ (" + o.m2 + " − " + o.m1 + ") = " + nf(o.B2 - o.B1) + " ÷ " + (o.m2 - o.m1) + " = " + nf(o.s) + " dollars per month"; };
+              return [
+                function (r) {
+                  var o = S(r);
+                  return mk(T(o) + " What is the slope, in dollars per month? (Use a minus sign for a drop.)", o.s, "dollars per month", W(o) + ".", o.c[0]);
+                },
+                function (r) {
+                  var o = S(r), m3 = o.m2 + pk(r, [2, 3, 4, 6]), y = o.B2 + o.s * (m3 - o.m2);
+                  return mk(T(o) + " At the same rate, what will it be in month " + m3 + "?", y, "$", W(o) + "; month " + m3 + " is " + pl(m3 - o.m2, "months") + " later: " + nf(o.B2) + (o.s < 0 ? " − " : " + ") + nf(Math.abs(o.s)) + " × " + (m3 - o.m2) + " = " + money(y) + ".", o.c[0]);
+                }
+              ];
+            })(),
+            13: (function () {
+              var C = [["Gym", "a F monthly membership plus R per class", "classes", "class", [20, 30, 40], [8, 10, 12, 15], [4, 6, 8]], ["Coffee", "a F café membership plus R per latte", "lattes", "latte", [10, 15, 20], [3.5, 4, 4.5], [8, 10, 12]],
+                ["Family in Nicaragua", "a F monthly app plan plus R per transfer", "transfers", "transfer", [5, 8, 10], [2, 3, 4], [2, 3, 4]], ["Photo prints", "a F setup fee plus R per print", "prints", "print", [10, 15, 20], [0.5, 1.5, 2], [20, 30, 40]]];
+              var P = function (c, f, p) { return c[1].replace("F", money(f)).replace("R", money(p)); };
+              return [
+                function (r) {
+                  var c = pk(r, C), f = pk(r, c[4]), p = pk(r, c[5]), u = pk(r, c[6]), t = rr(f + p * u);
+                  return mk(c[0] + ": the model is total = fixed + rate × uses, with " + P(c, f, p) + ". What is the total for " + pl(u, c[2]) + "?", t, "$", f + " + " + p + " × " + u + " = " + f + " + " + nf(p * u) + " = " + money(t) + ".", c[0]);
+                },
+                function (r) {
+                  var c = pk(r, C), f = pk(r, c[4]), p = pk(r, c[5]), u1 = pk(r, c[6]), u2 = u1 + pk(r, [2, 4, 5]), T1 = rr(f + p * u1), T2 = rr(f + p * u2);
+                  return mk(c[0] + ": one month you used " + pl(u1, c[2]) + " and paid " + money(T1) + "; another month " + pl(u2, c[2]) + " cost " + money(T2) + ". Same fixed fee both months. What is the rate per " + c[3] + "?", p, "$/" + c[3],
+                    "Rate = (" + nf(T2) + " − " + nf(T1) + ") ÷ (" + u2 + " − " + u1 + ") = " + nf(T2 - T1) + " ÷ " + (u2 - u1) + " = $" + p.toFixed(2) + " per " + c[3] + " (the fixed fee cancels).", c[0]);
+                }
+              ];
+            })(),
+            14: [
+              function (r) {
+                var c = pk(r, [["Photo prints", "You sell framed prints at a Miami market. At $p each, you sell ", " − p of them.", [40, 60, 80, 100]], ["Coffee", "Your cold brew stand: at $p a bottle, you sell ", " − p bottles a day.", [12, 16, 20]],
+                  ["Gym", "You teach a drop-in class. At $p a spot, ", " − p people sign up.", [40, 50, 60]], ["Counseling groups", "A weekend workshop for your groups: at $p a seat, ", " − p seats fill.", [60, 80, 100]]]), N = pk(r, c[3]), h = N / 2;
+                return mk(c[1] + N + c[2] + " Revenue is p × (" + N + " − p). What price brings in the most?", h, "$", "R = p(" + N + " − p) is a parabola that is 0 at p = 0 and at p = " + N + "; its peak is halfway: p = " + N + " ÷ 2 = " + money(h) + " (revenue " + money(h * h) + ").", c[0]);
+              },
+              function (r) {
+                var c = pk(r, [["Photo shoot", "You have ", " ft of rope to mark off a rectangular set for a shoot.", "ft", "sq ft"], ["Gym", "You have ", " ft of mat edging for a rectangular stretching area.", "ft", "sq ft"],
+                  ["Family in Nicaragua", "Your uncle in Nicaragua has ", " m of fence for a rectangular garden.", "m", "sq m"]]), P = pk(r, [40, 48, 60, 80, 100, 120]), s = P / 4;
+                return mk(c[1] + P + c[2] + " What is the largest area it can enclose?", s * s, c[4], "Sides x and " + P / 2 + " − x; area x(" + P / 2 + " − x) peaks halfway, at x = " + P + " ÷ 4 = " + s + " " + c[3] + ": a square. Max area = " + s + "² = " + nf(s * s) + " " + c[4] + ".", c[0]);
+              },
+              function (r) {
+                var c = pk(r, [["Coffee", "a bottle of cold brew", [6, 7, 8], [2, 3]], ["Photo prints", "a framed print", [25, 30, 35], [5, 10]], ["Gym", "a drop-in class spot", [20, 25], [5, 10]]]), m = pk(r, c[2]), d = pk(r, c[3]), p1 = m - d, p2 = m + d, R = m * m - d * d;
+                return mk(c[0] + ": pricing " + c[1] + " at " + money(p1) + " or at " + money(p2) + " brings in the same revenue, " + money(R) + ". Revenue follows a parabola. What price brings in the most?", m, "$", "A parabola is symmetric, so the peak sits halfway between two equal-revenue prices: (" + p1 + " + " + p2 + ") ÷ 2 = " + money(m) + ".", c[0]);
+              }
+            ],
+            15: [
+              function (r) {
+                var c = pk(r, [["Miami rent", "A news chart shows average Miami rent: ", " last year and ", " this year", [1600, 1800, 2000], [50, 100, 200], money], ["Counseling groups", "A chart shows your Thursday group: ", " clients in spring and ", " in fall", [20, 30, 40], [4, 6, 10], nf],
+                  ["Gym", "Your gym’s chart shows check-ins: ", " in January and ", " in March", [200, 300, 400], [20, 40, 50], nf]]), s = pk(r, c[4]), d = pk(r, c[5]), L = pk(r, [1.5, 2, 2.5, 3, 4]), a = s + d, b = s + L * d, f = c[6];
+                return mk(c[1] + f(a) + c[2] + f(b) + c[3] + ". The y-axis starts at " + f(s) + ", not 0. How many times taller does the second bar LOOK?", L, "times",
+                  "Visible heights: " + nf(b) + " − " + nf(s) + " = " + nf(b - s) + " and " + nf(a) + " − " + nf(s) + " = " + nf(d) + "; " + nf(b - s) + " ÷ " + nf(d) + " = " + L + " times. The real ratio is only " + nf(b) + " ÷ " + nf(a) + " ≈ " + nf(b / a) + ".", c[0]);
+              },
+              function (r) {
+                var c = pk(r, [["Counseling groups", "Your program’s flyer shows group sign-ups rising from ", " to ", " clients"], ["Photo prints", "A chart of your print sales shows ", " last month and ", " this month"], ["Gym", "Your gym’s ad shows members going from ", " to ", ""]]);
+                var a = pk(r, [40, 60, 80, 100, 200]), k = pk(r, [1.1, 1.2, 1.25, 1.5]), b = Math.round(a * k), s = a - pk(r, [5, 10, 20]), L = (b - s) / (a - s);
+                return mk(c[1] + a + c[2] + b + c[3] + ", on an axis that starts at " + s + ". The bar looks " + nf(L) + " times taller. What is the REAL ratio, second ÷ first?", k, "times",
+                  "Use the real values, not the bar heights: " + b + " ÷ " + a + " = " + k + ". The cut axis (starting at " + s + ") makes it look like (" + b + " − " + s + ") ÷ (" + a + " − " + s + ") ≈ " + nf(L) + ".", c[0]);
+              },
+              function (r) {
+                var P = pk(r, [100000, 200000, 300000, 400000, 500000, 150000, 250000]), R = pk(r, P % 100000 ? [10, 20, 30, 40, 60] : [5, 10, 15, 25, 30, 45]), n = R * P / 100000, c = pk(r, [
+                  ["Miami-Dade health", "A Miami-Dade city of ", " reported ", " flu hospitalizations this month."], ["Family in Nicaragua", "A district in Nicaragua with ", " people had ", " dengue cases this season."],
+                  ["Counseling caseload", "A county of ", " people logged ", " crisis-line referrals to counseling this week."]]);
+                return mk(c[1] + nf(P) + (c[0] === "Miami-Dade health" ? " people" : "") + c[2] + nf(n) + c[3] + " What is the rate per 100,000 people? (Made-up numbers.)", R, "per 100,000",
+                  nf(n) + " ÷ " + nf(P) + " × 100,000 = " + R + " per 100,000. A rate lets you compare places of different sizes; raw counts don’t.", c[0]);
+              }
+            ],
+            16: [
+              function (r) {
+                var k = pk(r, [2, 3, 4]), n = pk(r, [3, 4, 5, 6, 7]), v = Math.pow(k, n), c = pk(r, [
+                  ["Photography", "You post a photo and send it to " + k + " friends. Each person who gets it shares it with " + k + " new people the next round."], ["Family in Nicaragua", "News from home starts with your mom telling " + k + " relatives; each new person tells " + k + " more the next round."],
+                  ["Coffee", "A café referral card: you hand it to " + k + " people, and each new person passes it to " + k + " others the next round."], ["Counseling groups", "A support-group flyer goes to " + k + " clients; each passes it to " + k + " new people the next round."]]);
+                return mk(c[1] + " Round 1 reaches " + k + ". How many new people does round " + n + " reach?", v, "people", "Each round multiplies by " + k + ", so round " + n + " = " + k + "^" + n + " = " + Array(n + 1).join(k + " × ").slice(0, -3) + " = " + nf(v) + " people.", c[0]);
+              },
+              function (r) {
+                var sz = pk(r, [[4, 6], [5, 7], [8, 10]]), f = pk(r, [1.5, 2, 3, 4]), p = pk(r, [4, 6, 8, 12]), a = p * f * f, c = pk(r, [["Photo prints", "your lab"], ["Gym", "your gym’s poster shop"], ["Coffee", "the café’s print shop for menu boards"]]);
+                return mk(c[0] + ": " + c[1] + " charges by area. A " + sz[0] + "×" + sz[1] + " in print costs " + money(p) + ". You scale both sides by " + f + ". What does the big print cost?", a, "$",
+                  "Both sides × " + f + " → area × " + f + "² = " + nf(f * f) + " (" + nf(sz[0] * f) + "×" + nf(sz[1] * f) + " in). Cost = " + money(p) + " × " + nf(f * f) + " = " + money(a) + ".", c[0]);
+              }
+            ],
+            17: [
+              function (r) {
+                var A = pk(r, [80, 100, 120, 160, 200, 240, 320, 400]), h = pk(r, [2, 3, 4, 5, 6, 8]), m = pk(r, [1, 2, 3, 4]), a = A / Math.pow(2, m), c = pk(r, [["Coffee", "Your big cold brew has ", " mg of caffeine. Say caffeine’s half-life is "], ["Dose practice", "Practice only, not medical guidance: a made-up medicine dose is ", " mg with a half-life of "]]);
+                return mk(c[1] + A + c[2] + pl(h, "hours") + ". How many mg are left after " + pl(m * h, "hours") + "?", a, "mg", nf(m * h) + " ÷ " + h + " = " + m + " half-li" + (m === 1 ? "fe" : "ves") + "; " + A + " ÷ 2" + (m > 1 ? "^" + m + " = " + A + " ÷ " + Math.pow(2, m) : "") + " = " + nf(a) + " mg.", c[0]);
+              },
+              function (r) {
+                var P = pk(r, [500, 1000, 1200, 2000, 2500]), p = pk(r, [2, 3, 4, 5, 6]), n = pk(r, [1, 2, 3]), g = Math.pow(1 + p / 100, n), a = rr(P * g), c = pk(r, [
+                  ["Family in Nicaragua", "Your send-home fund holds ", " and earns "], ["Photo gear", "Your lens savings hold ", " and earn "], ["Miami rent", "Your monthly rent is ", " and rises "]]);
+                return mk(c[1] + money(P) + c[2] + p + "% a year" + (c[0] === "Miami rent" ? "" : ", compounded yearly") + ". What will it be after " + pl(n, "years") + "? (Round to cents.)", a, "$",
+                  money(P) + " × " + (1 + p / 100) + (n > 1 ? "^" + n + " = " + money(P) + " × " + g.toFixed(4) + "…" : "") + " = " + money(a) + ". Each year grows on the last year’s total.", c[0]);
+              },
+              function (r) {
+                var p = pk(r, [4, 6, 8, 9, 12]), c = pk(r, [["Family in Nicaragua", "Your send-home fund"], ["Photo gear", "Your camera savings"], ["Miami rent", "Miami rent (if it kept rising"]]);
+                return mk(c[1] + (c[0] === "Miami rent" ? " " + p + "% a year)" : " grows " + p + "% a year") + ". Using the Rule of 72, about how many years until it doubles?", 72 / p, "years", "Rule of 72: 72 ÷ " + p + " = " + pl(72 / p, "years") + " to double.", c[0]);
+              }
             ]
-            /* REMIX: add Days 8–14 / 15–20 generators here */
+            /* REMIX: add Days 18–20 generators here */
           };
           Remix = (function () {
             function days() { return Object.keys(REMIX).map(Number).filter(function (d) { return REMIX[d] && REMIX[d].length; }); }
