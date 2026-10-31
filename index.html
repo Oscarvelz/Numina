@@ -1426,6 +1426,8 @@
           "VAR-SAME-LETTER-DIFFERENT-VALUE": "Same letter, same number, everywhere in that line: in 2x + x with x = 4, both are 4, so 2 × 4 + 4 = 12.",
           "EQ-ONE-SIDE-ONLY": "Whatever you do to one side, do to the other: from 6p + 3 = 12, take 3 off both sides to get 6p = 9, not 6p = 12.",
           "FORM-SWAP-NOT-INVERT": "Moving a letter across the = means undoing it on both sides: from d = r · t, ÷ r on both sides gives t = d ÷ r, not t = d · r.",
+          "INEQ-FLIP-FORGOT": "Multiplying or dividing both sides by a negative flips the fence: from −2x ≤ 10, ÷ −2 gives x ≥ −5, not x ≤ −5. Check: x = 0 works (0 ≤ 10), and 0 is not ≤ −5.",
+          "INEQ-EXACT-ONLY": "“At most $60” is a range, not one exact value, and you round in the safe direction: at $6.75 a pack, 18 + 6.75p ≤ 60 gives p ≤ 6.2, so at most 6 packs. 7 packs is $65.25, over the limit.",
           "FORM-PARTIAL-DIVIDE": "Divide the whole side, not one term: from cost = 6c + 10, take 10 off both sides first, then ÷ 6: c = (cost − 10) ÷ 6, not cost/6 + 10.",
           "EQ-WRONG-UNDO-ORDER": "Undo in reverse order: 6p + 3 was built × 6 first, then + 3, so take off the 3 first, then ÷ 6: p = 9 ÷ 6 = 1.5, not 12/6 − 3.",
           "CONV-WRONG-DIRECTION": "Converting to a bigger unit gives a smaller number, so divide: 1,000 C$ ÷ 36.6 ≈ $27, not × 36.6.",
@@ -6154,6 +6156,11 @@
             see: "d = r × t sat on the scale. Dividing both pans by r kept it level and left t alone: t = d ÷ r. The letters stayed letters.",
             why: "It’s the same solving as Day 7, done once with letters, so the result works for every trip, not just one. Undo the outer operation first. It assumes you never divide by zero: a speed of 0 has no travel time.",
             use: "Travel time from distance and speed, hourly pay from a salary, °C from °F, a bill before the tip: rearrange once, then type numbers into the new formula." },
+          inequality: { term: "An inequality = an equation with a fence. ≤ means at most, ≥ means at least", svg: svgIq, scene: "billbuilder3d", short: "Solve like an equation, then read which side of the fence.",
+            alt: "A number line from 0 to 10 with a closed dot at 6 and the stretch from 0 to 6 shaded as the allowed zone",
+            see: "18 + 7p ≤ 60 solves to p ≤ 6. The shaded zone runs 0 to 6, with a closed dot at 6: 6 packs is allowed, 7 is past the fence.",
+            why: "Real limits rarely ask for one exact number; they ask what stays under a cap or clears a goal. Day 7’s balance moves still work, except × or ÷ by a negative flips the fence. Whole things round in the safe direction: down under a cap, up past a goal.",
+            use: "Grocery and monthly budgets, months to save for a trip, weeks before a caseload cap, minimum hours to clear a bill: solve, then read the fence." },
           number: { term: "Number", svg: svgNumber, short: "Keeps only how many.",
             alt: "A cookie, a music note and a calendar day become three identical dots, then the numeral 3",
             see: "Three unlike things (a cookie, a song, a day) turn into three identical dots, then one mark: 3. Each dot stands for one thing; the numeral stands for the whole group.",
@@ -7553,6 +7560,44 @@
           plug.addEventListener("click", function () { plug.disabled = true; out.textContent = "t = 235 ÷ 65 ≈ 3.6 hours. Next trip: just swap the numbers."; });
           $(".x-do", card).addEventListener("click", function () { win("÷ r on both sides: t = d ÷ r."); });
           if (done) win("Solved: t = d ÷ r."); else { reset(); paint("Tap the letter you want alone."); }
+        }
+        /* Day 9 budget bar ($0–90: basics $18 + $7 a pack, red past the $60 fence) over a packs number line with the allowed zone 0–6 shaded */
+        function iqSVG(n) {
+          var t = 18 + 7 * n, over = t > 60, c = over ? "var(--coral)" : "var(--ok)", bx = function (v) { return 20 + v * 260 / 90; }, nx = function (p) { return 30 + p * 24; };
+          var s = SVG_OPEN(166) + LBL(150, 14, "Budget $60 · basics $18 + $7 a pack") +
+            '<rect x="20" y="24" width="260" height="26" rx="6" stroke-opacity=".35"/>' +
+            '<rect x="20" y="24" width="' + (bx(18) - 20) + '" height="26" rx="6" stroke="none" style="fill:currentColor;fill-opacity:.22"/>';
+          if (n) s += '<rect x="' + bx(18) + '" y="24" width="' + (bx(t) - bx(18)) + '" height="26" stroke="none" style="fill:' + c + ';fill-opacity:.75"/>';
+          s += '<path d="M' + bx(60) + " 18V56" + '" stroke-dasharray="4 3"/>' + LBL(bx(60), 68, "$60 fence") +
+            LBL(150, 88, "$" + t + (over ? " · over by $" + (t - 60) : " · fits"), "font-weight:600;fill:" + c) +
+            '<rect x="' + nx(0) + '" y="112" width="' + (nx(6) - nx(0)) + '" height="16" rx="8" stroke="none" style="fill:var(--ok);fill-opacity:.25"/>' +
+            LBL((nx(0) + nx(6)) / 2, 106, "allowed zone: 0 to 6 packs", "fill:var(--ok)") + '<path d="M' + nx(0) + " 120H" + nx(10) + '" stroke-opacity=".5"/>';
+          for (var p = 0; p <= 10; p++) s += '<path d="M' + nx(p) + " 115V125" + '" stroke-width="1" stroke-opacity=".5"/>' + LBL(nx(p), 146, p);
+          return s + '<circle cx="' + nx(n) + '" cy="120" r="7" stroke="none" style="fill:' + c + '"/>' + LBL(150, 162, "packs of chicken") + "</svg>";
+        }
+        function svgIq() { return iqSVG(6); }
+        /* Day 9 name-it: open dot (<) leaves 3 out, closed dot (≤) keeps it */
+        function iqDots() {
+          var row = function (y, sym, closed) {
+            return LBL(40, y + 5, "x " + sym + " 3", "font-weight:600") + '<path d="M80 ' + y + "H280" + '" stroke-opacity=".5"/><path d="M84 ' + y + "H180" + '" stroke-width="5" style="stroke:var(--ok);stroke-opacity:.5"/>' +
+              '<circle cx="180" cy="' + y + '" r="7" stroke-width="2.5" style="stroke:var(--ok);fill:' + (closed ? "var(--ok)" : "var(--bg)") + '"/>' + LBL(180, y + 24, "3") + LBL(250, y - 10, closed ? "3 is in" : "3 is out");
+          };
+          return SVG_OPEN(130) + row(30, "&lt;", 0) + row(90, "≤", 1) + "</svg>";
+        }
+        /* Day 9 play: slide packs; solved at 6, the largest count that stays under the fence */
+        function iqPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), rng = $("input", card), res = $(".x-res", card), done = !!api.solved;
+          function paint() {
+            var n = +rng.value, t = 18 + 7 * n;
+            box.innerHTML = iqSVG(n);
+            out.textContent = n + " packs: $" + t + (t > 60 ? ". Over by $" + (t - 60) + ": slide back." : n === 6 ? ". Right at the fence: the most you can buy." : ". Fits, with $" + (60 - t) + " left. Can you fit more?");
+            if (n === 6 && !done) { done = true; api.solve(10); }
+            res.hidden = !done;
+          }
+          rng.addEventListener("input", paint);
+          $(".x-do", card).addEventListener("click", function () { rng.value = 6; paint(); });
+          if (done) rng.value = 6;
+          paint();
         }
         /* Day 22 proof puzzle: a 7 × 7 square (a = 3, b = 4), 26px a unit; four legs-3-4 triangles, each [x1, y1, x2, y2, turn]: corners (st 0) → two rectangles (st 1), translation only */
         var PZ_T = [[0, 0, 3, 0, 0], [7, 0, 3, 3, 90], [7, 7, 7, 3, 180], [0, 7, 0, 7, 270]], PZ_TR = EX_RM ? "none" : "transform 1s var(--ease),opacity .6s var(--ease)";
@@ -11042,6 +11087,98 @@
                 body: "<ul><li><b>Get the letter you want alone.</b> d = r × t → t = d ÷ r.</li><li><b>Undo outer operations first.</b> cost = 6c + 10 → c = (cost − 10) ÷ 6.</li>" +
                   "<li><b>Rearrange once, reuse forever.</b> One formula, every trip.</li></ul>" +
                   '<p class="x-so"><b>So:</b> The subject is the letter standing alone. Make a new subject with Day 7’s balance moves, undoing outer operations first.</p>' }
+            ]
+          },
+          /* Day 9: inequalities. Real limits ask "at most" or "at least": solve like an equation, then read the fence */
+          9: {
+            home: ["Inequalities & Budgets", "at most, at least: groceries, trip savings, caseload caps."],
+            flow: true,
+            scene: "billbuilder3d",
+            steps: [
+              { kind: "predict", title: "The grocery run",
+                body: '<p class="x-q">You have $60 for groceries. You need $18 of basics; chicken is $7 a pack. How many packs can you buy?</p>' +
+                  ["6", "5", "7"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden>' + cpBox(svgIq(), "18 + 7 × 6 = 60: right at the fence", "A $60 budget bar filled exactly to the line, over a number line with 0 to 6 packs shaded") +
+                  '<p class="why"><b>6 packs.</b> 18 + 42 = 60. And if the math lands between, like 6.2 packs? You can’t buy part of a pack: round <b>down</b>.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l9groc", 0)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "Fill the cart",
+                body: '<p class="x-q">Slide the packs. Find the most you can buy without the bar going red.</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">Grey: $18 basics · colored: chicken · dashed line: your $60</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="x-ctl"><label>Packs <input type="range" min="0" max="10" step="1" value="0" aria-label="Packs of chicken"></label></div>' +
+                  '<button type="button" class="prev press x-do">Do it for me</button>' +
+                  '<div class="x-res" hidden><p class="why"><b>At most 6 packs.</b> 0, 1, 2 … 6 all fit; 7 is $67, over the fence.</p></div>' +
+                  '<button type="button" class="start press x-3dbtn" data-scene="billbuilder3d">Build bills in the Lab</button>',
+                mount: iqPlay },
+              { kind: "notice", title: "Not one answer", hl: ".x-nl",
+                viz: cpBox(svgIq(), "Every whole number from 0 to 6 stays under $60"),
+                q: "Day 7 had one answer. What did the cart give you?",
+                options: ["A range: any count from 0 to 6 fits", "One number: exactly 6", "No answer, since 6.2 isn’t whole"],
+                say: "Real life rarely asks “exactly”. It asks “at most” or “at least”, and the answer is a range." },
+              { kind: "plate", plate: "inequality", title: "An inequality: an equation with a fence" },
+              { kind: "play", title: "Build it: the Managua trip",
+                body: '<p class="x-q">You have $300 saved and add $120 a month. The trip needs at least $900: 300 + 120m ≥ 900. What is the fewest months m?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input type="text" inputmode="decimal" autocomplete="off" placeholder="months" aria-label="Fewest months to save"></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden><b>Hint:</b> Solve like an equation, then read which side of the fence.</p>' +
+                  '<div class="x-res" hidden><p class="why"><b>m ≥ 5 months.</b> 900 − 300 = 600, and 600 ÷ 120 = 5. Five months or more clears the fence.</p></div>',
+                mount: blFill(5) },
+              { kind: "formalize", title: "Name it: the four fences",
+                body: cpBox(iqDots(), "Open dot: the edge is out · closed dot: the edge is in", "Two number lines: x less than 3 with an open dot at 3, and x at most 3 with a filled dot at 3") +
+                  '<ol class="x-wk"><li><span>&lt; and &gt;</span><span>Less than, more than: the edge is out (open dot)</span><b>x &lt; 3</b></li>' +
+                  "<li><span>≤ and ≥</span><span>At most, at least: the edge is in (closed dot)</span><b>p ≤ 6</b></li>" +
+                  "<li><span>Solving</span><span>Day 7’s balance moves, same move on both sides</span><b>120m ≥ 600 → m ≥ 5</b></li>" +
+                  "<li><span>Negatives</span><span>× or ÷ by a negative flips the fence</span><b>−2x ≤ 10 → x ≥ −5</b></li></ol>",
+                so: "≤ means at most, ≥ means at least. Solve with balance moves, flip the fence for a negative, and read which side is allowed." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "Chicken goes on sale at $6.75. A friend writes: 18 + 6.75p ≤ 60 → p ≤ 6.2, so buy 7. What went wrong?",
+                options: ["7 is past the fence: round down to 6 packs", "Nothing: 6.2 means the 7th pack is partly paid for", "It should be p ≥ 6.2"], answer: 0, tags: [null, "INEQ-EXACT-ONLY", "INEQ-FLIP-FORGOT"], concept: "l9-round",
+                hints: ["What do 7 packs cost? 18 + 6.75 × 7.", "Under a cap, round in the safe direction."],
+                why: "7 packs is 18 + 47.25 = $65.25, over $60. p ≤ 6.2 means whole packs 0 to 6: round down." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "Someone solves −2x ≤ 10 by dividing by −2 and writes x ≤ −5. What went wrong?",
+                options: ["Dividing by a negative flips the fence: x ≥ −5", "Nothing: that’s right", "It should be x ≤ 5"], answer: 0, tags: [null, "INEQ-FLIP-FORGOT", "ALG-SIGN-MAGIC"], concept: "l9-flip",
+                hints: ["Test x = 0: is −2 × 0 ≤ 10? Is 0 ≤ −5?"],
+                why: "x = 0 works in the original (0 ≤ 10), yet 0 ≤ −5 is false, so the fence points the wrong way. ÷ −2 flips it: x ≥ −5." },
+              { kind: "fade", title: "Your new lens",
+                q: "A camera lens costs $640. You have $215 and save $85 a week after bills. Fill in the missing line.",
+                lines: ["215 + 85w ≥ 640", "85w ≥ 425", "w ≥ 5 weeks"],
+                blank: 1, options: ["85w ≥ 425", "85w ≥ 640", "85w ≤ 425"], answer: 0, tags: [null, "LIN-IGNORE-FIXED", "INEQ-FLIP-FORGOT"], concept: "l9-fence",
+                hints: ["Peel off what you already have."],
+                why: "− 215 on both sides: 85w ≥ 425. ÷ 85: w ≥ 5. No negative, so the fence stays ≥." },
+              { kind: "quiz", title: "Quick check: the gym",
+                q: "Classes are $6 each, and you want to stay under $50 a month. How many classes?",
+                options: ["At most 8", "At most 9", "Exactly 8.33"], answer: 0, tags: [null, "INEQ-EXACT-ONLY", "INEQ-EXACT-ONLY"], concept: "l9-round",
+                hints: ["6c < 50, so c < 8.33.", "Round in the safe direction."],
+                why: "50 ÷ 6 ≈ 8.33, so at most 8 classes ($48). 9 is $54, over." },
+              { kind: "quiz", title: "Quick check: hours",
+                q: "You earn $27 an hour and need at least $860 this period. How many hours?",
+                options: ["At least 32", "At least 31", "Exactly 31.85"], answer: 0, tags: [null, "INEQ-EXACT-ONLY", "INEQ-EXACT-ONLY"], concept: "l9-round",
+                hints: ["27h ≥ 860, so h ≥ 31.85.", "To clear a goal, the safe direction is up."],
+                why: "860 ÷ 27 ≈ 31.85, so at least 32 hours ($864). 31 hours is $837, short." },
+              { kind: "quiz", title: "Quick check: the tank",
+                q: "Your car gets 30 mpg and has 4 gallons left. The trip is 135 miles. Enough gas?",
+                options: ["No: 4 gallons covers 120 miles, 15 short", "Yes: 4 is close to 4.5 gallons", "Yes, with 15 miles to spare"], answer: 0, tags: [null, "INEQ-EXACT-ONLY", null], concept: "l9-fence",
+                hints: ["Range = 30 × 4. Is it ≥ 135?"],
+                why: "30 × 4 = 120, and 120 < 135. You need 135 ÷ 30 = 4.5 gallons: fill up first." },
+              { kind: "transfer", title: "New costume: your caseload",
+                q: "Your supervisor caps you at 30 clients. You have 24 and get 2 new ones a week. How many weeks before you hit the cap?",
+                options: ["3 weeks", "15 weeks", "4 weeks"], answer: 0, tags: [null, "LIN-IGNORE-FIXED", "INEQ-EXACT-ONLY"], concept: "l9-fence",
+                hints: ["24 + 2w ≤ 30.", "Peel off the 24, then ÷ 2."],
+                why: "30 − 24 = 6, and 6 ÷ 2 = 3: w ≤ 3. After week 3 you’re at 30. 15 forgot the 24 you already have; 4 is past the cap." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Budgets.</b> Groceries and the monthly bills: at most what you have.</li><li><b>Saving goals.</b> A trip to Managua or a new lens: at least the price.</li>" +
+                  "<li><b>Caseload limits.</b> How many weeks before you hit the cap.</li><li><b>Gas range.</b> Miles in the tank ≥ miles to go.</li>" +
+                  "<li><b>Minimums.</b> Hours to clear a bill, a grade to pass a course.</li><li><b>Speed limits.</b> At most 45 mph means anything up to 45.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>At most ≤, at least ≥.</b> 18 + 7p ≤ 60 → p ≤ 6.</li><li><b>Solve like an equation, read the fence.</b> 300 + 120m ≥ 900 → m ≥ 5; flip it for a negative.</li>" +
+                  "<li><b>Round in the safe direction.</b> Down under a cap (8 classes), up past a goal (32 hours).</li></ul>" +
+                  '<p class="x-so"><b>So:</b> Real life rarely asks “exactly”. It asks “at most” or “at least”: solve, then read the fence.</p>' }
             ]
           },
           /* Day 13: linear models as bills. Fixed fee + rate × use, built from bills before y = mx + b gets a name */
