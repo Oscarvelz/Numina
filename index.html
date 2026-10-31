@@ -1420,6 +1420,8 @@
           "RATE-FLIPPED": "Divide by the thing after “per”: $ per oz is dollars ÷ ounces. Ounces ÷ dollars gives ounces per dollar.",
           "RATE-BIGGER-PACK-CHEAPER": "Bigger isn’t always cheaper: divide price by size and compare the unit price.",
           "PROP-ADD-NOT-MULTIPLY": "Scale by multiplying, not adding: 2 cups for 4 people is ½ cup each, so 6 people need 3 cups, not 2 + 2 = 4.",
+          "SCALE-AREA-LINEAR": "Area grows by the factor twice: double every side and the area is 2 × 2 = 4 times, not 2. A 5×8 rug is 40 sq ft; a 10×16 rug is 160.",
+          "SCALE-FACTOR-INVERTED": "New on top, old on the bottom: going from 6 servings to 4 is × 4/6, not × 6/4. Shrinking needs a factor below 1.",
           "CONV-WRONG-DIRECTION": "Converting to a bigger unit gives a smaller number, so divide: 1,000 C$ ÷ 36.6 ≈ $27, not × 36.6.",
           "EXP-TIMES-TWO": "3² means 3 × 3, not 3 × 2. The exponent counts how many times the base is multiplied.",
           "EXP-SMALL-JUMP": "Exponential growth looks slow at first and then explodes. Each step multiplies, so late steps add far more than early ones.",
@@ -6121,6 +6123,11 @@
             see: "People on top, cups below. Going from 4 people to 6 is × 1.5, and the cups go × 1.5 too: 2 becomes 3. The pairs 2/4 and 3/6 are equal ratios.",
             why: "Multiplying both lines by the same number keeps the ratio fixed, so any amount can be scaled without redoing the recipe. Adding the same amount to both breaks it. It also assumes the link really is proportional; a fixed fee or a pan size doesn’t scale.",
             use: "Recipes for more guests, money in another currency, km to miles, map scales, dose labels: find the factor, then multiply both sides." },
+          scale: { term: "Scale factor = new ÷ old. Lengths × k, areas × k²", svg: svgScale, scene: "fairshare", short: "k = new ÷ old; area grows by k × k.",
+            alt: "A 1-by-1 square, a 2-by-2 square made of 4 copies, and a 3-by-3 square made of 9 copies",
+            see: "One small square, then the same square scaled by 2 and by 3. Each side grows by k, but the copies inside grow by k × k: 4 copies at k = 2, 9 at k = 3.",
+            why: "Area has two directions, width and height, and both get multiplied by k, so area gets k twice. That’s why a 12-inch pizza beats two 8-inch ones. Volume has three directions, so it grows by k × k × k.",
+            use: "Recipes and programs (one k for every amount), maps and floor plans (lengths × k), photo prints, rugs and paint (areas × k²)." },
           linear: { term: "Every bill = fixed part + rate × use", svg: svgLinear, scene: "billbuilder3d", short: "Fixed fee plus a price per use.",
             alt: "Six bars, each on the same dark base block, with one more light block per use; a line runs through their tops",
             see: "The dark block is the fee you pay even at zero use. Each light block is one use at the rate. The line through the tops is the total for any amount of use.",
@@ -7244,7 +7251,7 @@
             LBL(95, 138, "12 oz · $8.99", "font-weight:600") + LBL(205, 138, "32 oz · $21.99", "font-weight:600") + "</svg>";
         }
         /* Day 3 unit-price bars: small {p, s} and big {p, s} as $/oz; the cheaper ounce (to the cent) glows gold */
-        function rtSVG(a, b) {
+        function priceBarsSVG(a, b) {
           var u = [a.p / a.s, b.p / b.s], c = u.map(function (v) { return Math.round(v * 100); }), k = 130 / Math.max(u[0], u[1]), s = SVG_OPEN(140) + '<path d="M96 22V128" stroke-opacity=".35"/>';
           [a, b].forEach(function (x, i) {
             var y = 30 + i * 56, w = Math.max(4, u[i] * k), win = c[i] < c[1 - i], col = i ? "var(--cyan)" : "var(--coral)";
@@ -7260,7 +7267,7 @@
           function draw() {
             var a = { p: +ins[0].value, s: +ins[1].value }, b = { p: +ins[2].value, s: +ins[3].value }, ca = Math.round(a.p / a.s * 100), cb = Math.round(b.p / b.s * 100);
             os[0].textContent = "Small $" + a.p.toFixed(2); os[1].textContent = "Small " + a.s + " oz"; os[2].textContent = "Big $" + b.p.toFixed(2); os[3].textContent = "Big " + b.s + " oz";
-            box.innerHTML = rtSVG(a, b);
+            box.innerHTML = priceBarsSVG(a, b);
             out.textContent = "Small " + ca + "¢/oz · Big " + cb + "¢/oz. " + (ca < cb ? "The small one is the better deal." : ca > cb ? "The big one is the better deal." : "Same price per ounce.");
             if (!done && ca < cb) { done = true; api.solve(10); }
             res.hidden = !done;
@@ -7306,6 +7313,56 @@
           return SVG_OPEN(110) + LBL(36, 62, "$") + LBL(60, 62, "150") + '<path d="M29 66L43 50" style="' + st + '"/>' + LBL(98, 62, "×") +
             LBL(162, 44, "36.6 C$") + '<path d="M126 54H198" stroke-opacity=".6"/>' + LBL(156, 80, "$") + LBL(168, 80, "1") + '<path d="M149 84L163 68" style="' + st + '"/>' +
             LBL(216, 62, "=") + LBL(260, 62, "5,490 C$", "font-weight:600;fill:var(--gold)") + LBL(150, 104, "$ on top and bottom cancel; C$ is left", "fill:var(--coral)") + "</svg>";
+        }
+        /* Day 5 helpers: inner grid lines every cw × ch inside a w × h box, so the copies of the original show */
+        function scGrid(x, y, w, h, cw, ch) {
+          var d = "";
+          for (var gx = x + cw; gx < x + w - 0.5; gx += cw) d += "M" + gx.toFixed(1) + " " + y + "V" + (y + h).toFixed(1);
+          for (var gy = y + h - ch; gy > y + 0.5; gy -= ch) d += "M" + x + " " + gy.toFixed(1) + "H" + (x + w).toFixed(1);
+          return d ? '<path d="' + d + '" stroke-width="1" stroke-opacity=".45"/>' : "";
+        }
+        var scF = function (v) { return String(Math.round(v * 100) / 100); };
+        /* Day 5 hook: a 12-inch pizza and two 8-inch pizzas at 9px an inch; over lays one 8-inch on the 12-inch to show the ring left over */
+        function scPizza(over) {
+          var pz = function (cx, r, col) { return '<circle cx="' + cx + '" cy="76" r="' + r + '" style="fill:' + col + ";fill-opacity:.3;stroke:" + col + '"/>'; };
+          var s = SVG_OPEN(164) + pz(66, 54, over ? "var(--gold)" : "var(--coral)") + pz(176, 36, "var(--cyan)") + pz(256, 36, "var(--cyan)");
+          if (over) s += '<circle cx="66" cy="76" r="36" stroke-dasharray="4 4" style="fill:var(--cyan);fill-opacity:.25;stroke:var(--cyan)"/>' +
+            LBL(66, 80, "50") + LBL(66, 34, "63 left", "font-weight:600") + LBL(176, 80, "50") + LBL(256, 80, "50");
+          return s + LBL(66, 150, over ? "12-inch · 113 sq in" : "12-inch", "font-weight:600") + LBL(216, 150, over ? "two 8-inch · 101 sq in" : "two 8-inch", "font-weight:600") + "</svg>";
+        }
+        /* Day 5 plate: a 1×1 square, then scaled by 2 (4 copies) and by 3 (9 copies) */
+        function svgScale() {
+          var sq = function (x, n, col) { var w = 30 * n, y = 120 - w; return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + w + '" style="fill:' + col + ";fill-opacity:.3;stroke:" + col + '"/>' + scGrid(x, y, w, w, 30, 30); };
+          return SVG_OPEN(144) + sq(20, 1, "var(--coral)") + sq(70, 2, "var(--cyan)") + sq(160, 3, "var(--gold)") +
+            LBL(35, 138, "k = 1 · 1") + LBL(100, 138, "k = 2 · 4") + LBL(205, 138, "k = 3 · 9", "font-weight:600") + "</svg>";
+        }
+        /* Day 5 name-it: one rectangle at k = 0.5, 1 and 1.5 */
+        function scK() {
+          var r = function (cx, k, col, dash) { var w = 40 * k, h = 60 * k; return '<rect x="' + (cx - w / 2) + '" y="' + (112 - h) + '" width="' + w + '" height="' + h + '"' + (dash ? ' stroke-dasharray="4 4"' : "") + ' style="fill:' + col + ";fill-opacity:.3;stroke:" + col + '"/>'; };
+          return SVG_OPEN(140) + r(50, 0.5, "var(--coral)") + r(140, 1, "currentColor", 1) + r(240, 1.5, "var(--gold)") +
+            LBL(50, 130, "k = 0.5 shrinks") + LBL(140, 130, "k = 1 same") + LBL(240, 130, "k = 1.5 enlarges", "font-weight:600") + "</svg>";
+        }
+        /* Day 5 play: a 4 × 6 print at 10px an inch, scaled by k; the grid shows copies of the original, so area reads as k × k */
+        function scPrint(k) {
+          var w = 40 * k, h = 60 * k, y = 190 - h, col = k === 2 ? "var(--ok)" : "var(--gold)";
+          return SVG_OPEN(210) + '<rect x="20" y="130" width="40" height="60" stroke-dasharray="4 4" style="fill:currentColor;fill-opacity:.08"/>' +
+            '<rect x="80" y="' + y + '" width="' + w + '" height="' + h + '" style="fill:' + col + ";fill-opacity:.25;stroke:" + col + '"/>' + scGrid(80, y, w, h, 40, 60) +
+            LBL(40, 205, "4 × 6") + LBL(80 + w / 2, 205, scF(4 * k) + " × " + scF(6 * k), "font-weight:600") +
+            LBL(252, 70, "k = " + scF(k), "font-weight:600") + LBL(252, 94, scF(4 * k) + " × " + scF(6 * k) + " in") +
+            LBL(252, 118, scF(24 * k * k) + " sq in") + LBL(252, 142, "ink × " + scF(k * k), "font-weight:600;fill:" + col) + "</svg>";
+        }
+        function scPlay(card, api) {
+          var box = $(".x-nl", card), inp = $("input", card), o = $("output", card), out = $(".x-nl__out", card), res = $(".x-res", card), done = !!api.solved;
+          function set(v) {
+            var k = Math.max(0.5, Math.min(3, Math.round(v * 4) / 4)); inp.value = k;
+            o.textContent = "Scale factor " + scF(k); box.innerHTML = scPrint(k);
+            out.textContent = scF(4 * k) + " × " + scF(6 * k) + " in: " + scF(24 * k * k) + " sq in, " + scF(k * k) + " × the ink of the 4 × 6. " + (k === 2 ? "Found it: 4 × the area." : "Find the factor that makes the area 4 ×.");
+            if (!done && k === 2) { done = true; api.solve(10); }
+            res.hidden = !done;
+          }
+          inp.addEventListener("input", function () { set(+inp.value); });
+          $(".x-do", card).addEventListener("click", function () { set(2); });
+          set(done ? 2 : 1);
         }
         /* Day 22 proof puzzle: a 7 × 7 square (a = 3, b = 4), 26px a unit; four legs-3-4 triangles, each [x1, y1, x2, y2, turn]: corners (st 0) → two rectangles (st 1), translation only */
         var PZ_T = [[0, 0, 3, 0, 0], [7, 0, 3, 3, 90], [7, 7, 7, 3, 180], [0, 7, 0, 7, 270]], PZ_TR = EX_RM ? "none" : "transform 1s var(--ease),opacity .6s var(--ease)";
@@ -10265,7 +10322,7 @@
                   LAB_SHARE,
                 mount: rtPlay },
               { kind: "notice", title: "What made it fair?", hl: ".x-nl",
-                viz: cpBox(rtSVG({ p: 8.99, s: 12 }, { p: 21.99, s: 32 }), "12 oz: $0.75/oz · 32 oz: $0.69/oz"),
+                viz: cpBox(priceBarsSVG({ p: 8.99, s: 12 }, { p: 21.99, s: 32 }), "12 oz: $0.75/oz · 32 oz: $0.69/oz"),
                 q: "Why could you compare a 12 oz bag with a 32 oz bag at all?",
                 options: ["Dividing price by size put both on the same ruler: one ounce", "The bigger bag always has the lower price", "The prices were close"],
                 say: "Dividing price by size puts both on the same ruler: one ounce." },
@@ -10418,6 +10475,97 @@
                 body: "<ul><li><b>Scale by multiplying, not adding.</b> 4 → 6 people is × 1.5 for every amount.</li><li><b>Keep units as a fraction so they cancel.</b> $150 × 36.6 C$/$1.</li>" +
                   "<li><b>Bigger unit → smaller number.</b> 10 km is only about 6.2 miles.</li></ul>" +
                   '<p class="x-so"><b>So:</b> Write the rate as a fraction so the units cancel. Cross-multiplying is a shortcut for the same scaling.</p>' }
+            ]
+          },
+          /* Day 5: the scale factor as one number, and what it does to area. Pizzas and prints before "k" or "k²" get a name */
+          5: {
+            home: ["Scaling: Recipes, Maps & Doses", "one number, the scale factor, for pizzas, photo prints, rooms and maps."],
+            flow: true,
+            scene: "fairshare",
+            steps: [
+              { kind: "predict", title: "One big pizza or two small?",
+                body: '<p class="x-q">Same total price: one 12-inch pizza, or two 8-inch pizzas. Which gives more pizza?</p>' + cpBox(scPizza(), "Drawn to scale") +
+                  ["The 12-inch", "The two 8-inch", "Same"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden>' + cpBox(scPizza(1), "One 8-inch laid on the 12-inch: the ring left over beats a whole second 8-inch", "An 8-inch pizza laid on a 12-inch pizza; the ring left over is 63 square inches, more than another 8-inch at 50") +
+                  '<p class="why"><b>The 12-inch: about 113 sq in vs 101.</b> 12 inches across is only 1.5 × 8, but the pizza grows in both directions.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l5pizza", 0)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "Blow up a photo print",
+                body: '<p class="x-q">Your 4 × 6 print, scaled. Find the factor that gives 4 × the print area.</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">Dashed: the 4 × 6 · each grid cell is one copy of it</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="x-range"><input type="range" min="0.5" max="3" step="0.25" value="1" aria-label="Scale factor"><output>Scale factor 1</output></div>' +
+                  '<button type="button" class="prev press x-do">Do it for me</button>' +
+                  '<div class="x-res" hidden><p class="why"><b>Factor 2: 8 × 12 in, 96 sq in.</b> Twice as wide and twice as tall holds 4 copies of the 4 × 6.</p></div>',
+                mount: scPlay },
+              { kind: "notice", title: "Sides vs area", hl: ".x-nl",
+                viz: cpBox(scPrint(2), "4 × 6 → 8 × 12: sides × 2, area 24 → 96 sq in"),
+                q: "Width × 2 and height × 2. What happened to the area?",
+                options: ["It grew × 4: lengths grow by k, area by k × k", "It grew × 2, like the sides", "It grew by 2 sq in"],
+                say: "Lengths grow by k. Area grows by k × k, because width and height both stretch." },
+              { kind: "plate", plate: "scale", title: "Scale factor: one number for the whole change" },
+              { kind: "play", title: "Build it: flour for 12",
+                body: '<p class="x-q">A recipe serves 8 and uses 3 cups of flour. You need 12 servings. How many cups of flour?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input type="text" inputmode="decimal" autocomplete="off" placeholder="cups" aria-label="Cups of flour for 12 servings"></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden><b>Hint:</b> Factor = new on top, old on the bottom: 12/8.</p>' +
+                  '<div class="x-res" hidden><p class="why"><b>Factor 12 ÷ 8 = 1.5, so 3 × 1.5 = 4.5 cups.</b> The same 1.5 scales every ingredient.</p></div>',
+                mount: blFill(4.5) },
+              { kind: "formalize", title: "Name it: scale factor k",
+                body: cpBox(scK(), "Below 1 shrinks, 1 stays the same, above 1 enlarges", "One rectangle at scale factor 0.5, 1 and 1.5") +
+                  '<ol class="x-wk"><li><span>Scale factor k</span><span>New ÷ old: one number for the whole change</span><b>12 ÷ 8 = 1.5</b></li>' +
+                  "<li><span>k &gt; 1</span><span>Enlarges</span><b>8 → 12 servings</b></li>" +
+                  "<li><span>k &lt; 1</span><span>Shrinks</span><b>6 → 4: × 4/6</b></li>" +
+                  "<li><span>Area</span><span>Multiplies by k × k, written k²</span><b>k = 2 → × 4</b></li></ol>",
+                so: "The scale factor k is new ÷ old. Lengths multiply by k, areas by k²." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“Doubling a rug from 5 × 8 ft to 10 × 16 ft means twice the material.” What went wrong?",
+                options: ["Area goes × 4: 40 sq ft → 160 sq ft", "Nothing: every side doubled, so twice the material", "It’s × 3 the material"], answer: 0, tags: [null, "SCALE-AREA-LINEAR", null], concept: "l5-area",
+                hints: ["Work out both areas.", "5 × 8 = 40; 10 × 16 = 160."],
+                why: "Width × 2 and length × 2, so area × 2 × 2 = 4: 160 sq ft, four times the material." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "A recipe serves 6 and you’re cooking for 4. A friend multiplies every amount by 6/4. What went wrong?",
+                options: ["Flipped factor: new ÷ old is 4/6, about ⅔", "Nothing: 6/4 shrinks the recipe", "They should subtract 2 from each amount"], answer: 0, tags: [null, "SCALE-FACTOR-INVERTED", "PROP-ADD-NOT-MULTIPLY"], concept: "l5-factor",
+                hints: ["Fewer people: should k be above or below 1?", "New on top, old on the bottom."],
+                why: "6/4 = 1.5 makes more food, not less. New ÷ old = 4/6 ≈ 0.67 shrinks every amount." },
+              { kind: "fade", title: "A walk on Google Maps",
+                q: "The map’s scale bar: 1 cm = 500 m. Your route measures 7 cm on screen. How far is it? Fill in the missing line.",
+                lines: ["Each screen cm is 500 real m", "7 cm × 500 m = 3,500 m", "= 3.5 km"],
+                blank: 1, options: ["7 cm × 500 m = 3,500 m", "500 ÷ 7 ≈ 71 m", "7 + 500 = 507 m"], answer: 0, tags: [null, "SCALE-FACTOR-INVERTED", "PROP-ADD-NOT-MULTIPLY"], concept: "l5-factor",
+                hints: ["Each cm stands for 500 m."],
+                why: "7 × 500 = 3,500 m, which is 3.5 km. A long walk, or a short drive." },
+              { kind: "quiz", title: "Quick check: a floor plan",
+                q: "An apartment floor plan is 1:100. A room measures 4 cm × 3 cm on the plan. What’s its real floor area?",
+                options: ["12 m²: 4 m × 3 m", "1,200 m²", "0.12 m²"], answer: 0, tags: [null, null, "SCALE-AREA-LINEAR"], concept: "l5-area",
+                hints: ["1 cm on the plan = 100 cm = 1 m.", "Real room: 4 m × 3 m."],
+                why: "Each side × 100: 4 m by 3 m, so 12 m². 0.12 m² scaled the area by 100 instead of 100 × 100." },
+              { kind: "quiz", title: "Quick check: paint",
+                q: "A wall is twice as tall and twice as wide as one you’ve painted. How much paint?",
+                options: ["4 × the paint", "2 × the paint", "3 × the paint"], answer: 0, tags: [null, "SCALE-AREA-LINEAR", null], concept: "l5-area",
+                hints: ["Paint covers area.", "k = 2, so area × 2 × 2."],
+                why: "k = 2 on both sides, so the area is 2² = 4 times bigger: 4 × the paint." },
+              { kind: "quiz", title: "Quick check: a print",
+                q: "A photo is enlarged from 4 × 6 inches to 8 × 12 inches. What’s the scale factor?",
+                options: ["2", "4", "½"], answer: 0, tags: [null, "SCALE-AREA-LINEAR", "SCALE-FACTOR-INVERTED"], concept: "l5-factor",
+                hints: ["New ÷ old, on one side.", "8 ÷ 4."],
+                why: "8 ÷ 4 = 2 and 12 ÷ 6 = 2, so k = 2. 4 is what happened to the area; ½ is old ÷ new." },
+              { kind: "transfer", title: "New costume: a group program",
+                q: "Your 8-week group program was planned for 10 clients, with 20 handouts each session. Now 15 clients signed up. How many handouts per session?",
+                options: ["30 handouts", "25 handouts", "About 13 handouts"], answer: 0, tags: [null, "PROP-ADD-NOT-MULTIPLY", "SCALE-FACTOR-INVERTED"], concept: "l5-factor",
+                hints: ["k = new clients ÷ old clients.", "15 ÷ 10 = 1.5. Now 20 × 1.5."],
+                why: "k = 15 ÷ 10 = 1.5, so 20 × 1.5 = 30 handouts. 25 adds 5; 13 uses the flipped factor 10/15." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Pizza and food deals.</b> Diameter × 1.5 means pizza × 2.25. Compare areas, not counts.</li><li><b>Printing photos.</b> An 8 × 12 takes 4 × the paper and ink of a 4 × 6, so check the price per sq in.</li>" +
+                  "<li><b>Rooms, rugs and paint.</b> Plan sides × the scale; area × k² for flooring and paint.</li><li><b>Maps.</b> Screen cm × the scale bar gives the real distance.</li>" +
+                  "<li><b>Programs at work.</b> One k (new clients ÷ old) scales handouts, chairs and snacks together.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>k = new ÷ old.</b> 8 → 12 servings is k = 1.5.</li><li><b>Lengths × k, areas × k².</b> Double the sides, 4 × the paint.</li>" +
+                  "<li><b>Bigger pizza beats more pizzas surprisingly often.</b> 12-inch: 113 sq in; two 8-inch: 101.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> The scale factor k is new ÷ old. Lengths multiply by k, areas by k².</p>' }
             ]
           },
           /* Day 13: linear models as bills. Fixed fee + rate × use, built from bills before y = mx + b gets a name */
