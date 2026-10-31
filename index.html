@@ -1552,6 +1552,8 @@
           "VOL-DOUBLE-ALL-DOUBLE": "Volume uses three lengths, so doubling all three multiplies it by 2 × 2 × 2 = 8.",
           "SIM-ADD-NOT-MULTIPLY": "Similar shapes grow by multiplying, not adding. Find the multiplier (6 ÷ 4 = 1.5) and use it.",
           "TRIG-WRONG-SIDE": "The height is opposite the angle and the ladder is the slanted side, so use sin. Sanity check: a steep ladder reaches high, not 4 ft.",
+          "CIRC-AREA-USE-DIAMETER": "Area uses the radius, half the diameter. Squaring the full diameter gives 4 times too much.",
+          "CIRC-CONFUSE-C-A": "A fence goes AROUND, so it's a length: π × diameter. π r² is the area inside, in square feet.",
           "FUNC-IN-OUT-SWAP": "f(11) means feed 11 in, not find what gives 11: with f(x) = 2x + 3, f(11) = 2 × 11 + 3 = 25. The 4 solves 2x + 3 = 11, which runs the machine backward.",
           "SYS-CROSS-MEANS-CHEAPER": "The crossing is where the plans are equal, not where one wins: at month 5 both gyms cost $200. Before it B is cheaper; after it A is.",
           "INEQ-EXACT-ONLY": "“At most $60” is a range, not one exact value, and you round in the safe direction: at $6.75 a pack, 18 + 6.75p ≤ 60 gives p ≤ 6.2, so at most 6 packs. 7 packs is $65.25, over the limit.",
@@ -6350,6 +6352,11 @@
             see: "Two triangles with the same angles. The big one is the small one with every side × 2: 4 becomes 8, 3 becomes 6, 5 becomes 10.",
             why: "Equal angles lock the shape, so the sides can only grow together, by one multiplier. That’s why one known triangle measures another: find the multiplier, then multiply. Adding the same amount to every side breaks the shape.",
             use: "Measuring tall things from their shadows, maps and floor plans, photo prints and crops: find the one multiplier, then use it on every length." },
+          pi: { term: "π: the rim is always ≈ 3.14 diameters", svg: svgPi, short: "Around = π × across; area inside = π × r².",
+            alt: "A circle with its diameter drawn; three diameter-length pieces laid end to end around the rim, leaving a small gap",
+            see: "The diameter, laid along the rim three times, almost gets all the way around. A small gap is left, about 0.14 of a diameter. So the rim is about 3.14 diameters: that number is π.",
+            why: "Every circle is the same shape, just bigger or smaller, so the rim is always the same number of diameters. One multiplier, π, turns any distance across into the distance around. 3.14 is close enough for buying and building.",
+            use: "Wheels and distance, fences and edging, pizza and round tables, lenses and round prints: measure across, then multiply by π." },
           number: { term: "Number", svg: svgNumber, short: "Keeps only how many.",
             alt: "A cookie, a music note and a calendar day become three identical dots, then the numeral 3",
             see: "Three unlike things (a cookie, a song, a day) turn into three identical dots, then one mark: 3. Each dot stands for one thing; the numeral stands for the whole group.",
@@ -8621,6 +8628,91 @@
           $(".x-go", card).addEventListener("click", check);
           [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
           $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "288"; check(); } if (st === 1) { b.value = "24"; check(); } });
+          paint();
+        }
+        /* Day 24 circles & π. A wheel d inches across, drawn at 2.2 px per inch, rolls one turn to the right and lays its rim on the ground:
+           3 diameter-length marks plus a bit. 26 in → π × 26 ≈ 81.7 in, 63,360 ÷ 81.7 ≈ 775 turns per mile */
+        function ciFmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+        function ciC(d) { return (Math.PI * d).toFixed(1); }
+        function ciTurns(d) { return Math.floor(63360 / (Math.PI * d)); }
+        function ciSVG(d, o) {
+          o = o || {};
+          var k = 2.2, x0 = 36, G = 126, r = d * k / 2, L = +(Math.PI * d * k).toFixed(1), cy = +(G - r).toFixed(1), dk = d * k, s = SVG_OPEN(176), i, a, anim = o.anim && !EX_RM;
+          s += '<path d="M8 ' + G + 'H292" stroke-opacity=".5"/>';
+          s += anim ? '<line x1="' + x0 + '" y1="' + G + '" x2="' + x0 + '" y2="' + G + '" stroke-width="4" style="stroke:var(--gold)"><animate attributeName="x2" from="' + x0 + '" to="' + (x0 + L) + '" dur="1.6s" fill="freeze"/></line>'
+            : '<path d="M' + x0 + " " + G + "H" + (x0 + L) + '" stroke-width="4" style="stroke:var(--gold)"/>';
+          s += '<g' + (anim ? "" : ' transform="translate(' + L + ' 0)"') + ">" + (anim ? '<animateTransform attributeName="transform" type="translate" from="0 0" to="' + L + ' 0" dur="1.6s" fill="freeze"/>' : "") +
+            "<g>" + (anim ? '<animateTransform attributeName="transform" type="rotate" from="0 ' + x0 + " " + cy + '" to="360 ' + x0 + " " + cy + '" dur="1.6s" fill="freeze"/>' : "") +
+            '<circle cx="' + x0 + '" cy="' + cy + '" r="' + r.toFixed(1) + '" stroke-width="3" style="fill:var(--cyan);fill-opacity:.12;stroke:var(--cyan)"/>' +
+            '<path d="M' + x0 + " " + (cy - r).toFixed(1) + "V" + G + '" style="stroke:var(--cyan)" stroke-opacity=".7"/>' +
+            '<circle cx="' + x0 + '" cy="' + G + '" r="4" stroke="none" style="fill:var(--coral)"/></g></g>';
+          for (i = 0; i < 3; i++) {
+            a = x0 + i * dk;
+            s += '<path d="M' + (a + 1).toFixed(1) + " " + (G + 8) + "V" + (G + 13) + "H" + (a + dk - 1).toFixed(1) + "V" + (G + 8) + '" style="stroke:var(--cyan)"/>' + LBL(+(a + dk / 2).toFixed(1), G + 27, "d", "font-size:12px");
+          }
+          s += '<path d="M' + (x0 + 3 * dk).toFixed(1) + " " + (G + 13) + "H" + (x0 + L) + '" stroke-width="3" style="stroke:var(--coral)"/>' + LBL(+(x0 + L + 6).toFixed(1), G + 27, "+ a bit", "text-anchor:start;font-size:12px;fill:var(--coral)");
+          var head = o.hide ? "One turn of a " + d + " in wheel rolls how far?" : d + " in wheel: one turn = π × " + d + " ≈ " + ciC(d) + " in";
+          return s + LBL(150, 18, head, "font-weight:600" + (d === 26 && !o.hide ? ";fill:var(--ok)" : "")) + LBL(150, 166, "Rim laid flat: 3 diameters + a bit ≈ 3.14 × d", "font-size:12px") + "</svg>";
+        }
+        /* the plate: a diameter laid around the rim 3 times, leaving a small gap (each lap of d covers 2 radians) */
+        function svgPi() {
+          var s = SVG_OPEN(196), cx = 150, cy = 104, R = 54, t0 = -Math.PI / 2, col = ["var(--cyan)", "var(--gold)", "var(--ok)"], i, a, b, m;
+          function P(t, rr) { return [(cx + rr * Math.cos(t)).toFixed(1), (cy + rr * Math.sin(t)).toFixed(1)]; }
+          s += '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" stroke-opacity=".25"/>';
+          s += '<path d="M' + (cx - R) + " " + cy + "H" + (cx + R) + '" style="stroke:var(--cyan)"/>' + LBL(cx, cy - 6, "d", "font-size:12px;font-weight:600");
+          for (i = 0; i < 3; i++) {
+            a = P(t0 + 2 * i, R); b = P(t0 + 2 * i + 2, R); m = P(t0 + 2 * i + 1, R + 16);
+            s += '<path d="M' + a[0] + " " + a[1] + "A" + R + " " + R + " 0 0 1 " + b[0] + " " + b[1] + '" stroke-width="5" style="stroke:' + col[i] + '"/>' + LBL(m[0], +m[1] + 4, i + 1, "font-size:12px;font-weight:600");
+          }
+          a = P(t0 + 6, R); b = P(t0 + 2 * Math.PI, R); m = P(t0 - 0.14, R + 16);
+          s += '<path d="M' + a[0] + " " + a[1] + "A" + R + " " + R + " 0 0 1 " + b[0] + " " + b[1] + '" stroke-width="5" style="stroke:var(--coral)"/>' + LBL(+m[0] - 4, +m[1] - 2, "gap ≈ 0.14 d", "text-anchor:end;font-size:12px;fill:var(--coral)");
+          return s + LBL(150, 18, "The rim ≈ 3.14 diameters", "font-weight:600") + LBL(150, 188, "3 diameters fit around, plus a little: that’s π", "font-size:12px;fill:var(--ok)") + "</svg>";
+        }
+        /* name it: across, half-across, around and inside */
+        function ciName() {
+          var s = SVG_OPEN(168);
+          s += '<circle cx="90" cy="92" r="56" stroke-width="3" style="fill:var(--cyan);fill-opacity:.15;stroke:var(--gold)"/>' +
+            '<path d="M34 92H146" style="stroke:var(--cyan)"/><path d="M90 92L129.6 52.4" style="stroke:var(--coral)"/>' +
+            LBL(70, 108, "d (across)", "font-size:12px") + LBL(118, 82, "r", "font-size:12px;font-weight:600;fill:var(--coral)");
+          return s + LBL(166, 62, "around: C = π × d", "text-anchor:start;font-size:12px;font-weight:600;fill:var(--gold)") + LBL(166, 80, "a length (ft)", "text-anchor:start;font-size:12px") +
+            LBL(166, 112, "inside: A = π × r²", "text-anchor:start;font-size:12px;font-weight:600;fill:var(--cyan)") + LBL(166, 130, "square units (sq ft)", "text-anchor:start;font-size:12px") +
+            LBL(150, 18, "r = half of d · π ≈ 3.14", "font-weight:600") + "</svg>";
+        }
+        /* Day 24 play: diameter 10–30 in; starts at 18, solved when it stops on 26 → 81.7 in, ≈ 775 turns */
+        function ciPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), rng = $('input[type="range"]', card), o = $(".x-range output", card), res = $(".x-res", card), done = !!api.solved;
+          function paint(stop) {
+            var d = +rng.value;
+            if (stop && d === 26 && !done) { done = true; api.solve(10); }
+            box.innerHTML = ciSVG(d, { anim: stop });
+            o.textContent = d + " in"; rng.setAttribute("aria-valuetext", d + " inches across");
+            out.textContent = "Distance around = π × " + d + " ≈ " + ciC(d) + " in. Turns per mile = 63,360 ÷ " + ciC(d) + " ≈ " + ciFmt(ciTurns(d)) + "." +
+              (d === 26 ? " That’s your bike: about 775 turns." : done ? "" : " Now set your bike’s wheel: 26 in.");
+            res.hidden = !done;
+          }
+          rng.addEventListener("input", function () { paint(false); });
+          rng.addEventListener("change", function () { paint(true); });
+          $(".x-do", card).addEventListener("click", function () { rng.value = 26; paint(true); });
+          if (done) rng.value = 26;
+          paint(false);
+        }
+        /* Day 24 build: 8 ft bed → π × 8 ≈ 25.1 ft (±0.2) → 20 ft rolls → 2 */
+        function ciBuild(card, api) {
+          var a = $(".x-a", card), b = $(".x-b", card), two = $(".x-st2", card), res = $(".x-res", card), h = $(".x-hint", card), st = api.solved ? 2 : 0;
+          function num(i) { return parseFloat(i.value.replace(/[,\s]|feet|ft|rolls?/g, "")); }
+          function paint() { a.disabled = st > 0; b.disabled = st !== 1; two.hidden = st < 1; res.hidden = st < 2; if (st > 0) a.value = "25.1"; if (st > 1) b.value = "2"; }
+          function check() {
+            if (st === 0) {
+              if (Math.abs(num(a) - 25.1) <= 0.2) { st = 1; h.hidden = true; }
+              else { h.innerHTML = "<b>Hint:</b> Around = π × across: π × 8."; h.hidden = false; }
+            } else if (st === 1) {
+              if (num(b) === 2) { st = 2; h.hidden = true; api.solve(10); } else { h.innerHTML = "<b>Hint:</b> 25.1 ÷ 20 ≈ 1.3 rolls. You can’t buy part of a roll, so round up."; h.hidden = false; }
+            }
+            paint();
+          }
+          $(".x-go", card).addEventListener("click", check);
+          [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
+          $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "25.1"; check(); } if (st === 1) { b.value = "2"; check(); } });
           paint();
         }
         var LESSON_CONTENT = {
@@ -13516,6 +13608,97 @@
                   '<p class="x-so"><b>So:</b> Find a triangle you can measure, find the multiplier, and measure what you can’t reach.</p>' + LAB_PYTHAG }
             ]
           },
+          24: {
+            home: ["Circles & π", "wheels, pizza, fences: the 3.14 that's everywhere."],
+            flow: true,
+            steps: [
+              { kind: "predict", title: "Turns in a mile",
+                body: '<p class="x-q">Your bike’s wheel is 26 inches across. How many turns does it make in one mile (63,360 in)?</p>' +
+                  cpBox(ciSVG(26, { hide: 1 }), "A 26 in wheel rolls one turn and lays its rim flat", "A 26 inch wheel rolled one turn to the right; its rim lies flat on the ground, a bit over 3 diameters long") +
+                  ["About 250", "About 775", "About 2,400"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden><p class="why"><b>About 775.</b> One turn rolls π × 26 ≈ 81.7 in, and 63,360 ÷ 81.7 ≈ 775.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l24wheel", 1)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "Unroll the wheel",
+                body: '<p class="x-q">Roll a wheel one full turn: its rim lays down flat as a straight line. Change the wheel and watch. Then set your bike’s: 26 in across.</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">Gold: the rim laid flat · blue marks: one diameter each · coral dot: where the turn started</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="x-range"><input type="range" min="10" max="30" step="1" value="18" aria-label="Wheel diameter in inches"><output>18 in</output></div>' +
+                  '<button type="button" class="prev press x-do">Do it for me</button>' +
+                  '<div class="x-res" hidden><p class="why"><b>26 in: 81.7 in a turn, about 775 turns a mile.</b> Try 10 in and 30 in: the rim is always 3 diameters and a bit.</p></div>',
+                mount: ciPlay },
+              { kind: "notice", title: "Always a little over 3", hl: ".x-nl",
+                viz: cpBox(ciSVG(26), "Three diameter marks, then a little more"),
+                q: "Big wheel or small, how long was the rim laid flat?",
+                options: ["A little over 3 of its own diameters, every time", "Exactly 3 diameters", "It depends on how big the wheel is"],
+                say: "Every circle’s rim is a little over 3 of its own diameters. That “a little over 3” is π ≈ 3.14." },
+              { kind: "plate", plate: "pi", title: "π: the rim is always ≈ 3.14 diameters" },
+              { kind: "play", title: "Build it: edging a garden bed",
+                body: '<p class="x-q">You’re edging a round garden bed 8 ft across. How many feet of edging go around it?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-a" type="text" inputmode="decimal" autocomplete="off" placeholder="feet" aria-label="Edging in feet"></div>' +
+                  '<div class="x-st2" hidden><p class="why"><b>About 25.1 ft.</b> π × 8 ≈ 25.1.</p>' +
+                  '<p class="x-q">Edging comes in 20 ft rolls. How many rolls do you buy?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-b" type="text" inputmode="decimal" autocomplete="off" placeholder="rolls" aria-label="Rolls of edging"></div></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden></p>' +
+                  '<div class="x-res" hidden><p class="why"><b>2 rolls.</b> 25.1 ÷ 20 ≈ 1.3, and you can’t buy part of a roll, so round up.</p></div>',
+                mount: ciBuild },
+              { kind: "formalize", title: "Name it: around and inside",
+                body: cpBox(ciName(), "Across is d, half of it is r", "A circle with its diameter d and radius r: around is pi times d, inside is pi times r squared") +
+                  '<ol class="x-wk"><li><span>Around</span><span>circumference: a length, in ft</span><b>C = π × d = 2 × π × r</b></li>' +
+                  "<li><span>Inside</span><span>area, with r = half the diameter: square units, sq ft</span><b>A = π × r²</b></li>" +
+                  "<li><span>π</span><span>how many diameters fit around</span><b>≈ 3.14</b></li></ol>",
+                so: "Around is π × across, a length. Inside is π × r², in square units, with r half the across." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“A 12-inch pizza has area π × 12² ≈ 452 sq in.” What went wrong?",
+                options: ["Area uses the radius: π × 6² ≈ 113 sq in", "Nothing: π × 12² ≈ 452 sq in is right", "It should be π × 12 ≈ 37.7 sq in"], answer: 0, tags: [null, "CIRC-AREA-USE-DIAMETER", "CIRC-CONFUSE-C-A"], concept: "l24-area",
+                hints: ["“12-inch” is the distance across. What is r?", "r = 6, so area = π × 6²."],
+                why: "Area uses the radius, half the diameter: π × 6² ≈ 113 sq in. Squaring the full 12 gives 4 times too much. π × 12 is the distance around, not the area." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“A round pool is 20 ft across, so the fence around it is π × 10² ≈ 314 ft.” What went wrong?",
+                options: ["A fence is a length: π × 20 ≈ 62.8 ft", "Nothing: π × 10² ≈ 314 ft is right", "Use the full width: π × 20² ≈ 1,257 ft"], answer: 0, tags: [null, "CIRC-CONFUSE-C-A", "CIRC-CONFUSE-C-A"], concept: "l24-around",
+                hints: ["Does a fence cover the ground, or go around the edge?", "Around = π × across."],
+                why: "A fence goes around, so it’s a length: π × 20 ≈ 62.8 ft. π × 10² ≈ 314 is the area inside, in square feet." },
+              { kind: "fade", title: "Seats at a round table",
+                q: "Family is visiting from Nicaragua. Your round dinner table is 5 ft across, and each person needs about 2 ft of edge. Fill in the missing line.",
+                lines: ["Around = π × 5 ≈ 15.7 ft", "15.7 ÷ 2 ≈ 7.85", "Round DOWN: 7 people fit comfortably (you can’t seat 0.85 of a person)"],
+                blank: 1, options: ["15.7 ÷ 2 ≈ 7.85", "15.7 × 2 = 31.4", "5 ÷ 2 = 2.5"], answer: 0, tags: [null, null, "CIRC-CONFUSE-C-A"], concept: "l24-around",
+                hints: ["Each person takes 2 ft of the 15.7 ft edge.", "How many 2s fit in 15.7?"],
+                why: "15.7 ÷ 2 ≈ 7.85 places, so 7 people fit. × 2 doubles the edge instead of sharing it; 5 ÷ 2 uses the width, not the edge." },
+              { kind: "quiz", title: "Quick check: pizza deal",
+                q: "A 12-inch pizza for $14 or a 16-inch for $20: which is the better deal per square inch?",
+                options: ["The 16-inch: ≈ 10¢ vs ≈ 12¢ per sq in", "The 12-inch: it costs less", "They’re the same deal"], answer: 0, tags: [null, "SCALE-AREA-LINEAR", null], concept: "l24-area",
+                hints: ["Area = π × r². Radii are 6 and 8.", "Then price ÷ area for each."],
+                why: "π × 6² ≈ 113 sq in, and $14 ÷ 113 ≈ 12¢. π × 8² ≈ 201 sq in, and $20 ÷ 201 ≈ 10¢. The bigger pizza gives more per dollar." },
+              { kind: "quiz", title: "Quick check: a car tire",
+                q: "A car tire 25 in across travels how far in one turn?",
+                options: ["About 78.5 in", "About 491 in", "About 39.3 in"], answer: 0, tags: [null, "CIRC-CONFUSE-C-A", null], concept: "l24-around",
+                hints: ["One turn rolls out the rim: the distance around.", "Around = π × across."],
+                why: "π × 25 ≈ 78.5 in. 491 is the area (π × 12.5²); 39.3 uses the half-width instead of the full width." },
+              { kind: "quiz", title: "Quick check: laps of the fountain",
+                q: "A walking path circles a fountain, radius 50 m. One lap ≈ 314 m. How many full laps to walk at least 2 km?",
+                options: ["7", "6", "13"], answer: 0, tags: [null, null, null], concept: "l24-around",
+                hints: ["2 km = 2,000 m. Divide by one lap.", "“At least” means round up."],
+                why: "2,000 ÷ 314 ≈ 6.4. Six laps fall short, so walk 7. 13 forgets that the lap uses 2 × r." },
+              { kind: "transfer", title: "New costume: the group circle",
+                q: "You’re setting up a group circle of 12 chairs, about 2 ft of circle per chair. How wide is the circle?",
+                options: ["About 7.6 ft: 24 ÷ π", "About 24 ft: 12 × 2", "About 75 ft: 24 × π"], answer: 0, tags: [null, null, null], concept: "l24-around",
+                hints: ["12 chairs × 2 ft = 24 ft around.", "Around = π × across, so across = around ÷ π."],
+                why: "12 × 2 = 24 ft around, and 24 ÷ π ≈ 7.6 ft across. Check the room is wider than that plus space behind the chairs." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Bike and car wheels.</b> One turn rolls π × across.</li><li><b>Fences and edging.</b> Around = π × across, rolls rounded up.</li>" +
+                  "<li><b>Pizza value.</b> Compare price per square inch, π × r².</li><li><b>Round tables.</b> The edge ÷ space per person, rounded down.</li>" +
+                  "<li><b>Pools.</b> Fence is around; cover is area.</li><li><b>Lenses and round prints.</b> Area grows with r × r.</li><li><b>Tracks.</b> Laps × distance around.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>Around = π × across.</b> A 26 in wheel rolls about 81.7 in a turn.</li><li><b>Area = π × r², with r = half across.</b> A 12-inch pizza: π × 6² ≈ 113 sq in.</li>" +
+                  "<li><b>Around is feet, area is square feet.</b> A fence is a length; a cover is an area.</li><li><b>Round up when buying, down when seating.</b> 1.3 rolls → 2; 7.85 seats → 7.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> Measure across, multiply by π for the way around, and use half of it, squared, for the inside.</p>' }
+            ]
+          },
           /* Foundations B4: exponent laws by counting factor chips. Each play keeps its own state; values and exponents appear only after the learner acts */
           "b4-laws": {
             home: ["Exponent laws, just counting", "join, cancel and copy rows of factor chips: the laws fall out of the count."],
@@ -15939,6 +16122,33 @@
                 return mk(c[1], L * s, "ft", "sin = opposite ÷ hypotenuse, so the side opposite the angle = length × sin " + A + "° = " + L + " × " + s.toFixed(3) + " = " + F(L * s, "ft") + ".", c[0]);
               }
             ],
+            24: [
+              function (r) {
+                var c = pk(r, [["Bike wheel", "in", 16, 29, "your bike wheel", "around the tire"], ["Car tire", "in", 24, 30, "your car tire", "around the tread"],
+                  ["Miami garden", "ft", 6, 30, "a round garden bed in your Miami yard", "of edging around it"], ["Miami pool", "ft", 12, 30, "a round pool in Miami", "of safety fence around its rim"],
+                  ["Family in Nicaragua", "ft", 6, 8, "the round table for family visiting from Nicaragua", "of tablecloth trim around the edge"], ["Group room", "ft", 12, 30, "the chair circle in the group room", "of walking path around it"],
+                  ["Photo prints", "in", 6, 12, "a round photo print", "of frame molding around it"]]), u = c[1], d = c[2] + Math.floor(r() * (c[3] - c[2] + 1)), C = Math.PI * d;
+                if (r() < 0.5) return mk("The diameter of " + c[4] + " is " + F(d, u) + ". How many " + (u === "in" ? "inches" : "feet") + " " + c[5] + "? (Use π ≈ 3.1416.)", C, u, "Circumference = π × d = 3.1416 × " + d + " = " + F(C, u) + ".", c[0]);
+                var Cr = Math.round(C * 10) / 10, D = Cr / Math.PI;
+                return mk("The circumference of " + c[4] + " measures " + F(Cr, u) + ". What is its diameter? (Use π ≈ 3.1416.)", D, u, "C = π × d, so d = C ÷ π = " + nf(Cr) + " ÷ 3.1416 = " + F(D, u) + ".", c[0]);
+              },
+              function (r) {
+                var c = pk(r, [["Pizza night", "in", 8, 20, "Pizza night: the pizza is ", " across. How many square inches of pizza is that?"],
+                  ["Miami pool", "ft", 6, 24, "A round pool in Miami is ", " across. How many square feet does the pool cover?"],
+                  ["Miami garden", "ft", 6, 24, "A round garden bed in your Miami yard is ", " across. How many square feet of mulch does it need to cover?"]]), u = c[1], d = c[2] + Math.floor(r() * (c[3] - c[2] + 1)), h = d / 2, A = Math.PI * h * h;
+                return mk(c[4] + F(d, u) + c[5] + " (Use π ≈ 3.1416.)", A, "sq " + u, "Radius = d ÷ 2 = " + d + " ÷ 2 = " + F(h, u) + "; area = π × r² = 3.1416 × " + nf(h) + "² = 3.1416 × " + nf(h * h) + " = " + F(A, "sq " + u) + ".", c[0]);
+              },
+              function (r) {
+                if (r() < 0.5) {
+                  var d = 10 + Math.floor(r() * 9), P = 10 + Math.floor(r() * 19), h = d / 2, A = Math.PI * h * h, x = P * 100 / A;
+                  return mk("Pizza night: a " + d + " in pizza costs " + money(P) + ". What is the price per square inch, in cents? (Use π ≈ 3.1416.)", x, "cents",
+                    "Area = π × (" + d + " ÷ 2)² = 3.1416 × " + nf(h * h) + " = " + F(A, "sq in") + ". " + money(P) + " = " + nf(P * 100) + "¢; " + nf(P * 100) + " ÷ " + nf(A) + " = " + nf(x) + "¢ per sq in. Lower is the better deal.", "Pizza night");
+                }
+                var c = pk(r, [["Bike wheel", "your bike", [20, 24, 26, 27, 29], [1, 2, 3, 5, 10]], ["Car tire", "your car", [24, 25, 26, 27, 28, 29, 30], [1, 2, 5, 10]]]), w = pk(r, c[2]), m = pk(r, c[3]), I = m * 63360, T = Math.PI * w, n = I / T;
+                return mk("The wheels on " + c[1] + " are " + w + " in across. About how many turns does one wheel make in " + pl(m, "mi") + "? (1 mi = 63,360 in; use π ≈ 3.1416.)", n, "turns",
+                  "One turn rolls π × " + w + " = " + F(T, "in") + ". Distance: " + m + " × 63,360 = " + nf(I) + " in; " + nf(I) + " ÷ " + nf(T) + " = " + nf(n) + " turns.", c[0]);
+              }
+            ],
             18: (function () {
               var C = [["Nicaragua Christmas trip", "You park $P in savings for the Christmas trip to Nicaragua"], ["Miami rent", "You set aside $P as a rent cushion for your Miami apartment"],
                 ["Camera gear", "You put $P into a fund for a new camera body and lens"], ["Counseling paycheck", "You stash $P from your counseling paycheck in a CD"]];
@@ -16009,7 +16219,7 @@
                 z.tol = 0.01; return z;
               }
             ]
-            /* REMIX: generators cover Days 1–23; add new days here */
+            /* REMIX: generators cover Days 1–24; add new days here */
           };
           Remix = (function () {
             function days() { return Object.keys(REMIX).map(Number).filter(function (d) { return REMIX[d] && REMIX[d].length; }); }
