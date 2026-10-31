@@ -1546,6 +1546,8 @@
           "CI-SMALL-RATE-GAP": "Over long stretches a 1-point rate difference compounds into thousands. Shop the rate on savings AND on debt.",
           "LOAN-MIN-PAYMENT-MATH": "Interest is added every month, so a small payment mostly feeds interest. Dividing the balance by the payment ignores it and badly underestimates the time.",
           "LOAN-LOW-PAYMENT-CHEAPER": "A longer loan lowers the monthly payment but raises the total cost. Compare total interest, not just the monthly bill.",
+          "LOG-AXIS-EVEN-ADD": "On a log axis, equal spacing means equal MULTIPLYING (×10 each gridline), not equal adding. A straight line there means steady percent growth.",
+          "LOG-DB-LINEAR": "Decibels are a log scale: +10 dB is ×10 intensity, so +30 dB is ×1,000. Protect your hearing at concerts.",
           "FUNC-IN-OUT-SWAP": "f(11) means feed 11 in, not find what gives 11: with f(x) = 2x + 3, f(11) = 2 × 11 + 3 = 25. The 4 solves 2x + 3 = 11, which runs the machine backward.",
           "SYS-CROSS-MEANS-CHEAPER": "The crossing is where the plans are equal, not where one wins: at month 5 both gyms cost $200. Before it B is cheaper; after it A is.",
           "INEQ-EXACT-ONLY": "“At most $60” is a range, not one exact value, and you round in the safe direction: at $6.75 a pack, 18 + 6.75p ≤ 60 gives p ≤ 6.2, so at most 6 packs. 7 packs is $65.25, over the limit.",
@@ -6329,6 +6331,11 @@
             see: "Each payment split into an interest slice and a balance slice. Month 1 on $2,000 at 24% APR: $40 of the $50 is interest, only $10 cuts the balance. As the balance falls, the interest slice shrinks and the balance slice grows.",
             why: "The lender takes this month’s interest before anything reduces what you owe. So a payment barely above the interest moves the balance very slowly, and every extra dollar above it goes straight to the balance.",
             use: "Credit cards, car loans, student loans, payday loans: check how much of each payment is interest, and ask for the total paid." },
+          log: { term: "A log counts the multiplications", svg: svgLog, scene: "doublings3d", short: "log₃(10,000) ≈ 8.4: about 8.4 multiplications by 3 reach 10,000.",
+            alt: "Audience targets from 10 to 1,000,000 on a log axis, each gridline ×10, with the rounds of ×3 needed below each: 3, 5, 7, 9, 11, 13",
+            see: "Huge targets, few steps. log₃(10,000) ≈ 8.4 means 3 multiplied about 8.4 times gives 10,000. Each ×10 on the audience axis costs only about 2 more rounds.",
+            why: "Each step multiplies, so the step count grows slowly while the total explodes. A log turns “how many times bigger” into “how many steps”.",
+            use: "How long until money doubles, decibels, earthquake magnitudes, pH, any chart with a “log scale”." },
           number: { term: "Number", svg: svgNumber, short: "Keeps only how many.",
             alt: "A cookie, a music note and a calendar day become three identical dots, then the numeral 3",
             see: "Three unlike things (a cookie, a song, a day) turn into three identical dots, then one mark: 3. Each dot stands for one thing; the numeral stands for the whole group.",
@@ -8305,6 +8312,94 @@
           $(".x-go", card).addEventListener("click", check);
           [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
           $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "289.99"; check(); } if (st === 1) { b.value = "2399.52"; check(); } });
+          paint();
+        }
+        /* Day 20 logarithms: the viral photo (×3 a round). Notch i = 0–5 is a target of 10^(i+1); rounds = smallest n with 3ⁿ ≥ target:
+           10 → 3, 100 → 5, 1,000 → 7, 10,000 → 9, 100,000 → 11, 1,000,000 → 13 (integer loop, no float logs) */
+        var LG_SH = ["10", "100", "1k", "10k", "100k", "1M"];
+        function lgN(i) { var t = Math.pow(10, i + 1), n = 0, p = 1; while (p < t) { p *= 3; n++; } return { t: t, n: n, lo: p / 3, hi: p }; }
+        function lgLine(i) { var r = lgN(i); return "3" + exSup(r.n - 1) + " = " + exFmt(r.lo) + " < " + exFmt(r.t) + " ≤ 3" + exSup(r.n) + " = " + exFmt(r.hi) + " → " + r.n + " rounds"; }
+        /* left: audience columns on a plain scale (each ×10 the last); right: rounds columns (each about +2) */
+        function lgSVG(i, head) {
+          var s = SVG_OPEN(196), k, top = Math.pow(10, i + 1);
+          s += '<path d="M20 176H144M160 176H288" stroke-opacity=".5"/>' + LBL(82, 38, "Audience · ×10 a notch", "font-size:12px") + LBL(224, 38, "Rounds of ×3 · about +2", "font-size:12px");
+          for (k = 0; k <= i; k++) {
+            var last = k === i, c = last ? "--gold" : "--cyan", ha = Math.max(2, Math.pow(10, k + 1) / top * 116), hr = lgN(k).n / 13 * 116;
+            var xa = 24 + k * 20, xr = 164 + k * 21, ya = +(176 - ha).toFixed(1), yr = +(176 - hr).toFixed(1);
+            s += '<rect x="' + xa + '" y="' + ya + '" width="14" height="' + (176 - ya).toFixed(1) + '" rx="3" stroke="none" style="fill:var(' + c + ')"/>' +
+              '<rect x="' + xr + '" y="' + yr + '" width="15" height="' + (176 - yr).toFixed(1) + '" rx="3" stroke="none" style="fill:var(' + c + ')"/>' +
+              LBL(xr + 7.5, yr - 6, lgN(k).n, "font-size:12px" + (last ? ";font-weight:600" : ""));
+            if (last || k === i - 1) s += LBL(xa + 7, ya - 6, LG_SH[k], "font-size:12px" + (last ? ";font-weight:600" : ""));
+          }
+          return s + LBL(150, 16, head || lgLine(i), "font-weight:600" + (head || i === 3 ? ";fill:var(--ok)" : "")) + "</svg>";
+        }
+        /* the plate: a log axis, ×10 per gridline, with the rounds needed under each target */
+        function svgLog() {
+          var s = SVG_OPEN(176), k, X = function (k) { return 40 + k * 44; };
+          s += '<path d="M' + X(0) + " 70H" + X(5) + '" stroke-opacity=".5"/>' + LBL(150, 16, "A log counts the multiplications", "font-weight:600");
+          for (k = 0; k < 6; k++) {
+            s += '<path d="M' + X(k) + ' 62V78" stroke-opacity=".6"/>' + LBL(X(k), 52, LG_SH[k], "font-size:12px;font-weight:600") +
+              '<circle cx="' + X(k) + '" cy="116" r="13" stroke="none" style="fill:var(' + (k === 3 ? "--gold" : "--cyan") + ');fill-opacity:.35"/>' + LBL(X(k), 120, lgN(k).n, "font-size:12px;font-weight:600");
+            if (k) s += LBL(X(k) - 22, 92, "×10", "font-size:12px;fill:var(--cyan)") + LBL(X(k) - 22, 146, "+2", "font-size:12px;fill:var(--gold)");
+          }
+          return s + LBL(150, 168, "log₃(10,000) ≈ 8.4 → 9 whole rounds", "font-weight:600;fill:var(--ok)") + "</svg>";
+        }
+        /* predict reveal: $1,000 at 8% doubles about every 9 years: $2,000 at 9, $4,000 at 18 (1.08¹⁸ = 3.996) */
+        function lgSave() {
+          var s = SVG_OPEN(176);
+          s += '<path d="M24 150H290" stroke-opacity=".5"/>';
+          [[0, 1000, "Now"], [9, 2000, "9 yr"], [18, 4000, "18 yr"]].forEach(function (v, i) {
+            var x = 54 + i * 84, y = +(150 - v[1] / 4000 * 108).toFixed(1), c = i === 2 ? "--gold" : "--cyan";
+            s += '<rect x="' + x + '" y="' + y + '" width="44" height="' + (150 - y).toFixed(1) + '" rx="3" stroke="none" style="fill:var(' + c + ')"/>' +
+              LBL(x + 22, y - 6, "$" + exFmt(v[1]), "font-size:12px;font-weight:600") + LBL(x + 22, 168, v[2], "font-size:12px");
+            if (i) s += LBL(x - 20, 136, "×2", "font-size:12px;fill:var(--gold);font-weight:600");
+          });
+          return s + LBL(150, 16, "Two doublings: ×2 ×2 = ×4", "font-weight:600;fill:var(--ok)") + "</svg>";
+        }
+        /* build: 60 dB → 90 dB, three ×10 steps */
+        function lgDb() {
+          var s = SVG_OPEN(150), X = function (k) { return 45 + k * 70; };
+          [60, 70, 80, 90].forEach(function (d, k) {
+            s += '<circle cx="' + X(k) + '" cy="80" r="' + (12 + k * 5) + '" stroke="none" style="fill:var(' + (k === 3 ? "--gold" : "--cyan") + ');fill-opacity:.35"/>' + LBL(X(k), 85, d, "font-size:12px;font-weight:600");
+            if (k) s += LBL(X(k) - 35, 48, "×10?", "font-size:12px;fill:var(--gold)");
+          });
+          return s + LBL(X(0), 132, "talk", "font-size:12px") + LBL(X(3), 132, "loud club", "font-size:12px") + LBL(150, 16, "Every +10 dB = ×10 intensity", "font-weight:600") + "</svg>";
+        }
+        function lgName() {
+          return SVG_OPEN(150) + LBL(150, 26, 'log<tspan dy="4" style="font-size:12px">b</tspan><tspan dy="-4">(x) = n means bⁿ = x</tspan>', "font-weight:600;font-size:17px") +
+            LBL(150, 54, "log₁₀(1,000) = 3 · 10³ = 1,000") + LBL(150, 78, "log₂(32) = 5 · 2⁵ = 32") + LBL(150, 104, "years = log(multiple) ÷ log(1 + rate)") +
+            LBL(150, 132, "×4 at 8%: log 4 ÷ log 1.08 ≈ 18.0 yr", "font-weight:600;fill:var(--ok)") + "</svg>";
+        }
+        /* Day 20 play: audience notch 0–5 (10 → 1,000,000). Solved when he stops on 10,000: 9 rounds */
+        function lgPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), rng = $("input", card), res = $(".x-res", card), done = !!api.solved;
+          function paint(stop) {
+            var i = +rng.value, r = lgN(i);
+            if (stop && i === 3 && !done) { done = true; api.solve(10); }
+            box.innerHTML = lgSVG(i);
+            rng.setAttribute("aria-valuetext", exFmt(r.t) + " people");
+            out.textContent = "Reach " + exFmt(r.t) + ": " + lgLine(i) + "." + (i === 3 ? " 10,000 people: 9 rounds." : done ? "" : " Find 10,000.");
+            res.hidden = !done;
+          }
+          rng.addEventListener("input", function () { paint(false); });
+          rng.addEventListener("change", function () { paint(true); });
+          $(".x-do", card).addEventListener("click", function () { rng.value = 3; paint(true); });
+          if (done) rng.value = 3;
+          paint(false);
+        }
+        /* Day 20 build: 60 dB → 90 dB: the ×10 steps (3) first, then the times more intense (1,000) */
+        function lgBuild(card, api) {
+          var a = $(".x-a", card), b = $(".x-b", card), two = $(".x-st2", card), res = $(".x-res", card), h = $(".x-hint", card), st = api.solved ? 2 : 0;
+          function num(i) { return parseFloat(i.value.replace(/[$,×x\s]/gi, "")); }
+          function paint() { a.disabled = st > 0; b.disabled = st !== 1; two.hidden = st < 1; res.hidden = st < 2; if (st > 0) a.value = "3"; if (st > 1) b.value = "1,000"; }
+          function check() {
+            if (st === 0) { if (num(a) === 3) { st = 1; h.hidden = true; } else { h.innerHTML = "<b>Hint:</b> (90 − 60) ÷ 10 steps."; h.hidden = false; } }
+            else if (st === 1) { if (num(b) === 1000) { st = 2; h.hidden = true; api.solve(10); } else { h.innerHTML = "<b>Hint:</b> 3 steps, each ×10: 10 × 10 × 10."; h.hidden = false; } }
+            paint();
+          }
+          $(".x-go", card).addEventListener("click", check);
+          [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
+          $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "3"; check(); } if (st === 1) { b.value = "1000"; check(); } });
           paint();
         }
         /* Day 22 proof puzzle: a 7 × 7 square (a = 3, b = 4), 26px a unit; four legs-3-4 triangles, each [x1, y1, x2, y2, turn]: corners (st 0) → two rectangles (st 1), translation only */
@@ -12832,6 +12927,103 @@
                   '<p class="x-so"><b>So:</b> Pay above the interest, and always ask “total paid?”</p>' + LAB_CISKY }
             ]
           },
+          /* Day 20: logarithms count multiplications. $1,000 at 8% → $4,000 in 18 years (1.08¹⁸ = 3.996); viral photo ×3: 10,000 people → 9 rounds;
+             60 → 90 dB = 3 ×10 steps = 1,000×; doubling at 5%: log 2 ÷ log 1.05 ≈ 14.2 years (Rule of 72: 14.4) */
+          20: {
+            home: ["Logarithms: Counting Multiplications", "how many steps to ×4 your savings, and why 90 dB is 1,000× 60 dB."],
+            flow: true,
+            scene: "doublings3d",
+            steps: [
+              { kind: "predict", title: "$1,000 to $4,000",
+                body: '<p class="x-q">You save $1,000 at 8% a year. About how many years until it’s $4,000?</p>' +
+                  ["9", "18", "37"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden>' + cpBox(lgSave(), "$1,000 → $2,000 at 9 years → $4,000 at 18", "Bars: $1,000 now, $2,000 after 9 years, $4,000 after 18 years; each step doubles") +
+                  '<p class="why"><b>18 years.</b> $4,000 is two doublings: ×2 ×2 = ×4. At 8%, money doubles in about 9 years, so 9 + 9 = 18. (Exact: 18.0.)</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l20save", 1)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "How many rounds?",
+                body: '<p class="x-q">The viral photo again: each round, every sharer gets 3 more (×3). Slide the audience you want to reach. Stop on 10,000.</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">Left: the audience, ×10 each notch · right: rounds needed · gold is your goal</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="x-ctl"><label>Audience <input type="range" min="0" max="5" step="1" value="0" aria-label="Audience you want to reach, 10 to 1,000,000"></label></div>' +
+                  '<button type="button" class="prev press x-do">Do it for me</button>' +
+                  '<div class="x-res" hidden><p class="why"><b>10,000 people: 9 rounds.</b> 3⁸ = 6,561 falls short; 3⁹ = 19,683 gets there. Now push it to 1,000,000: just 13 rounds.</p></div>' +
+                  LAB_DOUBLE,
+                mount: lgPlay },
+              { kind: "notice", title: "Huge goal, few steps", hl: ".x-nl",
+                viz: cpBox(lgSVG(5, "10 → 1,000,000 people: 3 → 13 rounds"), "Audience ×10 a notch · rounds +2 a notch"),
+                q: "Each time the goal went up ×10, what happened to the rounds needed?",
+                options: ["They went up by only about 2", "They went up ×10 too", "They doubled"],
+                say: "Multiplying the goal by 10 adds only about 2 rounds: 3, 5, 7, 9, 11, 13. A log turns “how many times bigger” into “how many steps”." },
+              { kind: "plate", plate: "log", title: "A log counts the multiplications" },
+              { kind: "play", title: "Build it: concert decibels",
+                body: cpBox(lgDb(), "60 dB talk → 90 dB club", "Circles for 60, 70, 80 and 90 decibels; each +10 dB step is ×10 intensity") +
+                  '<p class="x-q">Every +10 dB means ×10 sound intensity. A conversation is about 60 dB; a loud club about 90 dB. How many ×10 steps is that?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-a" type="text" inputmode="decimal" autocomplete="off" placeholder="steps" aria-label="Number of ×10 steps"></div>' +
+                  '<div class="x-st2" hidden><p class="why"><b>3 steps.</b> (90 − 60) ÷ 10 = 3.</p>' +
+                  '<p class="x-q">So how many times more intense is the club?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-b" type="text" inputmode="decimal" autocomplete="off" placeholder="× how many" aria-label="Times more intense"></div></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden></p>' +
+                  '<div class="x-res" hidden><p class="why"><b>1,000×.</b> 3 steps, each ×10: 10 × 10 × 10 = 1,000. Not 50% more.</p></div>',
+                mount: lgBuild },
+              { kind: "formalize", title: "Name it: the logarithm",
+                body: cpBox(lgName(), "log_b(x) = n means bⁿ = x", "log base b of x equals n means b to the n equals x. log base 10 of 1,000 is 3; log base 2 of 32 is 5. Years to grow by a multiple = log of the multiple divided by log of 1 plus the rate") +
+                  '<ol class="x-wk"><li><span>log_b(x) = n</span><span>How many times you multiply b to reach x</span><b>bⁿ = x</b></li>' +
+                  "<li><span>Base 10</span><span>Three 10s make 1,000</span><b>log₁₀(1,000) = 3</b></li>" +
+                  "<li><span>Base 2</span><span>Five doublings make 32</span><b>log₂(32) = 5</b></li>" +
+                  "<li><span>The recipe worth keeping</span><span>Years to grow by a multiple</span><b>log(multiple) ÷ log(1 + rate)</b></li></ol>",
+                so: "log_b(x) = n means bⁿ = x: a log counts the multiplications. Years to grow by a multiple = log(multiple) ÷ log(1 + rate)." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "A friend says: “On this log-scale chart, 10 → 100 → 1,000 are evenly spaced, so it’s growing by the same amount each step.” What went wrong?",
+                options: ["Each gridline is ×10: the same multiplying, not the same adding (+90, then +900)", "Nothing: equal spacing means equal adding", "Nothing, but it grows by 10 each step"], answer: 0, tags: [null, "LOG-AXIS-EVEN-ADD", "LOG-AXIS-EVEN-ADD"], concept: "l20-axis",
+                hints: ["10 → 100 adds 90. 100 → 1,000 adds 900. What stays the same?"],
+                why: "On a log axis each gridline is ×10. 10 → 100 → 1,000 is steady multiplying; a straight line there means steady percent growth." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“90 dB is just 50% louder than 60 dB.” What went wrong?",
+                options: ["+30 dB is three ×10 steps: 1,000× the intensity", "Nothing: 90 is 50% more than 60", "It’s 30× the intensity"], answer: 0, tags: [null, "LOG-DB-LINEAR", "LOG-DB-LINEAR"], concept: "l20-db",
+                hints: ["Every +10 dB is ×10. How many +10s from 60 to 90?"],
+                why: "Decibels are a log scale: 60 → 70 → 80 → 90 is ×10 ×10 ×10 = 1,000× the intensity. Protect your hearing at concerts." },
+              { kind: "fade", title: "When does money double?",
+                q: "How long to double money at 5%? Fill in the missing line.",
+                lines: ["Need 1.05ᵗ = 2", "t = log 2 ÷ log 1.05 ≈ 0.301 ÷ 0.0212 ≈ 14.2 years", "The Rule of 72 says 72 ÷ 5 = 14.4: very close"],
+                blank: 1, options: ["t = log 2 ÷ log 1.05 ≈ 0.301 ÷ 0.0212 ≈ 14.2 years", "t = 2 ÷ 0.05 = 40 years", "t = log 2 × log 1.05 ≈ 0.0064 years"], answer: 0, tags: [null, null, null], concept: "l20-years",
+                hints: ["Years to grow by a multiple = log(multiple) ÷ log(1 + rate)."],
+                why: "log 2 ÷ log 1.05 ≈ 0.301 ÷ 0.0212 ≈ 14.2 years. The Rule of 72 (14.4) is a shortcut for the same log." },
+              { kind: "quiz", title: "Quick check: base 10",
+                q: "log₁₀(100,000) = ?",
+                options: ["5 (10⁵ = 100,000)", "50,000", "6"], answer: 0, tags: [null, null, null], concept: "l20-log",
+                hints: ["How many 10s multiply to 100,000? Count the zeros."],
+                why: "10 × 10 × 10 × 10 × 10 = 100,000: five 10s, so 5. 6 counts the digits, not the zeros." },
+              { kind: "quiz", title: "Quick check: base 2",
+                q: "log₂(64) = ?",
+                options: ["6 (2⁶ = 64)", "32", "8"], answer: 0, tags: [null, null, null], concept: "l20-log",
+                hints: ["Keep doubling from 2: 2, 4, 8…"],
+                why: "2, 4, 8, 16, 32, 64: six doublings, so 6. 32 is 64 ÷ 2; 8 is 8 × 8 = 64, a square root." },
+              { kind: "quiz", title: "Quick check: earthquakes",
+                q: "An earthquake of magnitude 7 vs one of magnitude 5: how many times bigger is the shaking (amplitude)?",
+                options: ["100 times (×10 per magnitude step)", "2 times", "1.4 times (7 ÷ 5)"], answer: 0, tags: [null, null, null], concept: "l20-log",
+                hints: ["Each magnitude step is ×10. How many steps from 5 to 7?"],
+                why: "5 → 6 → 7 is two steps, each ×10: 10 × 10 = 100 times the shaking." },
+              { kind: "transfer", title: "New costume: cutting down",
+                q: "In substance-abuse counseling: a client cuts daily drinks 16 → 8 → 4 → 2. On a log scale, how many equal steps is that?",
+                options: ["3 halvings: each one the same proportional win", "14 steps: 16 − 2 = 14 drinks", "One big step, then small ones: 16 → 8 counts most"], answer: 0, tags: [null, "LOG-AXIS-EVEN-ADD", null], concept: "l20-axis",
+                hints: ["Each step cuts the drinks in half.", "Count the ÷ 2s: 16 → 8, 8 → 4, 4 → 2."],
+                why: "Each halving is one equal step on a log scale: 3 halvings. In sessions: chart cutting-down progress on a log scale so the late steps (4 → 2) look as big as the early ones (16 → 8). They’re the same proportional win." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Savings and debt timelines.</b> How many years to double, or to ×4.</li><li><b>Decibels and hearing.</b> +10 dB is ×10 intensity.</li>" +
+                  "<li><b>Earthquake news.</b> Each magnitude step is ×10 the shaking.</li><li><b>COVID-style log charts.</b> Equal gridlines are equal multiplying.</li>" +
+                  "<li><b>Camera f-stops and exposure stops.</b> Each stop = ×2 light.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>A log counts multiplications.</b> log₃(10,000) ≈ 8.4: 9 rounds of ×3 reach 10,000.</li><li><b>×10 the goal ≈ just a couple more steps.</b> 10 → 1,000,000 people: 3 → 13 rounds.</li>" +
+                  "<li><b>Log-scale charts show percent change.</b> Each gridline is ×10, so a straight line is steady percent growth.</li><li><b>years = log(multiple) ÷ log(1 + rate).</b> Doubling at 5%: about 14.2 years.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> When something multiplies, a log counts the steps: huge targets, few steps.</p>' + LAB_DOUBLE }
+            ]
+          },
           22: {
             home: ["Pythagoras: Squares on the Sides", "pour the squares on two sides into the third."],
             flow: true,
@@ -13840,8 +14032,21 @@
               if (n < 3 && P.answers[P.i] == null) r += '<button type="button" class="x-ladder__btn press" data-pl="hint" aria-label="Hint ' + (n + 1) + " of 3: " + RUNG[n] + '">Hint · ' + (n + 1) + "/3</button>";
               box.innerHTML = r;
             }
+            /* display order: a seeded shuffle per lesson + step, so the answer isn't guessable by position; data-opt keeps the authored index */
+            function optOrder(s) {
+              var o = s.options, idx = o.map(function (x, k) { return k; });
+              var nums = o.map(function (t) { var m = /^\s*\$?([−-]?[\d,]*\.?\d+)\s*%?\s*$/.exec(String(t)); return m ? parseFloat(m[1].replace(/,/g, "").replace("−", "-")) : NaN; });
+              var ordered = nums.every(function (v, k) { return !isNaN(v) && (k === 0 || v >= nums[k - 1]); });
+              if (s.keepOrder || ordered || o.some(function (t) { return /all of the above|none of the above|^\s*both(\s+(of\s+(these|them|the\s+above)|a\s+and\s+b|are\s+(right|true|correct)))?\s*[.!]?\s*$/i.test(String(t)); })) return idx;
+              var h = 2166136261, key = "d" + day + "-" + P.i + "-" + o.length;
+              for (var c = 0; c < key.length; c++) { h ^= key.charCodeAt(c); h = Math.imul(h, 16777619) >>> 0; }
+              var rnd = function () { h = (Math.imul(h, 1664525) + 1013904223) >>> 0; return h / 4294967296; };
+              for (var i = idx.length - 1; i > 0; i--) { var j = Math.floor(rnd() * (i + 1)), t = idx[i]; idx[i] = idx[j]; idx[j] = t; }
+              return idx;
+            }
             function optsHTML(s, a, mode) {
-              return s.options.map(function (o, k) {
+              return optOrder(s).map(function (k) {
+                var o = s.options[k];
                 var cls = a == null ? "" : mode === "pick" ? (k === a ? " is-picked" : "") : k === s.answer ? " is-right" : k === a ? " is-wrong" : "";
                 return '<button type="button" class="qopt press' + cls + '" data-opt="' + k + '"' + (a != null ? " disabled" : "") + ">" + esc(o) + "</button>";
               }).join("");
