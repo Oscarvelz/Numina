@@ -832,6 +832,35 @@
       .x-srs__skip { min-height: var(--tap); color: var(--dim); font-size: 13.5px; text-decoration: underline; }
       .x-srs-home .chips { justify-content: center; }
       .x-srs-home .start { min-width: 15rem; }
+      /* Deep Memory part 2: Make it yours */
+      .x-mem { border: 1px solid var(--border); border-radius: var(--r-s); background: var(--surface-2); }
+      .x-mem > summary { min-height: var(--tap); padding: 0 14px; display: flex; align-items: center; font-weight: 600; font-size: 14px; cursor: pointer; }
+      .x-mem__b { display: grid; gap: 12px; padding: 0 14px 14px; }
+      .x-mem__f { display: grid; gap: 6px; }
+      .x-mem__f .eyebrow { margin: 0; }
+      .x-mem__pic { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+      .x-mem__file { position: relative; display: inline-flex; align-items: center; cursor: pointer; }
+      .x-mem__fin { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
+      .x-mem__ok { color: var(--dim); font-size: 12.5px; min-height: 1em; margin: 0; }
+      .x-mem__hint { justify-self: start; opacity: 0.75; }
+      .x-mem__hook { padding: 10px 14px; border-radius: var(--r-s); border: 1px dashed var(--border); font-size: 14px; }
+      .x-mem__hook[hidden], .x-mem-list li[hidden] { display: none; }
+      .x-mem__nudge { color: var(--dim); font-size: 13px; font-style: italic; margin: 0; }
+      .x-mem__vs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .x-mem__vs > div { padding: 10px 12px; border-radius: var(--r-s); background: var(--surface-2); border: 1px solid var(--border); font-size: 13.5px; line-height: 1.45; }
+      .x-mem__vs .eyebrow { margin: 0 0 4px; }
+      .x-mem__img { display: block; max-width: 100%; max-height: 260px; border-radius: var(--r-s); border: 1px solid var(--border); object-fit: contain; }
+      .x-mem__chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+      .x-mem__chips .chip { min-height: var(--tap); color: var(--text); }
+      .x-mem__whyq { display: grid; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
+      .x-mem__add { margin-top: 12px; }
+      .x-mem-list { margin-top: 16px; padding: 18px; border-radius: var(--r-l); display: grid; gap: 10px; }
+      .x-mem-list h3 { margin: 0; }
+      .x-mem-list ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+      .x-mem-list li button { width: 100%; min-height: var(--tap); text-align: left; padding: 10px 14px; border-radius: var(--r-s); background: var(--surface-2); border: 1px solid var(--border); color: var(--text); display: grid; gap: 3px; font-size: 14px; }
+      .x-mem-list li small { color: var(--dim); font-size: 12px; }
+      .x-mem-list li span + span { color: var(--dim); font-size: 13px; }
+      @media (max-width: 520px) { .x-mem__vs { grid-template-columns: 1fr; } }
       .x-srs-home .x-srs-alt { margin-top: 0; background: transparent; color: var(--text); box-shadow: inset 0 0 0 1.5px var(--border); }
       .tabbar button { position: relative; }
       .x-tbadge { position: absolute; top: 2px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--primary); color: var(--bg); font: 600 12px/18px var(--mono); box-shadow: 0 0 0 2px var(--bg); }
@@ -13015,6 +13044,8 @@
                   '<div class="fold__b" id="pl-fb"' + (on ? "" : " hidden") + ">" + body + "</div>";
               } else body = head + (s.kind === "plate" ? "" : "<h2>" + esc(s.title) + "</h2>") + body;
               $("#pl-stage", el).innerHTML = '<article class="scard glass">' + body + "</article>";
+              /* Deep Memory part 2: write a hook while the idea is fresh */
+              try { if (s.kind === "plate" && Mem) $("#pl-stage .scard", el).insertAdjacentHTML("beforeend", '<button type="button" class="x-ladder__btn press x-mem__add" data-mem="1">+ Add to my memory</button>'); } catch (e) {}
               var at = P.i, api = { solved: !!P.solved[P.i], solve: solve, pred: P.pred[at], predict: function (v, p) { P.pred[at] = p; nmPredict(day, at, v); } };
               if (s.ask) askMount($("#pl-stage .scard", el), s, api);
               else if (s.mount) s.mount($("#pl-stage .scard", el), api);
@@ -13073,6 +13104,7 @@
               if (a === "next") return P.i === L.steps.length - 1 ? complete() : move(1);
               if (a === "fold") { P.folds[P.i] = !P.folds[P.i]; paint(); return $("[data-pl=fold]", el).focus(); }
               var st = L.steps[P.i], cid = cidOf(st);
+              if (b.dataset.mem) { try { Mem.add(day, st.plate); } catch (er) { UI.toast("Couldn’t open Make it yours"); } return; }
               if (a === "hint") {
                 var n = P.hints[P.i] = Math.min(3, (P.hints[P.i] || 0) + 1), card = $("#pl-stage .scard", el);
                 nmHint(cid);
@@ -13471,6 +13503,7 @@
                   '<p class="x-srs__q">' + esc(c.front) + "</p>" +
                   (c.num != null ? '<input class="x-srs__in" inputmode="decimal" autocomplete="off" aria-label="Your answer" placeholder="Type your answer">'
                     : '<textarea class="x-srs__in" rows="3" aria-label="Your answer" placeholder="Type or think your answer first"></textarea>') +
+                  (function () { try { return Mem ? Mem.hint(c) : ""; } catch (e) { return ""; } })() +
                   '<p class="eyebrow">How sure are you?</p><div class="x-srs__row" role="group" aria-label="How sure are you?">' +
                   CONF.map(function (t, k) { return '<button type="button" class="press" data-sc="' + k + '" aria-pressed="false">' + t + "</button>"; }).join("") + "</div>" +
                   '<button type="button" class="start press" data-sr="show" disabled>Pick how sure you are to reveal</button><div class="x-srs__back" hidden></div>';
@@ -13478,6 +13511,7 @@
               }
               function reveal() {
                 var c = queue[i], inp = $(".x-srs__in", box), typed = inp.value.trim(), back = $(".x-srs__back", box);
+                try { if (Mem && Mem.gate(c, typed, st, box)) return; } catch (e) {}
                 if (c.num != null) { var v = numOf(typed); st.ok = !!typed && isFinite(v) && Math.abs(v - c.num) <= Math.max(0.01, Math.abs(c.num) * 0.01); }
                 inp.readOnly = true;
                 box.querySelectorAll("[data-sc]").forEach(function (b) { b.disabled = true; });
@@ -13487,14 +13521,19 @@
                     : typed ? '<p class="x-srs__why">You wrote: ' + esc(typed) + "</p>" : "") +
                   '<p class="x-srs__a">' + esc(c.back) + "</p>" + (c.why ? '<p class="x-srs__why">' + esc(c.why) + "</p>" : "") +
                   /* PARTS 2–3 HOOK: elaboration notes / mnemonics (part 2) and calibration feedback (part 3) render here, before grading */
-                  '<p class="eyebrow">How well did you recall it?</p><div class="x-srs__row" role="group" aria-label="Grade your recall">' +
-                  GR.map(function (x) { return '<button type="button" class="press" data-sg="' + x.g + '" aria-pressed="' + (st.ok === false && x.g === 0) + '">' + x.t + "<small>" + label(c, x.g) + "</small></button>"; }).join("") + "</div>" +
-                  (mode === "mix" ? '<button type="button" class="x-srs__skip press" data-sr="skip">Next without grading</button>' : "");
+                  (function () { try { return Mem ? Mem.after(c) : ""; } catch (e) { return ""; } })() +
+                  (mode === "once" ? "" : '<p class="eyebrow">How well did you recall it?' + (st.hooked ? " (hook used: capped at Hard)" : "") + '</p><div class="x-srs__row" role="group" aria-label="Grade your recall">' +
+                  GR.map(function (x) { return '<button type="button" class="press" data-sg="' + x.g + '" aria-pressed="' + (st.ok === false && x.g === 0) + '"' + (st.hooked && x.g > 3 ? " disabled" : "") + ">" + x.t + "<small>" + label(c, x.g) + "</small></button>"; }).join("") + "</div>") +
+                  (mode === "mix" || mode === "once" ? '<button type="button" class="x-srs__skip press" data-sr="skip">' + (mode === "once" ? "Done" : "Next without grading") + "</button>" : "");
                 back.hidden = false;
+                try { if (Mem) Mem.bind(back, c); } catch (e) {}
                 ($('[data-sg][aria-pressed="true"]', back) || $("[data-sg]", back)).focus();
               }
               function rate(g) {
-                var c = queue[i], ok = c.num != null ? st.ok : g > 0;
+                var c = queue[i];
+                if (st.hooked && g > 3) g = 3;
+                try { if (Mem && Mem.why(c, g, st, $(".x-srs__back", box), function () { rate(g); })) return; } catch (e) {}
+                var ok = c.num != null ? st.ok : g > 0;
                 grade(c, g, st.conf, ok); done++; if (ok) right++;
                 if (g === 0 && (again[c.id] = (again[c.id] || 0) + 1) <= 3) queue.splice(Math.min(queue.length, i + 4), 0, c);
                 i++; paint();
@@ -13509,7 +13548,9 @@
                   var sh = $("[data-sr=show]", box); sh.disabled = false; sh.textContent = "Show answer";
                 } else if (b.dataset.sg) rate(+b.dataset.sg);
                 else if (b.dataset.sr === "show") reveal();
-                else if (b.dataset.sr === "skip") { i++; paint(); }
+                else if (b.dataset.mh != null) { st.hooked = true; b.hidden = true; if (b.nextElementSibling) b.nextElementSibling.hidden = false; }
+                else if (b.dataset.ms != null) { st.said = true; reveal(); }
+                else if (b.dataset.sr === "skip") { if (mode === "once") return History.closeTop(); i++; paint(); }
                 else if (b.dataset.sr === "close") History.closeTop();
               });
               box.addEventListener("keydown", function (e) {
@@ -13539,7 +13580,8 @@
                 '<button type="button" class="start press" data-srs="start"' + (n ? "" : " disabled") + ">" + (n ? "Start review · " + n + " card" + (n === 1 ? "" : "s") : "All caught up for today") + "</button>" +
                 (n ? "" : "<p>" + esc(idle) + "</p>") +
                 '<button type="button" class="start press x-srs-alt" data-srs="mix">Mixed practice · 10 cards</button>' +
-                "<p>Mixed practice pulls random cards from lessons you’ve mastered. Your schedule only changes if you grade a card.</p></section>";
+                "<p>Mixed practice pulls random cards from lessons you’ve mastered. Your schedule only changes if you grade a card.</p></section>" +
+                (function () { try { return Mem ? Mem.list() : ""; } catch (e) { return ""; } })();
             }
             doc.addEventListener("click", function (e) {
               var b = e.target.closest && e.target.closest("[data-srs]");
@@ -13567,7 +13609,17 @@
               var o = { cards: {}, log: s.log.slice(tight ? -40 : -150) };
               Object.keys(s.cards).forEach(function (k) {
                 var c = s.cards[k];
-                if (c.last) o.cards[k] = { id: k, day: c.day, kind: c.kind, ease: c.ease, interval: c.interval, reps: c.reps, lapses: c.lapses, due: c.due, last: c.last, conf: c.conf.slice(tight ? -3 : -10), hist: c.hist.slice(tight ? -2 : -8) };
+                /* part 2: user-authored fields can't be re-seeded, so they always ride along (400 chars each) */
+                var u = c.note || c.hook || c.explain || (Array.isArray(c.links) && c.links.length);
+                if (c.last || u) o.cards[k] = { id: k, day: c.day, kind: c.kind, ease: c.ease, interval: c.interval, reps: c.reps, lapses: c.lapses, due: c.due, last: c.last, conf: c.conf.slice(tight ? -3 : -10), hist: c.hist.slice(tight ? -2 : -8) };
+                if (u) {
+                  try {
+                    var oc = o.cards[k];
+                    ["note", "hook", "explain"].concat(c.ux ? ["front", "back", "why"] : []).forEach(function (f) { if (c[f]) oc[f] = String(c[f]).slice(0, 400); });
+                    if (Array.isArray(c.links) && c.links.length) oc.links = c.links.slice(0, 2);
+                    if (c.ut) oc.ut = c.ut; if (c.ux) oc.ux = 1;
+                  } catch (e) {}
+                }
               });
               return o;
             }
@@ -13579,6 +13631,8 @@
               Object.keys(a.cards).concat(Object.keys(b.cards)).forEach(function (k) {
                 var x = a.cards[k], y = b.cards[k], w = !y ? x : !x ? y : (y.last || 0) > (x.last || 0) ? y : x;
                 out.cards[k] = Object.assign({}, w === x ? y : x, w);
+                /* part 2: user fields follow their own newest edit, not the newest review */
+                if (x && y) { var u = (y.ut || 0) > (x.ut || 0) ? y : x; ["note", "hook", "explain", "links", "ut"].forEach(function (f) { if (u[f] != null) out.cards[k][f] = u[f]; else delete out.cards[k][f]; }); }
               });
               a.log.concat(b.log).forEach(function (e) { var k = e.t + ":" + e.id; if (!seenL[k]) { seenL[k] = 1; out.log.push(e); } });
               out.log.sort(function (p, q) { return p.t - q.t; }); out.log = out.log.slice(-1000);
@@ -13586,16 +13640,215 @@
             }
             function sig(s) {
               if (!s || !s.cards) return null;
-              return Object.keys(s.cards).sort().filter(function (k) { return s.cards[k] && s.cards[k].last; }).map(function (k) { var c = s.cards[k]; return [k, c.reps, c.last, c.due]; });
+              return Object.keys(s.cards).sort().filter(function (k) { return s.cards[k] && (s.cards[k].last || s.cards[k].ut); }).map(function (k) { var c = s.cards[k]; return [k, c.reps, c.last, c.due, c.ut || 0]; });
             }
 
             return { seed: seed, due: due, fresh: fresh, stats: stats, cards: cards, grade: grade, next: next, mix: mix, home: home, start: start, practice: practice,
-              today: function () { var t = stats(); return t.due + t.fresh; }, clean: clean, compact: compact, merge: merge, sig: sig, CONF: CONF, KIND_T: KIND_T };
+              today: function () { var t = stats(); return t.due + t.fresh; }, run: run, clean: clean, compact: compact, merge: merge, sig: sig, CONF: CONF, KIND_T: KIND_T };
           })();
           /* for parts 2–3 (elaboration notes, mnemonics, calibration dashboard) */
           window.NuminaSRS = { due: function () { try { return SRS.due(); } catch (e) { return []; } }, seed: function (d) { try { return SRS.seed(d); } catch (e) { return 0; } },
             stats: function () { try { return SRS.stats(); } catch (e) { return null; } }, api: SRS };
         } catch (e) { SRS = null; }
+
+        /* ============ DEEP MEMORY part 2 of 3: elaborative encoding ============
+           Per-card user fields in prefs.srs.cards[id]: explain (Feynman), hook, note ("Why?" answers), links [day, day],
+           ut (last user edit, for sync), mo (panel open), ux (added from a lesson plate). Pictures stay on this device
+           in localStorage "nm.srsimg.<id>", never in prefs or the cloud. */
+        var Mem = null;
+        try {
+          Mem = SRS && (function () {
+            var MAX = 400, IMG = "nm.srsimg.";
+            function txt(h) { var t = doc.createElement("template"); t.innerHTML = String(h == null ? "" : h); return (t.content.textContent || "").replace(/\s+/g, " ").trim(); }
+            function pic(id) { try { return localStorage.getItem(IMG + id) || ""; } catch (e) { return ""; } }
+            function card(id) { try { SRS.cards(); return prefs.srs.cards[id] || null; } catch (e) { return null; } }
+            function save(c, quiet) { if (!quiet) c.ut = Date.now(); clearTimeout(save.t); save.t = setTimeout(function () { try { savePrefs(); } catch (e) {} }, 400); }
+            function words(s) { return String(s || "").split(/\s+/).filter(Boolean).length; }
+            function dk(v) { return /^\d+$/.test(String(v)) ? +v : String(v); }
+            function title(d) { var l = lessonOf(d); return dayLabel(d) + (l && l.title ? " · " + l.title : ""); }
+            function has(c) { return !!(c && (c.note || c.hook || c.explain || (c.links && c.links.length) || pic(c.id))); }
+            function picHTML(c) { var p = pic(c.id); return p ? '<img class="x-mem__img" src="' + p + '" alt="Your picture for this card">' : ""; }
+
+            /* a faint hint before the answer; using it caps the grade at Hard */
+            function hint(c) {
+              return c.hook ? '<button type="button" class="x-srs__skip press x-mem__hint" data-mh aria-label="Show your hook. Using it caps the grade at Hard">Your hook</button><p class="x-mem__hook" hidden>' + esc(c.hook) + "</p>" : "";
+            }
+            /* first review of an Explain card: say it before seeing it */
+            function gate(c, typed, st, box) {
+              if (c.kind !== "explain" || c.last || st.said || words(typed) >= 4) return false;
+              var inp = $(".x-srs__in", box);
+              if (!$(".x-mem__gate", box)) inp.insertAdjacentHTML("afterend", '<div class="x-mem__gate" role="status"><p class="x-srs__why">Say it first: type a few words, or explain it out loud.</p><button type="button" class="x-srs__skip press" data-ms>I said it out loud</button></div>');
+              inp.focus();
+              return true;
+            }
+            function nudge(c) {
+              var P = ["Where did you see this in the last week?", "What would go wrong if you forgot this?"], rel = (c.links || []).filter(function (d) { return lessonOf(d); })[0], h = 0;
+              if (rel != null) P.push("How is this different from " + lessonOf(rel).title + "?");
+              String(c.id).split("").forEach(function (ch) { h = (h * 31 + ch.charCodeAt(0)) % 997; });
+              return '<p class="x-mem__nudge">' + esc(P[(h + (c.reps || 0)) % P.length]) + "</p>";
+            }
+            function panel(c) {
+              var ls = (prefs.mastered || []).filter(function (d) { return String(d) !== String(c.day) && lessonOf(d); }), p = pic(c.id);
+              var sel = function (k) {
+                var v = (c.links || [])[k];
+                return '<select class="x-srs__in" data-mf="link' + k + '" aria-label="Related lesson ' + (k + 1) + '"><option value="">' + (k ? "A second lesson (optional)" : "Pick a related lesson") + "</option>" +
+                  ls.map(function (d) { return '<option value="' + esc(String(d)) + '"' + (String(d) === String(v) ? " selected" : "") + ">" + esc(title(d)) + "</option>"; }).join("") + "</select>";
+              };
+              return '<details class="x-mem"' + (c.mo ? " open" : "") + '><summary class="press">Make it yours</summary><div class="x-mem__b">' +
+                '<label class="x-mem__f"><span class="eyebrow">Explain it like you’d tell a client</span><textarea class="x-srs__in" rows="3" maxlength="400" data-mf="explain" placeholder="Plain words, no jargon">' + esc(c.explain || "") + "</textarea></label>" +
+                '<label class="x-mem__f"><span class="eyebrow">Memory hook</span><input class="x-srs__in" maxlength="400" data-mf="hook" placeholder="An analogy, a mnemonic, a real moment (the gym at month 5)" value="' + esc(c.hook || "") + '"></label>' +
+                '<div class="x-mem__f"><span class="eyebrow">Attach a picture</span><div class="x-mem__pic"><label class="x-srs__skip press x-mem__file"><span>' + (p ? "Replace picture" : "Choose or take a photo") + '</span><input type="file" accept="image/*" data-mf="pic" class="x-mem__fin" aria-label="Attach a picture"></label>' +
+                (p ? '<button type="button" class="x-srs__skip press" data-mrm>Remove picture</button>' : "") + "</div></div>" +
+                '<div class="x-mem__f"><span class="eyebrow">Connect it</span>' + (ls.length ? sel(0) + sel(1) : '<p class="x-srs__why">Master another lesson to link it here.</p>') + "</div>" +
+                '<p class="x-mem__ok" role="status" aria-live="polite"></p></div></details>';
+            }
+            /* after reveal: nudge, your explanation beside the model, picture, linked lessons, then the panel */
+            function after(c) {
+              var out = nudge(c);
+              if (c.kind === "explain" && c.explain && c.last) out += '<div class="x-mem__vs"><div><p class="eyebrow">Model answer</p>' + esc(c.back) + '</div><div><p class="eyebrow">Your explanation</p>' + esc(c.explain) + '</div></div><p class="x-srs__why">Anything missing? Update it in Make it yours.</p>';
+              out += picHTML(c);
+              var ln = (c.links || []).filter(function (d) { return lessonOf(d); });
+              if (ln.length) out += '<p class="x-mem__chips">' + ln.map(function (d) { return '<button type="button" class="chip press" data-mlink="' + esc(String(d)) + '">' + esc(title(d)) + "</button>"; }).join("") + "</p>";
+              return out + panel(c);
+            }
+            function shrink(f, cb) {
+              var r = new FileReader();
+              r.onerror = function () { cb(null); };
+              r.onload = function () {
+                var im = new Image();
+                im.onerror = function () { cb(null); };
+                im.onload = function () {
+                  try {
+                    var k = Math.min(1, 480 / Math.max(im.width, im.height)), cv = doc.createElement("canvas");
+                    cv.width = Math.max(1, Math.round(im.width * k)); cv.height = Math.max(1, Math.round(im.height * k));
+                    cv.getContext("2d").drawImage(im, 0, 0, cv.width, cv.height);
+                    cb(cv.toDataURL("image/jpeg", 0.6));
+                  } catch (e) { cb(null); }
+                };
+                im.src = r.result;
+              };
+              r.readAsDataURL(f);
+            }
+            function bind(root, c) {
+              var ok = function (t) { var s = $(".x-mem__ok", root); if (s) s.textContent = t; };
+              root.addEventListener("input", function (e) {
+                try {
+                  var f = e.target.dataset && e.target.dataset.mf;
+                  if (f !== "explain" && f !== "hook") return;
+                  var v = String(e.target.value).slice(0, MAX).trim();
+                  if (v) c[f] = v; else delete c[f];
+                  save(c); ok("Saved");
+                } catch (er) {}
+              });
+              root.addEventListener("change", function (e) {
+                try {
+                  var f = e.target.dataset && e.target.dataset.mf;
+                  if (f && /^link/.test(f)) {
+                    var v = [];
+                    root.querySelectorAll("[data-mf^=link]").forEach(function (s) { if (s.value && v.indexOf(dk(s.value)) < 0) v.push(dk(s.value)); });
+                    if (v.length) c.links = v.slice(0, 2); else delete c.links;
+                    save(c); ok("Saved");
+                  } else if (f === "pic" && e.target.files && e.target.files[0]) {
+                    ok("Saving picture…");
+                    shrink(e.target.files[0], function (data) {
+                      var stored = false;
+                      try { if (data) { localStorage.setItem(IMG + c.id, data); stored = true; } } catch (er) {}
+                      if (!stored) return ok("Sorry, the picture couldn’t be saved on this device (storage may be full). Your words are still saved.");
+                      var old = $(".x-mem__img", root), d = $("details.x-mem", root);
+                      if (old) old.src = data; else if (d) d.insertAdjacentHTML("beforebegin", picHTML(c));
+                      ok("Picture saved on this device");
+                    });
+                  }
+                } catch (er) { ok("Sorry, that couldn’t be saved."); }
+              });
+              root.addEventListener("click", function (e) {
+                var b = e.target.closest && e.target.closest("[data-mlink],[data-mrm]");
+                if (!b) return;
+                e.stopPropagation();
+                try {
+                  if (b.dataset.mlink != null) return openLesson(dk(b.dataset.mlink));
+                  try { localStorage.removeItem(IMG + c.id); } catch (er) {}
+                  var im = $(".x-mem__img", root); if (im) im.remove();
+                  b.remove(); ok("Picture removed");
+                } catch (er) {}
+              });
+              var d = $("details.x-mem", root);
+              if (d) d.addEventListener("toggle", function () { var o = d.open ? 1 : 0; if ((c.mo || 0) !== o) { c.mo = o; save(c, true); } });
+            }
+            /* C) after a confident, correct recall: 1 in 4 times, a quick self-explain before grading */
+            function why(c, g, st, back, go) {
+              if (st.whyDone || st.conf !== 3 || !/^(prod|cloze)$/.test(c.kind) || !(c.num != null ? st.ok === true : g >= 4)) return false;
+              st.whyDone = true;
+              if (Math.random() >= 0.25) return false;
+              back.querySelectorAll("[data-sg]").forEach(function (x) { x.disabled = true; });
+              var w = doc.createElement("div");
+              w.className = "x-mem__whyq";
+              w.innerHTML = '<p class="eyebrow">Quick one: why does that work?</p><textarea class="x-srs__in" rows="2" maxlength="400" aria-label="Why does that work?" placeholder="One line in your own words"></textarea>' +
+                '<button type="button" class="start press" data-mw="save">Save and grade</button><button type="button" class="x-srs__skip press" data-mw="skip">Skip</button>';
+              w.addEventListener("click", function (e) {
+                var b = e.target.closest && e.target.closest("[data-mw]");
+                if (!b) return;
+                e.stopPropagation();
+                try { var v = $("textarea", w).value.trim().slice(0, MAX); if (b.dataset.mw === "save" && v) { c.note = v; save(c); } } catch (er) {}
+                go();
+              });
+              back.appendChild(w);
+              $("textarea", w).focus();
+              return true;
+            }
+            /* D) the Review home's searchable list */
+            function list() {
+              var cs = SRS.cards().filter(has);
+              var item = function (c) {
+                var t = [c.hook && "Hook", c.explain && "Explanation", c.note && "Why", pic(c.id) && "Picture", c.links && c.links.length && "Linked"].filter(Boolean);
+                var q = [c.front, c.hook, c.explain, c.note, dayLabel(c.day)].filter(Boolean).join(" ").toLowerCase();
+                return '<li data-mqt="' + esc(q) + '"><button type="button" class="press" data-memopen="' + esc(c.id) + '"><small>' + esc(dayLabel(c.day)) + " · " + t.join(" · ") + "</small><span>" + esc(c.front) + "</span>" +
+                  (c.hook ? "<span>Hook: " + esc(c.hook) + "</span>" : "") + "</button></li>";
+              };
+              return '<section class="glass x-mem-list" aria-label="My hooks and notes"><h3>My hooks &amp; notes</h3>' + (cs.length
+                ? '<input class="x-srs__in" type="search" data-mq placeholder="Search your hooks and notes" aria-label="Search your hooks and notes"><ul>' + cs.map(item).join("") + '</ul><p class="x-srs__why">Tap one to review it once. Your schedule doesn’t change.</p>'
+                : '<p class="x-srs__why">Hooks, explanations, pictures and links you add show up here. Add one after revealing an answer, or from a concept plate in a lesson.</p>') + "</section>";
+            }
+            doc.addEventListener("click", function (e) {
+              var b = e.target.closest && e.target.closest("[data-memopen]");
+              if (!b) return;
+              try { var c = card(b.dataset.memopen); if (c) SRS.run([c], "once"); } catch (er) { UI.toast("Couldn’t open that card"); }
+            });
+            doc.addEventListener("input", function (e) {
+              try {
+                if (!e.target.matches || !e.target.matches("[data-mq]")) return;
+                var q = e.target.value.toLowerCase().trim();
+                e.target.parentNode.querySelectorAll("[data-mqt]").forEach(function (li) { li.hidden = !!q && li.dataset.mqt.indexOf(q) < 0; });
+              } catch (er) {}
+            });
+            /* E) from a lesson's concept plate: make sure its Explain card exists, then open the panel */
+            function add(day, plate) {
+              var L = LESSON_CONTENT[day], p = PLATES[plate];
+              if (!L || !p) return;
+              var idx = L.steps.filter(function (s) { return s && s.kind === "plate" && PLATES[s.plate]; }).map(function (s) { return s.plate; }).indexOf(plate);
+              if (idx < 0) return;
+              var id = "d" + day + "-explain-" + idx, c = card(id);
+              if (!c) {
+                var term = txt(String(p.term || plate).split(" = ")[0]).replace(/^(an?|the)\s+/i, "");
+                c = prefs.srs.cards[id] = { id: id, day: day, kind: "explain", tag: plate, front: "In your own words: what is a " + term + ", and where would you use it?",
+                  back: txt(p.term) + (p.short ? ". " + txt(p.short) : ""), why: p.use ? "Where it’s useful: " + txt(p.use) : txt(p.why),
+                  ease: 2.5, interval: 0, reps: 0, lapses: 0, due: null, last: null, conf: [], hist: [] };
+                if (idx >= 3) c.ux = 1;
+                c.ut = Date.now();
+              }
+              c.mo = 1;
+              savePrefs();
+              var lay = dialog("Make it yours", '<p class="x-srs__why">' + esc(c.front) + "</p>" + picHTML(c) + panel(c) + '<button type="button" class="start press" data-x="close">Done</button>');
+              var box = lay.firstChild;
+              bind(box, c);
+              $(".x-mem__ok", box).textContent = "In your memory deck. It comes up in Review.";
+              var h = $("[data-mf=hook]", box); if (h) h.focus();
+            }
+            return { hint: hint, gate: gate, after: after, bind: bind, why: why, list: list, add: add, has: has, pic: pic };
+          })();
+          if (window.NuminaSRS) window.NuminaSRS.mem = Mem;
+        } catch (e) { Mem = null; }
+        /* PART 3 HOOK: calibration dashboard (confidence vs. outcome from prefs.srs.log / card.conf) builds on window.NuminaSRS here */
 
         /* a centered card on the back/Esc layer stack */
         function dialog(title, html) {
