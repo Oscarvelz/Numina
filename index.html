@@ -5874,6 +5874,7 @@
                   : '<div class="rows">' + (u.name ? row("Name", u.name) : "") + (u.email ? row("Email", u.email) : "") + row("Account", "On this device only") + "</div>" +
                     '<p class="dim">Sign in or create an account to sync progress across devices. Everything on this device is merged into your account.</p>' +
                     '<div class="x-acts"><button type="button" class="start press" id="go-signin">Sign in to sync</button></div>') +
+                '<p class="eyebrow">Time studied</p><div class="rows" id="st-rows">' + (typeof StudyTime !== "undefined" && StudyTime ? StudyTime.rows() : "") + "</div>" +
                 '<p class="eyebrow">Backup status</p><div class="rows">' +
                 row("Last local", UI.when(meta.localAt)) + row("Last online", UI.when(meta.onlineAt)) + row("Last sync", UI.when(meta.syncAt)) +
                 row("This device", meta.device) + row("Revision", "r" + meta.rev) + "</div>" +
@@ -13434,7 +13435,156 @@
           Views.render();
           Themes.apply();
           Sync.begin();
+          try { if (StudyTime) StudyTime.pull(); } catch (e) {}
         }
+        /* ============ STUDY TIME: shared "studytime.*" contract; additive, never throws ============ */
+        var StudyTime = (function () {
+          var KEY = "studytime.numina", DKEY = "studytime.device", IDLE = 90000;
+          var pending = 0, last = 0, lastInput = 0, lastFlush = Date.now(), mem = null, dev = null;
+          var cloudAt = 0, cloudBusy = false, dirty = false, pulledFor = null;
+          function ls(k, v) {
+            try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {}
+            return null;
+          }
+          function device() {
+            if (dev) return dev;
+            var d = ls(DKEY);
+            if (!d) {
+              d = ""; var c = "abcdefghijklmnopqrstuvwxyz0123456789";
+              for (var i = 0; i < 10; i++) d += c.charAt(Math.floor(Math.random() * 36));
+              ls(DKEY, d);
+            }
+            return (dev = d);
+          }
+          function p2(n) { return ("0" + n).slice(-2); }
+          function day(d) { d = d || new Date(); return d.getFullYear() + "-" + p2(d.getMonth() + 1) + "-" + p2(d.getDate()); }
+          function norm(o) {
+            if (typeof o === "string") { try { o = JSON.parse(o); } catch (e) { o = null; } }
+            var out = { v: 1, devices: {}, updatedAt: (o && typeof o.updatedAt === "string" && o.updatedAt) || "" };
+            var ds = o && o.devices;
+            if (ds && typeof ds === "object") Object.keys(ds).forEach(function (id) {
+              var days = ds[id] && ds[id].days, dd = {};
+              if (days && typeof days === "object") Object.keys(days).forEach(function (k) {
+                var n = Math.floor(+days[k]);
+                if (/^\d{4}-\d{2}-\d{2}$/.test(k) && n > 0) dd[k] = n;
+              });
+              out.devices[id] = { days: dd };
+            });
+            return out;
+          }
+          /* per device, per day: MAX, never a sum of two copies */
+          function merge(a, b) {
+            a = norm(a); b = norm(b);
+            Object.keys(b.devices).forEach(function (id) {
+              var t = a.devices[id] || (a.devices[id] = { days: {} }), bd = b.devices[id].days;
+              Object.keys(bd).forEach(function (k) { t.days[k] = Math.max(t.days[k] || 0, bd[k]); });
+            });
+            if (b.updatedAt > a.updatedAt) a.updatedAt = b.updatedAt;
+            return a;
+          }
+          function read() { var raw = ls(KEY), o = norm(raw); return mem ? merge(o, mem) : o; }
+          function write(o) { o.updatedAt = new Date().toISOString(); mem = o; ls(KEY, JSON.stringify(o)); }
+          /* read-modify-write: re-read the key, add whole pending seconds to this device/today */
+          function flush() {
+            try {
+              lastFlush = Date.now();
+              var o = read(), n = Math.floor(pending);
+              if (n > 0) {
+                var id = device(), t = o.devices[id] || (o.devices[id] = { days: {} }), k = day();
+                t.days[k] = (t.days[k] || 0) + n;
+                pending -= n; dirty = true;
+                write(o);
+              }
+              return o;
+            } catch (e) { return null; }
+          }
+          function on() { try { return !!(Sync.on() && Cloud.s && Cloud.s.user); } catch (e) { return false; } }
+          function push(keep) {
+            try {
+              if (!on() || !dirty || cloudBusy) return;
+              var now = Date.now();
+              if (keep !== true && now - cloudAt < 60000) return;
+              var o = flush() || read();
+              cloudAt = now; cloudBusy = true; dirty = false;
+              Cloud.req("/auth/v1/user", { method: "PUT", keepalive: keep === true, body: { data: { numina_studytime: o } } })
+                .then(function (res) { cloudBusy = false; if (!res || !res.ok) dirty = true; }, function () { cloudBusy = false; dirty = true; });
+            } catch (e) { cloudBusy = false; }
+          }
+          function pull() {
+            try {
+              if (!on() || pulledFor === Cloud.s.user.id) return;
+              pulledFor = Cloud.s.user.id;
+              Cloud.req("/auth/v1/user").then(function (res) {
+                try {
+                  if (!res || !res.ok) return;
+                  var d = res.data || {}, md = d.user_metadata || (d.user && d.user.user_metadata) || {};
+                  var o = flush() || read();
+                  if (md.numina_studytime) o = merge(o, md.numina_studytime);
+                  write(o); dirty = true; paint();
+                } catch (e) {}
+              }, function () {});
+            } catch (e) {}
+          }
+          function sum(pred) {
+            try {
+              var o = read(), id = device(), k = day(), n = 0, p = Math.floor(pending);
+              if (p > 0) { var t = o.devices[id] || (o.devices[id] = { days: {} }); t.days[k] = (t.days[k] || 0) + p; }
+              Object.keys(o.devices).forEach(function (d) {
+                var dd = o.devices[d].days;
+                Object.keys(dd).forEach(function (x) { if (pred(x)) n += dd[x]; });
+              });
+              return n;
+            } catch (e) { return 0; }
+          }
+          function today() { var k = day(); return sum(function (x) { return x === k; }); }
+          function week() {
+            var d = new Date(), off = (d.getDay() + 6) % 7;
+            var a = day(new Date(d.getFullYear(), d.getMonth(), d.getDate() - off)), b = day(new Date(d.getFullYear(), d.getMonth(), d.getDate() - off + 6));
+            return sum(function (x) { return x >= a && x <= b; });
+          }
+          function allTime() { return sum(function () { return true; }); }
+          function fmt(s) {
+            var m = Math.floor((s || 0) / 60);
+            if (m < 60) return m + " min";
+            var h = Math.floor(m / 60), r = m % 60;
+            return h + " h" + (r ? " " + r + " min" : "");
+          }
+          function rows() {
+            try {
+              var r = function (k, v) { return '<div class="row"><span>' + k + "</span><span>" + v + "</span></div>"; };
+              return r("Today", fmt(today())) + r("This week", fmt(week())) + r("All time", fmt(allTime()));
+            } catch (e) { return ""; }
+          }
+          function paint() { try { var el = document.getElementById("st-rows"); if (el) el.innerHTML = rows(); } catch (e) {} }
+          function active() {
+            try { return document.visibilityState === "visible" && document.hasFocus() && Date.now() - lastInput < IDLE; } catch (e) { return false; }
+          }
+          function tick() {
+            try {
+              var now = Date.now();
+              if (active()) {
+                if (last) pending += Math.min(5, Math.max(0, (now - last) / 1000));
+                last = now;
+                if (now - lastFlush >= 15000) { flush(); push(); }
+              } else last = 0;
+            } catch (e) {}
+          }
+          function pause(hide) { try { last = 0; flush(); if (hide) push(true); } catch (e) {} }
+          try {
+            var mark = function () { lastInput = Date.now(); };
+            ["pointerdown", "keydown", "wheel", "touchstart", "scroll"].forEach(function (ev) {
+              window.addEventListener(ev, mark, { passive: true, capture: true });
+            });
+            document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") pause(true); else paint(); });
+            window.addEventListener("blur", function () { pause(false); });
+            window.addEventListener("pagehide", function () { pause(true); });
+            setInterval(tick, 1000);
+            setInterval(function () { try { if (document.visibilityState === "visible") paint(); } catch (e) {} }, 30000);
+            device();
+            window.NuminaStudyTime = { today: today, week: week, allTime: allTime };
+          } catch (e) {}
+          return { rows: rows, pull: pull, paint: paint };
+        })();
         $("#gear-btn").innerHTML = I.gear;
         var onWideApp = function () { if (!$("#app").hidden && State.tab === "library" && !prefs.viewSet) Views.render(); };
         if (WIDE.addEventListener) WIDE.addEventListener("change", onWideApp); else WIDE.addListener(onWideApp);
