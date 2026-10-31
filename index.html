@@ -1424,6 +1424,8 @@
           "SCALE-FACTOR-INVERTED": "New on top, old on the bottom: going from 6 servings to 4 is × 4/6, not × 6/4. Shrinking needs a factor below 1.",
           "VAR-AS-LABEL": "A letter holds a number, not a thing: in 6p + 3, p is the price of one pastelito, so 6p means 6 × the price, not “6 pastelitos”.",
           "VAR-SAME-LETTER-DIFFERENT-VALUE": "Same letter, same number, everywhere in that line: in 2x + x with x = 4, both are 4, so 2 × 4 + 4 = 12.",
+          "EQ-ONE-SIDE-ONLY": "Whatever you do to one side, do to the other: from 6p + 3 = 12, take 3 off both sides to get 6p = 9, not 6p = 12.",
+          "EQ-WRONG-UNDO-ORDER": "Undo in reverse order: 6p + 3 was built × 6 first, then + 3, so take off the 3 first, then ÷ 6: p = 9 ÷ 6 = 1.5, not 12/6 − 3.",
           "CONV-WRONG-DIRECTION": "Converting to a bigger unit gives a smaller number, so divide: 1,000 C$ ÷ 36.6 ≈ $27, not × 36.6.",
           "EXP-TIMES-TWO": "3² means 3 × 3, not 3 × 2. The exponent counts how many times the base is multiplied.",
           "EXP-SMALL-JUMP": "Exponential growth looks slow at first and then explodes. Each step multiplies, so late steps add far more than early ones.",
@@ -6140,6 +6142,11 @@
             see: "The dark block is the fee you pay even at zero use. Each light block is one use at the rate. The line through the tops is the total for any amount of use.",
             why: "Splitting the bill into what never changes and what grows with use shows why a flat plan only pays off once you use it enough. It hides discounts and tiers that change the rate partway.",
             use: "Memberships, utilities and subscriptions: find the fee and the rate, then check your usage before you sign up." },
+          balance: { term: "An equation = a balanced scale. Undo steps in reverse order, same move on both sides", svg: svgBal, scene: "billbuilder3d", short: "Same move on both sides; undo the last step first.",
+            alt: "A level balance scale: six boxes named p and three $1 coins on the left, twelve $1 coins on the right",
+            see: "The left pan holds 6 boxes p and 3 coins; the right pan holds 12 coins. The scale is level, so both sides weigh the same: 6p + 3 = 12.",
+            why: "Any move made to both pans keeps the scale level, so the equation stays true while you strip away everything but p. Undoing in reverse order (the + 3 first, then the × 6) keeps every step clean. It assumes one unknown; two unknowns need a second equation.",
+            use: "Work backward from a paycheck to hours, find how many months to save for a trip, how many sessions fit a budget, or check a bill: undo, then plug the answer back in." },
           number: { term: "Number", svg: svgNumber, short: "Keeps only how many.",
             alt: "A cookie, a music note and a calendar day become three identical dots, then the numeral 3",
             see: "Three unlike things (a cookie, a song, a day) turn into three identical dots, then one mark: 3. Each dot stands for one thing; the numeral stands for the whole group.",
@@ -7418,6 +7425,73 @@
           });
           $(".x-do", card).addEventListener("click", function () { set(1.5); });
           set(done ? 1.5 : null);
+        }
+        /* Day 7 balance scale: st = { b: p-boxes (1.5 each), l: $1 coins left, r: coins right }; the beam tilts toward the heavier pan */
+        function eqSVG(st) {
+          var lw = st.b * 1.5 + st.l, d = st.r - lw, lvl = Math.abs(d) < 1e-9, col = lvl ? "var(--ok)" : "var(--coral)";
+          var th = Math.max(-14, Math.min(14, d * 4)) * Math.PI / 180, dx = 90 * Math.cos(th), dy = 90 * Math.sin(th);
+          var E = [[150 - dx, 30 - dy], [150 + dx, 30 + dy]], s = SVG_OPEN(186) + '<path d="M150 30V160M112 160H188" stroke-opacity=".5"/>';
+          var coin = function (x, y, half) {
+            return (half ? '<path d="M' + (x - 7) + " " + y + "A7 7 0 0 1 " + (x + 7) + " " + y + 'Z"' : '<circle cx="' + x + '" cy="' + y + '" r="7"') + ' stroke-width="1.5" style="fill:var(--gold);fill-opacity:.35;stroke:var(--gold)"/>';
+          };
+          var coins = function (cx, base, n) {
+            var t = Math.ceil(n), out = "", i;
+            for (i = 0; i < t; i++) {
+              var row = Math.floor(i / 6), cnt = Math.min(6, t - row * 6), col6 = i % 6;
+              out += coin(cx - (cnt - 1) * 8.5 + col6 * 17, base - 8 - row * 16, i === t - 1 && n % 1);
+            }
+            return out;
+          };
+          E.forEach(function (e, k) {
+            var cx = e[0], py = e[1] + 64;
+            s += '<path d="M' + e[0] + " " + e[1] + "L" + (cx - 50) + " " + py + "M" + e[0] + " " + e[1] + "L" + (cx + 50) + " " + py + '" stroke-width="1" stroke-opacity=".35"/>' +
+              '<path d="M' + (cx - 55) + " " + py + "Q" + cx + " " + (py + 14) + " " + (cx + 55) + " " + py + 'Z" style="fill:currentColor;fill-opacity:.08"/>';
+            if (k) { s += coins(cx, py, st.r); return; }
+            for (var i = 0; i < st.b; i++) {
+              var bx = cx - (st.b - 1) * 9 + i * 18 - 8;
+              s += '<rect x="' + bx + '" y="' + (py - 18) + '" width="16" height="16" rx="3" style="fill:var(--cyan);fill-opacity:.25;stroke:var(--cyan)" stroke-width="1.5"/>' + LBL(bx + 8, py - 6, "p", "font-size:12px");
+            }
+            s += coins(cx, py - 20, st.l);
+          });
+          var eq = (st.b === 1 ? "p" : st.b + "p") + (st.l ? " + " + st.l : "") + " = " + vrF(st.r);
+          return s + '<path d="M' + E[0][0] + " " + E[0][1] + "L" + E[1][0] + " " + E[1][1] + '" stroke-width="3"/><circle cx="150" cy="30" r="4" stroke="none" style="fill:currentColor"/>' +
+            LBL(150, 180, eq + (lvl ? " · level" : " · tipped"), "font-weight:600;fill:" + col) + "</svg>";
+        }
+        function svgBal() { return eqSVG({ b: 6, l: 3, r: 12 }); }
+        /* Day 7 name-it: built forward (× 6, then + 3), undone backward (− 3, then ÷ 6) */
+        function eqUndo() {
+          return SVG_OPEN(120) + LBL(150, 16, "Built: × 6 first, then + 3") + LBL(36, 44, "p", "font-weight:600") + LBL(96, 44, "→ × 6 →") + LBL(156, 44, "6p", "font-weight:600") + LBL(216, 44, "→ + 3 →") + LBL(272, 44, "12", "font-weight:600") +
+            LBL(150, 76, "Undone: − 3 first, then ÷ 6", "fill:var(--gold)") + LBL(272, 104, "12", "font-weight:600") + LBL(216, 104, "← − 3 ←") + LBL(156, 104, "9", "font-weight:600") + LBL(96, 104, "← ÷ 6 ←") +
+            LBL(36, 104, "1.5", "font-weight:600;fill:var(--gold)") + "</svg>";
+        }
+        /* Day 7 play: moves on the scale; one-side moves tip it; solved when one p balances 1.5 coins */
+        function eqPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), res = $(".x-res", card), done = !!api.solved, st, msg = "";
+          function lvl() { return Math.abs(st.r - st.b * 1.5 - st.l) < 1e-9; }
+          function draw() {
+            box.innerHTML = eqSVG(st);
+            if (!done && st.b === 1 && !st.l && st.r === 1.5) { done = true; api.solve(10); }
+            out.textContent = (msg ? msg + " " : "") + (done && st.b === 1 ? "One p balances 1.5 coins: p = $1.50." : lvl() ? "Level." : "Tipped: reset and keep both sides equal.");
+            res.hidden = !done;
+          }
+          function reset() { st = { b: 6, l: 3, r: 12 }; msg = ""; }
+          card.addEventListener("click", function (e) {
+            var b = e.target.closest("[data-a]"); if (!b) return;
+            var a = b.dataset.a; msg = "";
+            if (a === "reset") reset();
+            else if (a === "both") { if (!st.l) msg = "No loose coins left on the left. Now split."; else { st.l--; st.r--; msg = "1 coin off each side."; } }
+            else if (a === "left") { if (!st.l) msg = "No loose coins on the left."; else { st.l--; msg = "Left side only: it got lighter, so the scale tipped."; } }
+            else if (a === "split") {
+              if (st.b !== 6) msg = "Already split.";
+              else if (!lvl()) msg = "The scale is tipped, so a split won’t give a true answer.";
+              else if (st.l) msg = "Not yet: the loose coins would break into pieces. Take them off first (undo the + 3 before the × 6).";
+              else { st.b = 1; st.r = st.r / 6; msg = "Both sides ÷ 6."; }
+            }
+            draw();
+          });
+          $(".x-do", card).addEventListener("click", function () { st = { b: 1, l: 0, r: 1.5 }; msg = "−3 on both sides, then ÷ 6 on both."; draw(); });
+          if (done) st = { b: 1, l: 0, r: 1.5 }; else reset();
+          draw();
         }
         /* Day 22 proof puzzle: a 7 × 7 square (a = 3, b = 4), 26px a unit; four legs-3-4 triangles, each [x1, y1, x2, y2, turn]: corners (st 0) → two rectangles (st 1), translation only */
         var PZ_T = [[0, 0, 3, 0, 0], [7, 0, 3, 3, 90], [7, 7, 7, 3, 180], [0, 7, 0, 7, 270]], PZ_TR = EX_RM ? "none" : "transform 1s var(--ease),opacity .6s var(--ease)";
@@ -10717,6 +10791,99 @@
                 body: "<ul><li><b>A letter is a box holding a number.</b> p = $1.50 for one pastelito.</li><li><b>6p = 6 × p.</b> 6 × 1.50 + 3 = $12.</li>" +
                   "<li><b>Same letter, same number: everywhere in that line.</b> 2x + x with x = 4 is 12.</li></ul>" +
                   '<p class="x-so"><b>So:</b> A letter is a box holding a number. 6p means 6 × p. An expression is a recipe: put the number in, get the answer out.</p>' }
+            ]
+          },
+          /* Day 7: an equation as a balanced scale. Same move on both sides, undone in reverse order; the Day 6 pastelito box p returns */
+          7: {
+            home: ["Equations as Balance", "same move on both sides: paychecks, trip savings, budgets."],
+            flow: true,
+            scene: "billbuilder3d",
+            steps: [
+              { kind: "predict", title: "Back at the bakery",
+                body: '<p class="x-q">Last time: 6 pastelitos + a $3 café = $12. Without guessing, what’s one pastelito?</p>' +
+                  ["$1.50", "$2", "$1.25"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden>' + cpBox(svgBal(), "6p + 3 = 12 is a level scale", "A level scale: six boxes p and three coins on the left, twelve coins on the right") +
+                  '<p class="why"><b>$1.50.</b> The two sides weigh the same. Keep the scale level and peel the left side down to one p.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l7bal", 0)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "Balance the scale",
+                body: '<p class="x-q">Get one box p alone on the left, with the scale still level.</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">Each coin is $1 · each box p is one pastelito</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="links"><button type="button" class="prev press" data-a="both">Remove 1 coin from both sides</button>' +
+                  '<button type="button" class="prev press" data-a="split">Split both sides into 6 groups</button>' +
+                  '<button type="button" class="prev press" data-a="left">Remove 1 coin from the left only</button>' +
+                  '<button type="button" class="prev press" data-a="reset">Reset</button></div>' +
+                  '<button type="button" class="prev press x-do">Do it for me</button>' +
+                  '<div class="x-res" hidden><p class="why"><b>p = $1.50.</b> 3 coins off both sides: 6p = 9. Split both into 6: p = 1.5.</p></div>' +
+                  '<button type="button" class="start press x-3dbtn" data-scene="billbuilder3d">Build bills in the Lab</button>',
+                mount: eqPlay },
+              { kind: "notice", title: "Why it stayed level", hl: ".x-nl",
+                viz: cpBox(eqSVG({ b: 6, l: 0, r: 9 }), "3 coins off each side: 6p = 9, still level"),
+                q: "You took a coin off both sides, three times. Why did the scale stay level?",
+                options: ["The same move on both sides keeps them equal", "Coins are too light to matter", "Only the left side counts"],
+                say: "Whatever you do to one side, do to the other, and the scale stays level." },
+              { kind: "plate", plate: "balance", title: "An equation: a balanced scale" },
+              { kind: "play", title: "Build it: your paycheck",
+                body: '<p class="x-q">You earn $27 an hour. Your check was $945 before tax, including a $135 bonus: 27h + 135 = 945. How many hours h did you work?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input type="text" inputmode="decimal" autocomplete="off" placeholder="hours" aria-label="Hours worked"></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden><b>Hint:</b> Peel off the bonus first, then split by the rate.</p>' +
+                  '<div class="x-res" hidden><p class="why"><b>945 − 135 = 810, then 810 ÷ 27 = 30 hours.</b> Check: 27 × 30 + 135 = 945.</p></div>',
+                mount: blFill(30) },
+              { kind: "formalize", title: "Name it: inverse operations",
+                body: cpBox(eqUndo(), "Undo the last thing done first", "6p + 3 is built by × 6 then + 3; it is undone by − 3 then ÷ 6, giving 1.5") +
+                  '<ol class="x-wk"><li><span>Inverse operations</span><span>Each move has an undo: + and −, × and ÷</span><b>+ 3 ↔ − 3</b></li>' +
+                  "<li><span>Reverse order</span><span>Undo the last step first, like shoes off before socks</span><b>− 3, then ÷ 6</b></li>" +
+                  "<li><span>Both sides</span><span>Every undo happens on both sides</span><b>6p = 9 → p = 1.5</b></li></ol>",
+                so: "Inverse operations undo each other. Undo the last step first, and do every move to both sides." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "A friend solves 6p + 3 = 12 and writes the next line as 6p = 12. What went wrong?",
+                options: ["The 3 came off the left only: it should be 6p = 9", "Nothing: the 3 just disappears", "It should be 6p = 15"], answer: 0, tags: [null, "EQ-ONE-SIDE-ONLY", "ALG-SIGN-MAGIC"], concept: "l7-both",
+                hints: ["What happened to the right side when the 3 left?", "Take 3 off both sides: 12 − 3."],
+                why: "Removing 3 from the left only tips the scale. Take 3 off both sides: 6p = 9." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "Someone solves 6p + 3 = 12 as p = 12/6 − 3 = −1. What went wrong?",
+                options: ["Wrong order: take off the 3 first, then ÷ 6, so p = 1.5", "Nothing: −1 is right", "They should have multiplied by 6"], answer: 0, tags: [null, "EQ-WRONG-UNDO-ORDER", "EQ-WRONG-UNDO-ORDER"], concept: "l7-order",
+                hints: ["A pastelito can’t cost −$1.", "6p + 3 was built × 6, then + 3. Undo the + 3 first."],
+                why: "Undo in reverse: 12 − 3 = 9, then 9 ÷ 6 = 1.5. Check: 6 × 1.5 + 3 = 12." },
+              { kind: "fade", title: "Your photo gig, backward",
+                q: "From Day 6: you charge 75h + 40. A client paid $340. How many hours was the shoot? Fill in the missing line.",
+                lines: ["75h + 40 = 340", "75h = 300", "h = 4 hours"],
+                blank: 1, options: ["75h = 300", "75h = 340", "h = 340 ÷ 75 − 40"], answer: 0, tags: [null, "EQ-ONE-SIDE-ONLY", "EQ-WRONG-UNDO-ORDER"], concept: "l7-order",
+                hints: ["Same move on both sides."],
+                why: "− 40 on both sides: 75h = 300. Then ÷ 75: h = 4. Check: 75 × 4 + 40 = 340." },
+              { kind: "quiz", title: "Quick check: the gym",
+                q: "A gym charges $6 per class plus a $10 sign-up. You spent $70. How many classes?",
+                options: ["10 classes", "About 13 classes", "About 2 classes"], answer: 0, tags: [null, "ALG-SIGN-MAGIC", "EQ-WRONG-UNDO-ORDER"], concept: "l7-order",
+                hints: ["6c + 10 = 70.", "− 10 on both sides, then ÷ 6."],
+                why: "70 − 10 = 60, and 60 ÷ 6 = 10 classes. 13 added the sign-up; 2 divided first, then subtracted." },
+              { kind: "quiz", title: "Quick check",
+                q: "Solve 3x − 7 = 20.",
+                options: ["9", "About 4.33", "About 13.67"], answer: 0, tags: [null, "ALG-SIGN-MAGIC", "EQ-WRONG-UNDO-ORDER"], concept: "l7-order",
+                hints: ["The last step was − 7. Undo it with + 7 on both sides."],
+                why: "+ 7 on both sides: 3x = 27, then ÷ 3: x = 9. Check: 27 − 7 = 20." },
+              { kind: "quiz", title: "Quick check: savings",
+                q: "You have $200 saved and add $150 a month. When will you reach $1,250?",
+                options: ["7 months", "About 8.3 months", "About 9.7 months"], answer: 0, tags: [null, "LIN-IGNORE-FIXED", "ALG-SIGN-MAGIC"], concept: "l7-order",
+                hints: ["200 + 150m = 1,250.", "− 200 on both sides, then ÷ 150."],
+                why: "1,250 − 200 = 1,050, and 1,050 ÷ 150 = 7 months. 8.3 forgot the $200 you already have." },
+              { kind: "transfer", title: "New costume: a trip to Managua",
+                q: "The flight is about $480, and you’ll spend $35 a day there. Your budget is $900. How many days can you stay?",
+                options: ["12 days", "About 26 days", "About 39 days"], answer: 0, tags: [null, "LIN-IGNORE-FIXED", "ALG-SIGN-MAGIC"], concept: "l7-order",
+                hints: ["480 + 35d = 900.", "Peel off the flight, then split by $35."],
+                why: "900 − 480 = 420, and 420 ÷ 35 = 12 days. 26 forgot the flight; 39 added it." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Paychecks.</b> Work backward from the total to the hours you were paid for.</li><li><b>Trip savings.</b> Months to save = (goal − saved) ÷ monthly amount.</li>" +
+                  "<li><b>Budgets.</b> How many sessions or classes fit: take off the fixed fee, then ÷ the price.</li><li><b>Checking a bill.</b> Undo the fees and see if the usage matches.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>Same move on both sides.</b> 6p + 3 = 12 → 6p = 9.</li><li><b>Undo in reverse order.</b> − 3 first, then ÷ 6: p = 1.5.</li>" +
+                  "<li><b>Check by plugging the answer back in.</b> 6 × 1.5 + 3 = 12.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> An equation is a balanced scale. Undo steps in reverse order, with the same move on both sides.</p>' }
             ]
           },
           /* Day 13: linear models as bills. Fixed fee + rate × use, built from bills before y = mx + b gets a name */
