@@ -1544,6 +1544,8 @@
           "EXPG-DECAY-REACHES-ZERO": "Each half-life removes half of what's LEFT: after 2 half-lives ¼ remains, after 3 it's ⅛. It fades but doesn't vanish on schedule.",
           "CI-SIMPLE-ADD": "Compound interest isn't rate × years. Each year earns interest on last year's interest, so 10 years at 4% is ×1.48, not ×1.40.",
           "CI-SMALL-RATE-GAP": "Over long stretches a 1-point rate difference compounds into thousands. Shop the rate on savings AND on debt.",
+          "LOAN-MIN-PAYMENT-MATH": "Interest is added every month, so a small payment mostly feeds interest. Dividing the balance by the payment ignores it and badly underestimates the time.",
+          "LOAN-LOW-PAYMENT-CHEAPER": "A longer loan lowers the monthly payment but raises the total cost. Compare total interest, not just the monthly bill.",
           "FUNC-IN-OUT-SWAP": "f(11) means feed 11 in, not find what gives 11: with f(x) = 2x + 3, f(11) = 2 × 11 + 3 = 25. The 4 solves 2x + 3 = 11, which runs the machine backward.",
           "SYS-CROSS-MEANS-CHEAPER": "The crossing is where the plans are equal, not where one wins: at month 5 both gyms cost $200. Before it B is cheaper; after it A is.",
           "INEQ-EXACT-ONLY": "“At most $60” is a range, not one exact value, and you round in the safe direction: at $6.75 a pack, 18 + 6.75p ≤ 60 gives p ≤ 6.2, so at most 6 packs. 7 packs is $65.25, over the limit.",
@@ -6322,6 +6324,11 @@
             see: "The gold curve pulling away from the straight line. The straight line adds the same $200 every year; the curve adds 4% of a balance that keeps growing. The gold gap is interest earned on earlier interest.",
             why: "Each year’s interest is figured on a bigger balance, so the raise itself grows. The gap is tiny early ($401 after 10 years) and huge later: time does the heavy lifting.",
             use: "Savings and retirement accounts, and debt: on a credit card it works against you just as hard." },
+          amort: { term: "Interest gets paid first", svg: svgAmort, scene: "ciskyline", short: "Each payment covers this month’s interest before it cuts the balance.",
+            alt: "Eight bars, one $50 card payment each, from month 1 to month 82: the gold interest slice starts at $40 of the $50 and shrinks, the blue balance slice grows",
+            see: "Each payment split into an interest slice and a balance slice. Month 1 on $2,000 at 24% APR: $40 of the $50 is interest, only $10 cuts the balance. As the balance falls, the interest slice shrinks and the balance slice grows.",
+            why: "The lender takes this month’s interest before anything reduces what you owe. So a payment barely above the interest moves the balance very slowly, and every extra dollar above it goes straight to the balance.",
+            use: "Credit cards, car loans, student loans, payday loans: check how much of each payment is interest, and ask for the total paid." },
           number: { term: "Number", svg: svgNumber, short: "Keeps only how many.",
             alt: "A cookie, a music note and a calendar day become three identical dots, then the numeral 3",
             see: "Three unlike things (a cookie, a song, a day) turn into three identical dots, then one mark: 3. Each dot stands for one thing; the numeral stands for the whole group.",
@@ -8228,6 +8235,76 @@
           $(".x-go", card).addEventListener("click", check);
           [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
           $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "3870"; check(); } if (st === 1) { b.value = "7612"; check(); } });
+          paint();
+        }
+        /* Day 19 card payoff: $2,000 at 24% APR (2% a month), month by month: balance × 1.02, then subtract the payment.
+           $50 → 82 mo, $2,064 interest · $100 → 26, $580 · $150 → 16, $350 · $200 → 12, $254 · $250 → 9, $202 · $300 → 8, $168 */
+        function lnSim(p) {
+          var b = 2000, bal = [2000], ints = [], pays = [], paid = 0, m = 0, i, pay;
+          while (b > 0.005 && m < 200) { i = b * 0.02; b += i; pay = Math.min(p, b); b -= pay; paid += pay; m++; bal.push(b); ints.push(i); pays.push(pay); }
+          return { bal: bal, m: m, int: paid - 2000, ints: ints, pays: pays };
+        }
+        function lnX(m) { return +(40 + m * 236 / 84).toFixed(1); }
+        function lnY(b) { return +(150 - b / 2000 * 112).toFixed(1); }
+        function lnPath(r) { return r.bal.map(function (b, k) { return (k ? "L" : "M") + lnX(k) + " " + lnY(b); }).join(""); }
+        function lnSVG(p, head) {
+          var r = lnSim(p), s = SVG_OPEN(232), w = 236 / 4064, pw = +(2000 * w).toFixed(1), iw = +(r.int * w).toFixed(1);
+          s += '<path d="M40 150H276M40 150V34" stroke-opacity=".5"/>';
+          [[1000, "$1k"], [2000, "$2k"]].forEach(function (v) { s += '<path d="M40 ' + lnY(v[0]) + 'H276" stroke-opacity=".12"/>' + LBL(34, lnY(v[0]) + 4, v[1], "text-anchor:end;font-size:12px"); });
+          s += LBL(34, 154, "$0", "text-anchor:end;font-size:12px");
+          [0, 24, 48, 72].forEach(function (m) { s += LBL(lnX(m), 168, m ? m / 12 + " yr" : "0", "font-size:12px"); });
+          if (p !== 50) s += '<path d="' + lnPath(lnSim(50)) + '" stroke-opacity=".22" stroke-dasharray="4 4"/>';
+          s += '<path d="' + lnPath(r) + '" stroke-width="3" style="stroke:var(--cyan)"/><circle cx="' + lnX(r.m) + '" cy="150" r="6" stroke="none" style="fill:var(--gold)"/>';
+          s += '<rect x="40" y="182" width="' + pw + '" height="16" rx="3" style="fill:var(--cyan);fill-opacity:.45;stroke:var(--cyan)"/>' +
+            '<rect x="' + (40 + pw) + '" y="182" width="' + iw + '" height="16" rx="3" style="fill:var(--gold);fill-opacity:.45;stroke:var(--gold)"/>';
+          s += LBL(40, 218, "Balance $2,000", "text-anchor:start;font-size:12px;fill:var(--cyan);font-weight:600") + LBL(276, 218, "Interest " + ciUSD(r.int), "text-anchor:end;font-size:12px;fill:var(--gold);font-weight:600");
+          return s + LBL(158, 16, head || "$" + p + "/mo · " + r.m + " months · " + ciUSD(r.int) + " interest", "font-weight:600" + (head || p === 100 ? ";fill:var(--ok)" : "")) + "</svg>";
+        }
+        /* the plate: eight $50 payments, each split into interest (gold, bottom) and balance (blue, top) */
+        function svgAmort() {
+          var r = lnSim(50), s = SVG_OPEN(196), k = 2.4;
+          s += '<path d="M28 170H284" stroke-opacity=".5"/>';
+          [1, 12, 24, 36, 48, 60, 72, 82].forEach(function (m, i) {
+            var x = 36 + i * 31, it = r.ints[m - 1], pay = r.pays[m - 1], yi = +(170 - it * k).toFixed(1), yp = +(170 - pay * k).toFixed(1);
+            s += '<rect x="' + x + '" y="' + yi + '" width="20" height="' + (170 - yi).toFixed(1) + '" style="fill:var(--gold);fill-opacity:.5;stroke:var(--gold)"/>' +
+              '<rect x="' + x + '" y="' + yp + '" width="20" height="' + (yi - yp).toFixed(1) + '" style="fill:var(--cyan);fill-opacity:.45;stroke:var(--cyan)"/>' + LBL(x + 10, 186, m, "font-size:12px");
+          });
+          s += LBL(36, 40, "Month 1: $40 interest, $10 balance", "text-anchor:start;font-size:12px;fill:var(--gold);font-weight:600");
+          return s + LBL(150, 16, "Each $50: interest first, the rest cuts the balance", "font-weight:600") + "</svg>";
+        }
+        function lnName() {
+          return SVG_OPEN(150) + LBL(150, 26, "payment = P·r ÷ (1 − (1 + r)⁻ⁿ)", "font-weight:600;font-size:16px") + LBL(150, 54, "r = APR ÷ 12 · P borrowed · n months") +
+            LBL(150, 78, "amortization: interest first, then principal") + LBL(150, 104, "always ask: total paid?") + LBL(150, 132, "$15,000 · 6% · 60 mo → $289.99", "font-weight:600;fill:var(--ok)") + "</svg>";
+        }
+        /* Day 19 play: monthly payment $50–$300 (step $50). Solved when he stops on $100: 26 months, $580 interest */
+        function lnPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), rng = $("input", card), res = $(".x-res", card), done = !!api.solved;
+          function paint(stop) {
+            var p = +rng.value, r = lnSim(p);
+            if (stop && p === 100 && !done) { done = true; api.solve(10); }
+            box.innerHTML = lnSVG(p);
+            out.textContent = "$" + p + " a month: paid off in " + r.m + " months, " + ciUSD(r.int) + " in interest." + (p === 100 ? " Double the $50, and the interest drops by $1,484." : done ? "" : " Try $100.");
+            res.hidden = !done;
+          }
+          rng.addEventListener("input", function () { paint(false); });
+          rng.addEventListener("change", function () { paint(true); });
+          $(".x-do", card).addEventListener("click", function () { rng.value = 100; paint(true); });
+          if (done) rng.value = 100;
+          paint(false);
+        }
+        /* Day 19 build: car loan $15,000 at 6% APR for 60 months: payment $289.99 (±$2), then total interest $2,399.52 (±$5) */
+        function lnBuild(card, api) {
+          var a = $(".x-a", card), b = $(".x-b", card), two = $(".x-st2", card), res = $(".x-res", card), h = $(".x-hint", card), st = api.solved ? 2 : 0;
+          function num(i) { return parseFloat(i.value.replace(/[$,\s]/g, "")); }
+          function paint() { a.disabled = st > 0; b.disabled = st !== 1; two.hidden = st < 1; res.hidden = st < 2; if (st > 0) a.value = "289.99"; if (st > 1) b.value = "2,399.52"; }
+          function check() {
+            if (st === 0) { if (Math.abs(num(a) - 289.99) <= 2) { st = 1; h.hidden = true; } else { h.innerHTML = "<b>Hint:</b> Monthly rate r = 6% ÷ 12 = 0.5% = 0.005. Payment = 15,000 × 0.005 ÷ (1 − 1.005⁻⁶⁰)."; h.hidden = false; } }
+            else if (st === 1) { if (Math.abs(num(b) - 2399.52) <= 5) { st = 2; h.hidden = true; api.solve(10); } else { h.innerHTML = "<b>Hint:</b> Total interest = payment × 60 − 15,000."; h.hidden = false; } }
+            paint();
+          }
+          $(".x-go", card).addEventListener("click", check);
+          [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
+          $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "289.99"; check(); } if (st === 1) { b.value = "2399.52"; check(); } });
           paint();
         }
         /* Day 22 proof puzzle: a 7 × 7 square (a = 3, b = 4), 26px a unit; four legs-3-4 triangles, each [x1, y1, x2, y2, turn]: corners (st 0) → two rectangles (st 1), translation only */
@@ -12656,6 +12733,103 @@
                 body: "<ul><li><b>Interest earns interest.</b> $5,000 at 4% for 10 years: $7,401, not $7,000.</li><li><b>Time matters more than you think.</b> $1,000 at 7%: $3,870 after 20 years, $7,612 after 30.</li>" +
                   "<li><b>Small rate gaps become big money.</b> 4% vs 5% on $5,000 over 30 years: about $5,393.</li><li><b>Inflation compounds against idle cash.</b> 3% for 10 years leaves $1,000 worth about $744.</li></ul>" +
                   '<p class="x-so"><b>So:</b> Start early, shop the rate, and don’t let cash sit still.</p>' + LAB_CISKY }
+            ]
+          },
+          /* Day 19: loans, APR & credit cards. $2,000 at 24% APR, $50/mo → 82 months, $4,064 paid, $2,064 interest (month-by-month simulation);
+             car loan $15,000 at 6% for 60 months → $289.99/mo, $2,399.52 interest; 48 mo $352.28 ($1,909), 72 mo $248.59 ($2,899) */
+          19: {
+            home: ["Loans, APR & Credit Cards", "why $50 a month on $2,000 takes almost 7 years."],
+            flow: true,
+            scene: "ciskyline",
+            steps: [
+              { kind: "predict", title: "$50 a month",
+                body: '<p class="x-q">You owe $2,000 on a credit card at 24% APR. You pay $50 a month and charge nothing new. How long until it’s paid off?</p>' +
+                  ["40 months", "About 4 years", "Almost 7 years"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden>' + cpBox(lnSVG(50), "$50 a month: 82 months, $2,064 interest", "Balance curve from $2,000 falling slowly to zero at month 82; paid $2,000 of balance plus $2,064 interest") +
+                  '<p class="why"><b>82 months: almost 7 years.</b> You pay $4,064 in total, and $2,064 of it is interest. Month 1, $40 of your $50 is interest (2% of $2,000); only $10 touches the balance.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l19card", 2)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "Pay a little more",
+                body: '<p class="x-q">Slide the monthly payment on the $2,000 card. Watch the months and the interest. Then try $100.</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">Blue: balance month by month · dashed: the $50 plan · bar: what you pay, balance vs interest</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="x-ctl"><label>Monthly payment <input type="range" min="50" max="300" step="50" value="50" aria-label="Monthly payment in dollars"></label></div>' +
+                  '<button type="button" class="prev press x-do">Do it for me</button>' +
+                  '<div class="x-res" hidden><p class="why"><b>$100 a month: 26 months, $580 interest.</b> The $50 plan took 82 months and $2,064. Push it to $300: 8 months, $168.</p></div>' +
+                  LAB_CISKY,
+                mount: lnPlay },
+              { kind: "notice", title: "The first extra dollars do the most", hl: ".x-nl",
+                viz: cpBox(lnSVG(100, "$50 → $100: $1,484 less interest"), "$50: 82 months, $2,064 · $100: 26 months, $580"),
+                q: "Doubling the payment from $50 to $100: what happened?",
+                options: ["Interest fell about $1,484 and time fell over 4 years", "Interest and time were cut exactly in half", "Not much: it’s only $50 more"],
+                say: "Doubling $50 to $100 cut the interest by about $1,484 ($2,064 → $580) and the time by over 4 years (82 → 26 months). The first dollars above the interest do the most." },
+              { kind: "plate", plate: "amort", title: "Interest gets paid first" },
+              { kind: "play", title: "Build it: a car loan",
+                body: '<p class="x-q">A car loan: $15,000 at 6% APR for 60 months. What’s the monthly payment?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-a" type="text" inputmode="decimal" autocomplete="off" placeholder="$ per month" aria-label="Monthly payment in dollars"></div>' +
+                  '<div class="x-st2" hidden><p class="why"><b>$289.99.</b> r = 6% ÷ 12 = 0.005. 15,000 × 0.005 ÷ (1 − 1.005⁻⁶⁰) = $289.99.</p>' +
+                  '<p class="x-q">And the total interest over 60 months?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-b" type="text" inputmode="decimal" autocomplete="off" placeholder="$ total interest" aria-label="Total interest in dollars"></div></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden></p>' +
+                  '<div class="x-res" hidden><p class="why"><b>About $2,400.</b> $289.99 × 60 − $15,000 = $2,399.52. The car costs about $17,400 in total.</p></div>',
+                mount: lnBuild },
+              { kind: "formalize", title: "Name it: APR and the payment formula",
+                body: cpBox(lnName(), "payment = P·r ÷ (1 − (1 + r)⁻ⁿ)", "Payment equals P times r divided by 1 minus (1 plus r) to the minus n. r is the APR divided by 12, P the amount borrowed, n the months. Amortization: interest first, then principal. $15,000 at 6% for 60 months gives $289.99") +
+                  '<ol class="x-wk"><li><span>APR</span><span>The yearly rate</span><b>24%</b></li>' +
+                  "<li><span>Monthly rate r</span><span>APR ÷ 12</span><b>24% → 2%</b></li>" +
+                  "<li><span>Payment</span><span>P borrowed, n months</span><b>P·r ÷ (1 − (1 + r)⁻ⁿ)</b></li>" +
+                  "<li><span>Amortization</span><span>The schedule: interest first, then principal</span><b>month 1: $40 + $10</b></li>" +
+                  "<li><span>The habit</span><span>Ask “total paid?”, not just “monthly payment?”</span><b>$4,064 for $2,000</b></li></ol>",
+                so: "Monthly rate = APR ÷ 12. Interest comes off each payment first. Always ask the total paid, not just the monthly payment." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "A friend says: “$2,000 ÷ $50 = 40 months.” What went wrong?",
+                options: ["Interest is added every month, so it takes 82 months", "Nothing: $2,000 ÷ $50 is 40 months", "Nothing, but round up to 41 months"], answer: 0, tags: [null, "LOAN-MIN-PAYMENT-MATH", "LOAN-MIN-PAYMENT-MATH"], concept: "l19-interest-first",
+                hints: ["Month 1: how much of the $50 is interest? 2% of $2,000."],
+                why: "Month 1, $40 of the $50 is interest; only $10 cuts the balance. Paying it off takes 82 months, not 40." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“The 72-month car loan is cheaper because the payment is lower.” $15,000 at 6%: what went wrong?",
+                options: ["48 months: $352.28/mo, $1,909 interest. 72 months: $248.59/mo, $2,899 interest", "Nothing: $248.59 is less than $352.28", "Nothing: the total is the same either way"], answer: 0, tags: [null, "LOAN-LOW-PAYMENT-CHEAPER", "LOAN-LOW-PAYMENT-CHEAPER"], concept: "l19-total-cost",
+                hints: ["Work out payment × months − $15,000 for each loan."],
+                why: "The 72-month loan costs about $990 more in interest ($2,899 vs $1,909). A lower monthly bill can mean a bigger total." },
+              { kind: "fade", title: "This month’s card interest",
+                q: "A card balance of $1,200 at 21% APR. Fill in the missing line.",
+                lines: ["Monthly rate = 21% ÷ 12 = 1.75%", "Interest this month = 1,200 × 0.0175 = $21", "Pay more than $21, or the balance won’t shrink"],
+                blank: 1, options: ["Interest this month = 1,200 × 0.0175 = $21", "Interest this month = 1,200 × 0.21 = $252", "Interest this month = 1,200 × 1.75 = $2,100"], answer: 0, tags: [null, null, null], concept: "l19-apr",
+                hints: ["1.75% as a decimal is 0.0175."],
+                why: "1,200 × 0.0175 = $21. $252 is a whole year’s interest, not one month’s." },
+              { kind: "quiz", title: "Quick check: monthly rate",
+                q: "A card has an 18% APR. What’s the monthly rate?",
+                options: ["1.5%", "18%", "0.18%"], answer: 0, tags: [null, null, null], concept: "l19-apr",
+                hints: ["Monthly rate = APR ÷ 12."],
+                why: "18% ÷ 12 = 1.5% a month." },
+              { kind: "quiz", title: "Quick check: first month",
+                q: "$1,000 on a card at 24% APR. What’s the first month’s interest?",
+                options: ["$20", "$240", "$2"], answer: 0, tags: [null, null, null], concept: "l19-apr",
+                hints: ["24% ÷ 12 = 2% a month."],
+                why: "2% of $1,000 = $20. $240 is a full year." },
+              { kind: "quiz", title: "Quick check: pay more",
+                q: "$2,000 at 24% APR. Paying $300 a month instead of $100: how much less interest?",
+                options: ["About $412: $580 − $168", "About $1,896", "$0: same balance, same rate"], answer: 0, tags: [null, null, "LOAN-MIN-PAYMENT-MATH"], concept: "l19-interest-first",
+                hints: ["$100 a month: $580 interest. $300 a month: $168."],
+                why: "$580 − $168 ≈ $412. Same rate, but a bigger payment leaves less balance for interest to grow on." },
+              { kind: "transfer", title: "New costume: the payday loan",
+                q: "In reentry counseling: a client takes a payday loan: $400 with a $60 fee due in 2 weeks. About what APR is that?",
+                options: ["About 390%: 15% × 26", "15%", "About 24%, like a card"], answer: 0, tags: [null, null, null], concept: "l19-fee-apr",
+                hints: ["$60 ÷ $400 = 15% for 2 weeks.", "A year has 26 two-week periods."],
+                why: "$60 ÷ $400 = 15% per 2 weeks; × 26 ≈ 390% APR. In sessions: turn fees into an APR so clients can compare with a credit-union loan or a card (~24%)." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Credit cards.</b> Pay well above the interest, or the balance barely moves.</li><li><b>Car and student loans.</b> Compare total interest, not just the monthly bill.</li>" +
+                  "<li><b>Payday loans.</b> Turn the fee into an APR: often hundreds of percent.</li><li><b>Buy now, pay later.</b> Ask the total paid, fees included.</li>" +
+                  "<li><b>Financing a camera.</b> Price it at the total, not the monthly figure.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>Interest gets paid first.</b> Month 1 at 24%: $40 of a $50 payment is interest.</li><li><b>Small payments mostly feed interest.</b> $50 a month on $2,000: 82 months, $2,064 interest; $100: 26 months, $580.</li>" +
+                  "<li><b>Compare total cost, not the monthly payment.</b> The 72-month car loan costs $2,899 in interest; 48 months, $1,909.</li><li><b>Turn any fee into an APR to compare.</b> $60 on $400 for 2 weeks ≈ 390%.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> Pay above the interest, and always ask “total paid?”</p>' + LAB_CISKY }
             ]
           },
           22: {
