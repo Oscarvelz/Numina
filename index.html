@@ -1560,6 +1560,8 @@
           "EV-IGNORE-RISK": "EV is the guide for small, repeatable bets. When one bad outcome would wreck you, paying a bit to avoid it is smart, even at negative EV.",
           "AVG-MEAN-AS-TYPICAL": "The mean is pulled up by one hit. When data is lopsided, the median shows what usually happens.",
           "AVG-OF-AVERAGES": "Bigger groups count more. Rebuild the totals first (20 × 8 and 5 × 16), then divide by everyone.",
+          "SPREAD-SAME-MEAN-SAME": "Same average doesn’t mean same results. Check the spread before you trust the average.",
+          "SPREAD-RANGE-ONLY": "Range only looks at the two extremes, so one weird value can fake a big spread. The typical miss uses every value.",
           "FUNC-IN-OUT-SWAP": "f(11) means feed 11 in, not find what gives 11: with f(x) = 2x + 3, f(11) = 2 × 11 + 3 = 25. The 4 solves 2x + 3 = 11, which runs the machine backward.",
           "SYS-CROSS-MEANS-CHEAPER": "The crossing is where the plans are equal, not where one wins: at month 5 both gyms cost $200. Before it B is cheaper; after it A is.",
           "INEQ-EXACT-ONLY": "“At most $60” is a range, not one exact value, and you round in the safe direction: at $6.75 a pack, 18 + 6.75p ≤ 60 gives p ≤ 6.2, so at most 6 packs. 7 packs is $65.25, over the limit.",
@@ -6378,6 +6380,11 @@
             see: "The seesaw balances at the mean: 1, 2 and 6 share out to 3 each. The line of people is sorted, and the median is simply the one in the middle. The giant at the end tips the seesaw, but the middle person stays the middle person.",
             why: "The mean shares the total out evenly, so every value pulls on it, and one extreme value pulls hard. The median only cares about order, so an extreme value barely moves it. When data is lopsided, the median tells you what a typical person sees.",
             use: "Salaries in job offers, views and followers, ticket prices, sports stats, program outcomes: ask which average it is, and whether anything is extreme." },
+          spread: { term: "Spread = how far things usually land from the average", svg: svgSpread, scene: "springs", short: "Range: biggest − smallest. Typical miss: the average distance from the average.",
+            alt: "Two dartboards. On the left, five hits in a tight cluster around the bull’s-eye. On the right, five hits scattered across the board and the wall. A gold cross marks the center of the hits on each: the bull’s-eye both times",
+            see: "Both throwers’ hits balance out at the bull’s-eye, so their average spot is identical. The left thrower lands every dart within a hair of it. The right thrower hits the wall, the edge and the ceiling, and only averages out to the middle.",
+            why: "The average tells you where things land in the middle; the spread tells you how far they stray from it. Small spread means predictable: you can plan on the average. Big spread means the average is a point almost nothing actually hits.",
+            use: "Sports, commute and delivery times, battery life, test scores, client mood tracking, research results: ask for the spread along with the average." },
           number: { term: "Number", svg: svgNumber, short: "Keeps only how many.",
             alt: "A cookie, a music note and a calendar day become three identical dots, then the numeral 3",
             see: "Three unlike things (a cookie, a song, a day) turn into three identical dots, then one mark: 3. Each dot stands for one thing; the numeral stands for the whole group.",
@@ -9035,6 +9042,95 @@
           $(".x-go", card).addEventListener("click", check);
           [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
           $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "169"; check(); } if (st === 1) { b.value = "47"; check(); } });
+          paint();
+        }
+        /* Day 28 spread. Player A 20, 19, 21, 20, 20; Player B 5, 40, 2, 45, 8. Chaos t (0–1) morphs B as 20 + t × (score − 20), so B's mean stays 20; range 43t, typical miss 18t */
+        var LAB_SPRINGS = '<button type="button" class="start press x-3dbtn" data-scene="springs">Visit Spread Springs in the Lab</button>';
+        var SPR_A = [20, 19, 21, 20, 20], SPR_B = [5, 40, 2, 45, 8];
+        function sprF(v) { return String(Math.round(v * 10) / 10); }
+        function sprStats(a) {
+          var m = a.reduce(function (s, v) { return s + v; }, 0) / a.length;
+          return { mean: m, range: Math.max.apply(null, a) - Math.min.apply(null, a), miss: a.reduce(function (s, v) { return s + Math.abs(v - m); }, 0) / a.length };
+        }
+        function sprB(t) { return SPR_B.map(function (v) { return 20 + t * (v - 20); }); }
+        /* two panels of 5 games on a shared 0–50 score axis; gold average line at 20 across both; teal whiskers from each game to it */
+        function sprSVG(t, ok) {
+          var Y = function (v) { return +(196 - v * 3).toFixed(1); }, s = SVG_OPEN(244), b = sprB(t), y20 = Y(20);
+          s += LBL(150, 16, "Same average, 20 points a game", "font-weight:600" + (ok ? ";fill:var(--ok)" : ""));
+          [0, 40].forEach(function (v) { s += LBL(22, Y(v) + 4, v, "text-anchor:end;font-size:12px"); });
+          s += LBL(22, y20 + 4, "20", "text-anchor:end;font-size:12px;font-weight:600;fill:var(--gold)");
+          s += '<path d="M30 ' + Y(0) + 'H278" stroke-opacity=".4"/><path d="M30 ' + Y(40) + 'H278" stroke-opacity=".12"/>';
+          s += '<path d="M30 ' + y20 + 'H278" stroke-width="2.5" style="stroke:var(--gold)"/>';
+          [[SPR_A, 44, "Player A"], [b, 172, "Player B"]].forEach(function (p) {
+            var st = sprStats(p[0]);
+            p[0].forEach(function (v, i) {
+              var x = p[1] + i * 22, y = Y(v);
+              if (Math.abs(y - y20) > 0.5) s += '<path d="M' + x + " " + y20 + "V" + y + '" stroke-width="2.5" style="stroke:var(--cyan)"/>';
+              s += '<circle cx="' + x + '" cy="' + y + '" r="5" stroke="none" style="fill:var(--text);fill-opacity:.75"/>';
+            });
+            s += LBL(p[1] + 44, 216, p[2], "font-size:12px;font-weight:600");
+            s += LBL(p[1] + 44, 234, "range " + sprF(st.range) + " · miss " + sprF(st.miss), "font-size:12px;fill:var(--cyan)");
+          });
+          return s + "</svg>";
+        }
+        /* hook: head in a 0°F freezer, feet in a 150°F oven, average a perfect 75°F */
+        function sprHook() {
+          var s = SVG_OPEN(132);
+          s += '<rect x="10" y="34" width="80" height="60" rx="8" style="stroke:var(--cyan)"/>' + LBL(50, 112, "Freezer 0°F", "font-size:12px;font-weight:600;fill:var(--cyan)");
+          s += '<rect x="210" y="34" width="80" height="60" rx="8" style="stroke:var(--coral)"/>' + LBL(250, 112, "Oven 150°F", "font-size:12px;font-weight:600;fill:var(--coral)");
+          s += '<path d="M220 84H280M228 88v4M250 88v4M272 88v4" style="stroke:var(--coral)" stroke-opacity=".7"/>';
+          s += '<circle cx="66" cy="64" r="11"/><path d="M77 64H160M160 64L236 56M160 64L236 72M105 64L122 50M105 64L122 78"/>';
+          s += '<path d="M236 52v8M236 68v8" stroke-width="3"/>';
+          return s + LBL(150, 18, "You, lying very still", "font-weight:600") + LBL(150, 40, "average 75°F", "font-size:12px;font-weight:600;fill:var(--gold)") +
+            LBL(150, 128, "Comfortable?", "font-size:12px") + "</svg>";
+        }
+        /* the plate: two dartboards, same center of hits; one tight cluster, one all over the wall */
+        function svgSpread() {
+          var s = SVG_OPEN(186);
+          [[78, [[-4, 2], [3, -3], [2, 4], [-3, -2], [2, -1]], "--cyan", "Tight: small spread"], [222, [[-60, -30], [55, 20], [-20, 55], [40, -58], [-15, 13]], "--coral", "Wall: big spread"]].forEach(function (d) {
+            var cx = d[0], cy = 96;
+            [48, 32, 16].forEach(function (r) { s += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" stroke-opacity=".35"/>'; });
+            d[1].forEach(function (o) { s += '<circle cx="' + (cx + o[0]) + '" cy="' + (cy + o[1]) + '" r="4.5" stroke="none" style="fill:var(' + d[2] + ')"/>'; });
+            s += '<path d="M' + (cx - 7) + " " + cy + "H" + (cx + 7) + "M" + cx + " " + (cy - 7) + "V" + (cy + 7) + '" stroke-width="2.5" style="stroke:var(--gold)"/>';
+            s += LBL(cx, 22, d[3], "font-size:12px;font-weight:600;fill:var(" + d[2] + ")");
+          });
+          return s + LBL(150, 176, "Same center of hits (gold), very different spread", "font-size:12px") + "</svg>";
+        }
+        /* Day 28 play: chaos 0–100. Solved at 100: A range 2, typical miss 0.4; B range 43, typical miss 18 */
+        function sprPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), rg = $('input[type="range"]', card), o = $(".x-ctl output", card), res = $(".x-res", card), done = !!api.solved;
+          function paint(stop) {
+            var c = +rg.value, ok = c === 100, a = sprStats(SPR_A), b = sprStats(sprB(c / 100));
+            if (stop && ok && !done) { done = true; api.solve(10); }
+            box.innerHTML = sprSVG(c / 100, ok);
+            o.textContent = c; rg.setAttribute("aria-valuetext", "Chaos " + c + " of 100");
+            out.textContent = "Player A: average 20, range " + sprF(a.range) + ", typical miss " + sprF(a.miss) + ". Player B: average " + sprF(b.mean) + ", range " + sprF(b.range) + ", typical miss " + sprF(b.miss) + "." +
+              (ok ? " Same average; B is a coin toss between a dud and a superstar." : done ? "" : " Crank chaos to 100.");
+            res.hidden = !done;
+          }
+          rg.addEventListener("input", function () { paint(false); }); rg.addEventListener("change", function () { paint(true); });
+          $(".x-do", card).addEventListener("click", function () { rg.value = 100; paint(true); });
+          if (done) rg.value = 100;
+          paint(false);
+        }
+        /* Day 28 build: Date B 0, 0, 0, 40 (average 10) → range 40 → typical miss (10 + 10 + 10 + 30) ÷ 4 = 15 */
+        function sprBuild(card, api) {
+          var a = $(".x-a", card), b = $(".x-b", card), two = $(".x-st2", card), res = $(".x-res", card), h = $(".x-hint", card), st = api.solved ? 2 : 0;
+          function num(i) { return parseFloat(i.value.replace(/[,\s]|min(utes?)?/g, "")); }
+          function paint() { a.disabled = st > 0; b.disabled = st !== 1; two.hidden = st < 1; res.hidden = st < 2; if (st > 0) a.value = "40"; if (st > 1) b.value = "15"; }
+          function check() {
+            if (st === 0) {
+              if (num(a) === 40) { st = 1; h.hidden = true; }
+              else { h.innerHTML = "<b>Hint:</b> Range = biggest − smallest. Date B’s biggest is 40, smallest 0."; h.hidden = false; }
+            } else if (st === 1) {
+              if (num(b) === 15) { st = 2; h.hidden = true; api.solve(10); }
+              else { h.innerHTML = "<b>Hint:</b> Typical miss = the average distance from the average (10). How far is each of 0, 0, 0 and 40 from 10? Add those, then ÷ 4."; h.hidden = false; }
+            }
+            paint();
+          }
+          $(".x-go", card).addEventListener("click", check);
+          [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
+          $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "40"; check(); } if (st === 1) { b.value = "15"; check(); } });
           paint();
         }
         var LESSON_CONTENT = {
@@ -14303,6 +14399,99 @@
                   '<p class="x-so"><b>So:</b> Always ask: “average of what, and is anything extreme?”</p>' + LAB_SAMEMEAN }
             ]
           },
+          28: {
+            home: ["Spread & Variability", "head in the freezer, feet in the oven: averages lie without spread."],
+            flow: true,
+            steps: [
+              { kind: "predict", title: "Head in the freezer, feet in the oven", keepOrder: true,
+                body: '<p class="x-q">Your head is in a 0°F freezer and your feet are in a 150°F oven. Your AVERAGE temperature is a perfect 75°F. Are you comfortable?</p>' +
+                  cpBox(sprHook(), "Head at 0°F, feet at 150°F: (0 + 150) ÷ 2 = 75°F", "A person lying with their head in a 0°F freezer and their feet in a 150°F oven; average 75°F") +
+                  ["Yes — 75°F is perfect", "No — the average hides a huge spread", "Can’t tell"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden><p class="why"><b>No.</b> Your head is frozen and your feet are roasting. An average says nothing about how far things are from it.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l28temp", 1)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "Unleash the chaos",
+                body: '<p class="x-q">Two players, 5 games each, both averaging 20. Slide the chaos and watch Player B go wild while the gold average stays put. Teal whiskers show each game’s miss from 20.</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">Dots: one game each · gold: the average, 20 · teal: how far each game misses it</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="x-ctl"><label>Chaos <input type="range" min="0" max="100" step="1" value="0" aria-label="Chaos in Player B’s scores"><output>0</output></label></div>' +
+                  '<div class="links"><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<div class="x-res" hidden><p class="why"><b>A: range 2, typical miss 0.4. B: range 43, typical miss 18.</b> B scored 5, 40, 2, 45, 8. Same average of 20, but you can bet on A; B is a slot machine in sneakers.</p></div>',
+                mount: sprPlay },
+              { kind: "notice", title: "Same average, different player", hl: ".x-nl",
+                viz: cpBox(sprSVG(1, false), "Player A: 20, 19, 21, 20, 20 · Player B: 5, 40, 2, 45, 8"),
+                q: "Both players average 20. What does the spread tell you that the average doesn’t?",
+                options: ["How predictable each player is: A lands near 20 every game, B almost never does", "Who scores more in total", "Nothing: same average, same player"],
+                say: "Same average, totally different player. Spread tells you how predictable something is: pick A when you need 20 tonight; B gives you 2 or 45." },
+              { kind: "plate", plate: "spread", title: "Spread = how far things usually land from the average" },
+              { kind: "play", title: "Build it: the llama farm date",
+                body: '<p class="x-q">Two dates both show up 10 minutes late on average. Date A: 10, 12, 8, 10 min. Date B: 0, 0, 0, 40 min (one time they got lost at a llama farm). What’s the range for Date B?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-a" type="text" inputmode="decimal" autocomplete="off" placeholder="range, minutes" aria-label="Range for Date B in minutes"></div>' +
+                  '<div class="x-st2" hidden><p class="why"><b>40 min.</b> 40 − 0 = 40.</p>' +
+                  '<p class="x-q">What’s Date B’s typical miss?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-b" type="text" inputmode="decimal" autocomplete="off" placeholder="typical miss, minutes" aria-label="Typical miss for Date B in minutes"></div></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden></p>' +
+                  '<div class="x-res" hidden><p class="why"><b>Typical miss 15 min.</b> (10 + 10 + 10 + 30) ÷ 4 = 15. Date A: range 4, typical miss 1. Same 10-minute average; one date runs like a clock, the other is a llama lottery.</p></div>',
+                mount: sprBuild },
+              { kind: "formalize", title: "Name it: measuring spread",
+                body: '<ol class="x-wk"><li><span>Range</span><span>max − min: quick, but only uses two values</span><b>45 − 2 = 43</b></li>' +
+                  "<li><span>Typical miss</span><span>mean absolute deviation: the average distance from the mean</span><b>90 ÷ 5 = 18</b></li>" +
+                  "<li><span>Standard deviation (SD)</span><span>the version research and apps use; usually close to the typical miss</span><b>the pros’ version</b></li>" +
+                  "<li><span>Bell-shaped data</span><span>within 1 SD of the average</span><b>about 68%</b></li>" +
+                  "<li><span>Bell-shaped data</span><span>within 2 SD of the average</span><b>about 95%</b></li></ol>",
+                so: "The average says where things land; the spread says how far they stray. Ask for both." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“Both chefs average a perfect ‘medium’ steak, so they’re equally good.” Chef A: always medium. Chef B: half the steaks raw, half charcoal. What went wrong?",
+                options: ["Chef B never serves a good steak: raw and charcoal just average out to medium", "Nothing: same average, equally good chefs", "Chef B is better: more variety"], answer: 0, tags: [null, "SPREAD-SAME-MEAN-SAME", null], concept: "l28-spread",
+                hints: ["How many of Chef B’s steaks actually come out medium?", "Look at the spread, not just the average."],
+                why: "Chef B never serves a good steak. Half raw plus half charcoal averages to medium, but nobody eats the average. Check the spread before you trust the average." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“These have the same range (40), so they’re equally spread out: 50, 90, 90, 90, 90, 90 and 50, 60, 70, 80, 90.” What went wrong?",
+                options: ["The first is mostly identical with one odd value; the second is evenly spread", "Nothing: same range, same spread", "The first is more spread out: it has more values"], answer: 0, tags: [null, "SPREAD-RANGE-ONLY", null], concept: "l28-range",
+                hints: ["Range only looks at the biggest and smallest. What about the values between?", "Five of the first set’s six values are exactly 90."],
+                why: "The first set is five identical 90s plus one odd 50; the second is spread evenly from 50 to 90. Range only sees the two extremes, so one weird value can fake a big spread. The typical miss uses every value." },
+              { kind: "fade", title: "The hot-dog champion",
+                q: "A competitive hot-dog eater averages 60 hot dogs per contest, SD 5, bell-shaped. Fill in the missing line.",
+                lines: ["2 SD = 2 × 5 = 10", "60 − 10 = 50 to 60 + 10 = 70", "About 95% of contests land between 50 and 70 hot dogs — so 85 would be a shock (and a stomachache)"],
+                blank: 1, options: ["60 − 10 = 50 to 60 + 10 = 70", "60 − 5 = 55 to 60 + 5 = 65", "60 − 2 = 58 to 60 + 2 = 62"], answer: 0, tags: [null, null, null], concept: "l28-sd",
+                hints: ["2 SD is 10 hot dogs.", "Go 10 below the average and 10 above it."],
+                why: "Go 2 SD (10 hot dogs) each way from 60: 50 to 70. 55 to 65 is only 1 SD (about 68%); 58 to 62 uses 2 as if it were the SD." },
+              { kind: "quiz", title: "Quick check: phone battery",
+                q: "Which phone battery is more predictable: one that lasts 10, 10, 11, 9 h, or one that lasts 4, 16, 6, 14 h?",
+                options: ["10, 10, 11, 9 h", "4, 16, 6, 14 h", "Same: both average 10 h"], answer: 0, tags: [null, null, "SPREAD-SAME-MEAN-SAME"], concept: "l28-spread",
+                hints: ["Both average 10 h. Which one stays close to 10?", "Compare the ranges: 11 − 9 and 16 − 4."],
+                why: "Both average 10 h, but the first stays within an hour of it (range 2). The second swings from 4 to 16 h (range 12): you never know if it’ll die by lunch." },
+              { kind: "quiz", title: "Quick check: bowling night",
+                q: "Bowling scores: 85, 210, 140, 99 and a perfect 300. What’s the range?",
+                options: ["215", "300", "About 167"], answer: 0, tags: [null, null, null], concept: "l28-range",
+                hints: ["Range = biggest − smallest.", "300 − 85 = ?"],
+                why: "300 − 85 = 215. 300 is just the top score; about 167 is the average (834 ÷ 5), not the spread." },
+              { kind: "quiz", title: "Quick check: pizza delivery",
+                q: "Pizza delivery averages 30 min, SD 5. Yours took 40 min. How many SDs late is it?",
+                options: ["2 SDs", "10 SDs", "8 SDs"], answer: 0, tags: [null, null, null], concept: "l28-sd",
+                hints: ["How many minutes past the average? 40 − 30.", "Divide those minutes by the SD, 5."],
+                why: "40 − 30 = 10 min late, and 10 ÷ 5 = 2 SDs. That’s rare: roughly the slowest 2–3% of deliveries. 10 is the minutes, not the SDs; 8 is 40 ÷ 5." },
+              { kind: "transfer", title: "New costume: mood tracking",
+                q: "Daily mood ratings (1–10) for a week. Client A: 5, 5, 6, 5, 5, 6, 5. Client B: 1, 9, 2, 10, 2, 9, 4. Both average about 5.3. What should you make of it?",
+                options: ["The average says “fine” for both, but Client B’s swings from 1 to 10 are the clinically important part", "Both are doing the same: same average", "Client B is doing better: B hit 10"], answer: 0, tags: [null, "SPREAD-SAME-MEAN-SAME", null], concept: "l28-spread",
+                hints: ["Same average. Now compare the ranges: 6 − 5 and 10 − 1.", "What could a swing from 1 to 10 within days mean for a client?"],
+                why: "Both average about 5.3, so the average says “fine”. But A stays at 5 or 6 (range 1) while B swings from 1 to 10 (range 9). B’s swings are the clinically important part. Spread is information, not noise." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Player consistency.</b> Same points per game can be steady or boom or bust.</li><li><b>Commute and delivery windows.</b> “30 min” means little without the spread.</li>" +
+                  "<li><b>Battery life.</b> A steady 10 h beats a 4-to-16 h gamble.</li><li><b>Investment risk.</b> Big swings around the same average return mean more risk.</li>" +
+                  "<li><b>Test scores.</b> A class average hides who’s struggling.</li><li><b>Mood tracking.</b> Swings can matter more than the weekly average.</li>" +
+                  "<li><b>Research results.</b> Error bars show the spread around each average.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>Average = center; spread = predictability.</b> Freezer plus oven averages 75°F; you’re still not comfortable.</li><li><b>Range is quick but fragile.</b> Biggest − smallest: one weird value can fake a big spread.</li>" +
+                  "<li><b>Typical miss uses everything.</b> The average distance from the average: Player B, 90 ÷ 5 = 18.</li><li><b>Bell shapes: about 95% within 2 SD.</b> 60 ± 10 hot dogs covers about 95% of contests.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> Whenever someone gives you an average, ask for the spread.</p>' + LAB_SPRINGS }
+            ]
+          },
           /* Foundations B4: exponent laws by counting factor chips. Each play keeps its own state; values and exponents appear only after the learner acts */
           "b4-laws": {
             home: ["Exponent laws, just counting", "join, cancel and copy rows of factor chips: the laws fall out of the count."],
@@ -16888,6 +17077,79 @@
                 }
               ];
             })(),
+            28: (function () {
+              var ri = function (r, lo, hi) { return lo + Math.floor(r() * (hi - lo + 1)); };
+              var sn = function (x) { return x < 0 ? "−" + nf(-x) : nf(x); };
+              var D = [
+                ["Hot-dog contest", "hot dogs", 18, 76, 0, function (l) { return "Hot dogs downed by the finalists at the invented Wiener Wars on the Boardwalk: " + l + "."; }],
+                ["Steak doneness", "points", 1, 10, 0, function (l) { return "Chef Gordo rates tonight’s steaks on his Doneness-o-Meter (1 = still mooing, 10 = charcoal briquette): " + l + "."; }],
+                ["Llama-farm date", "min", 3, 58, 0, function (l) { return "Minutes late your date showed up to each llama-farm outing (the llamas started a group chat about it): " + l + "."; }],
+                ["Bowling", "points", 95, 299, 300, function (l) { return "Bowling scores at Lou’s Lanes this week, including Big Lou’s perfect game in a borrowed tuxedo: " + l + "."; }],
+                ["Pizza delivery", "min", 14, 62, 0, function (l) { return "Delivery times from Sal’s Pizza, whose driver insists on a scooter shaped like a pepperoni: " + l + " minutes."; }],
+                ["Phone battery", "hours", 4, 26, 0, function (l) { return "Hours your phone lasted per charge this week (one day you forgot it in the freezer): " + l + "."; }],
+                ["NBA points", "points", 2, 44, 0, function (l) { return "Points for a guard nicknamed “The Microwave Oven” in his last few games: " + l + "."; }],
+                ["Client mood", "points", 1, 10, 0, function (l) { return "Your client’s mood ratings (1–10) on the days their cat, Sir Pounce, did or didn’t knock things off the counter: " + l + "."; }]];
+              var B = [
+                ["Hot-dog contest", "hot dogs", 30, 50, 4, 8, 0, 120, "At the invented Glizzy Gauntlet, contestants’ hot-dog totals are bell-shaped"],
+                ["Steak doneness", "points", 5, 6, 1, 1, 1, 10, "Chef Gordo’s Doneness-o-Meter scores for 500 steaks are bell-shaped"],
+                ["Llama-farm date", "min", 15, 25, 4, 7, 0, 90, "How late your date shows up to the llama farm is bell-shaped"],
+                ["Bowling", "points", 150, 190, 15, 30, 0, 300, "League scores at Lou’s Lanes (where one guy bowled a perfect 300 in flip-flops) are bell-shaped"],
+                ["Pizza delivery", "min", 30, 40, 4, 8, 5, 90, "Sal’s pepperoni-scooter delivery times are bell-shaped"],
+                ["Phone battery", "hours", 12, 18, 2, 3, 1, 30, "Your phone’s hours per charge are bell-shaped"],
+                ["NBA points", "points", 18, 26, 4, 7, 0, 60, "“The Microwave Oven” scores in a bell-shaped pattern"],
+                ["Client mood", "points", 5, 6, 1, 1, 1, 10, "Your client’s 1–10 mood ratings across Sir Pounce’s chaos are bell-shaped"]];
+              return [
+                function (r) {
+                  var c = pk(r, D), u = c[1], n = 5 + Math.floor(r() * 4), v = [], i;
+                  for (i = 0; i < n; i++) v.push(ri(r, c[2], c[3]));
+                  if (c[4]) v[Math.floor(r() * n)] = c[4];
+                  var hi = Math.max.apply(null, v), lo = Math.min.apply(null, v);
+                  if (hi === lo) { v[0] = lo === c[2] ? lo + 1 : lo - 1; hi = Math.max.apply(null, v); lo = Math.min.apply(null, v); }
+                  var a = hi - lo, z = mk(c[5](v.join(", ")) + " What is the range?", a, u,
+                    "Range = max − min. Highest is " + F(hi, u) + ", lowest is " + F(lo, u) + ": " + nf(hi) + " − " + nf(lo) + " = " + F(a, u) + ". It only looks at the two extremes, so one wild value sets it.", c[0]);
+                  z.tol = 0.5; return z;
+                },
+                function (r) {
+                  var c, u, n, v, M, S, i, ok = false, t;
+                  for (t = 0; t < 500 && !ok; t++) {
+                    c = pk(r, D); n = 4 + Math.floor(r() * 3); v = c[4] ? [c[4]] : []; S = c[4];
+                    for (i = v.length; i < n - 1; i++) { v.push(ri(r, c[2], c[3])); S += v[i]; }
+                    M = ri(r, c[2], c[3]); var last = n * M - S;
+                    ok = last >= c[2] && last <= c[3];
+                    if (ok && c[4]) v.sort(function () { return r() - 0.5; });
+                    if (ok) { v.splice(Math.floor(r() * n), 0, last); ok = v.some(function (x) { return x !== M; }); }
+                  }
+                  if (!ok) { c = D[2]; v = [10, 20, 30, 40]; M = 25; n = 4; }
+                  u = c[1];
+                  var d = v.map(function (x) { return Math.abs(x - M); }), T = 0; d.forEach(function (x) { T += x; });
+                  var a = T / n, z = mk(c[5](v.join(", ")) + " What is the typical miss: the average distance from the mean (mean absolute deviation)?", a, u,
+                    "Mean = (" + v.join(" + ") + ") ÷ " + n + " = " + n * M + " ÷ " + n + " = " + nf(M) + ". Distances from " + nf(M) + ": " +
+                    v.map(function (x, k) { return "|" + x + " − " + M + "| = " + d[k]; }).join(", ") + ". Average distance = " + T + " ÷ " + n + " = " + F(a, u) + ": a typical value lands about that far from the mean.", c[0]);
+                  z.tol = Math.max(0.05, Math.abs(z.a) * 0.01); return z;
+                },
+                function (r) {
+                  var c = pk(r, B), u = c[1], M = ri(r, c[2], c[3]), S = ri(r, c[4], c[5]), z, t;
+                  if (c[0] === "Bowling") S = 5 * Math.round(S / 5);
+                  var pre = c[8] + " with mean " + F(M, u) + " and standard deviation " + F(S, u) + ".";
+                  if (r() < 0.5) {
+                    var up = r() < 0.5, L = M - 2 * S, H = M + 2 * S, a = up ? H : L;
+                    z = mk(pre + " What is the " + (up ? "upper" : "lower") + " end of the middle ~95% band?", a, u,
+                      "About 95% of a bell curve sits within 2 SDs of the mean: " + M + " ± 2 × " + S + " = " + M + " ± " + 2 * S + ", so the band runs " + nf(L) + " to " + nf(H) + ". The " + (up ? "upper" : "lower") + " end is " + F(a, u) + ".", c[0]);
+                  } else {
+                    var k = 1, x = M + S;
+                    for (t = 0; t < 200; t++) {
+                      k = (Math.floor(r() * 12) - 6) / 2; if (k >= 0) k += 0.5;
+                      x = M + k * S; if (x >= c[6] && x <= c[7] && x % 1 === 0) break;
+                      k = 1; x = M + S;
+                    }
+                    z = mk(pre + " One result is " + F(x, u) + ". How many SDs from the mean is it? (Negative means below.)", k, "SDs",
+                      "SDs from the mean = (x − M) ÷ S = (" + nf(x) + " − " + M + ") ÷ " + S + " = " + sn(x - M) + " ÷ " + S + " = " + sn(k) + ". So it sits " + nf(Math.abs(k)) + " SD" + (Math.abs(k) === 1 ? "" : "s") + " " + (k < 0 ? "below" : "above") + " the mean" +
+                      (Math.abs(k) > 2 ? ", outside the ~95% band: rare." : ", inside the ~95% band."), c[0]);
+                  }
+                  z.tol = 0.05; return z;
+                }
+              ];
+            })(),
             18: (function () {
               var C = [["Nicaragua Christmas trip", "You park $P in savings for the Christmas trip to Nicaragua"], ["Miami rent", "You set aside $P as a rent cushion for your Miami apartment"],
                 ["Camera gear", "You put $P into a fund for a new camera body and lens"], ["Counseling paycheck", "You stash $P from your counseling paycheck in a CD"]];
@@ -16958,7 +17220,7 @@
                 z.tol = 0.01; return z;
               }
             ]
-            /* REMIX: generators cover Days 1–27; add new days here */
+            /* REMIX: generators cover Days 1–28; add new days here */
           };
           Remix = (function () {
             function days() { return Object.keys(REMIX).map(Number).filter(function (d) { return REMIX[d] && REMIX[d].length; }); }
