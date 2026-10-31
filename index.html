@@ -1536,6 +1536,8 @@
           "SLOPE-ONE-POINT": "Slope uses the change between two points, not one point’s y ÷ x: 1,150 ÷ 6 ≈ $191.67 ignores the $400 already saved by month 1. (1,150 − 400) ÷ (6 − 1) = 750 ÷ 5 = $150 per month.",
           "QUAD-HIGHER-ALWAYS-MORE": "A higher price doesn’t always earn more: every $1 up loses a sale. At $45 only 5 prints sell: $45 × 5 = $225. At $25, 25 sell: $625. Revenue rises, peaks, then falls.",
           "QUAD-PICK-AN-END": "The best point is usually the peak in the middle, not an extreme: a 1 × 19 pen uses all 40 ft of fencing but holds only 19 sq ft. A 10 × 10 pen holds 100 sq ft.",
+          "GRAPH-STEEP-MEANS-BIG": "A steep line can be a small change on a zoomed-in axis. Check the axis numbers and compute the percent change before reacting.",
+          "GRAPH-TOTAL-VS-RATE": "Bigger places have bigger totals. Compare rates (per 100,000 people, per client) before saying who’s worse.",
           "FUNC-IN-OUT-SWAP": "f(11) means feed 11 in, not find what gives 11: with f(x) = 2x + 3, f(11) = 2 × 11 + 3 = 25. The 4 solves 2x + 3 = 11, which runs the machine backward.",
           "SYS-CROSS-MEANS-CHEAPER": "The crossing is where the plans are equal, not where one wins: at month 5 both gyms cost $200. Before it B is cheaper; after it A is.",
           "INEQ-EXACT-ONLY": "“At most $60” is a range, not one exact value, and you round in the safe direction: at $6.75 a pack, 18 + 6.75p ≤ 60 gives p ≤ 6.2, so at most 6 packs. 7 packs is $65.25, over the limit.",
@@ -6294,6 +6296,11 @@
             see: "Price grows from $0 to $50 while sales shrink from 50 to 0. Revenue = price × sales climbs, peaks at $25 × 25 = $625, then falls back to $0. The rectangle’s sides trade off: one gets longer as the other gets shorter.",
             why: "When two factors pull against each other, their product can’t grow forever: it rises, tops out and falls. The arc is symmetric, so the best point sits halfway between the two places where it hits zero. Too little and too much both lose.",
             use: "Pricing prints or sessions, a layout with a fixed amount of material, a shot’s highest point, stress and performance with clients: find the vertex instead of guessing at an extreme." },
+          graph: { term: "The axis decides the drama", svg: svgGraph, scene: "canyon", short: "Same numbers, different starting line.",
+            alt: "The same two bars, Program A 20% and Program B 24%, drawn twice: with the axis starting at 18% B looks 3 times taller; from 0% it is only a little taller",
+            see: "Same numbers, different starting line. From 18%, A’s bar is 2 units tall and B’s is 6, so B looks 3× bigger. From 0%, the bars are 20 and 24: B is really 1.2× A, a 4-point gap.",
+            why: "A bar’s height only matches its value when the bar starts at zero. Cut the bottom off and small gaps look huge. Steep or tall on screen is a drawing choice, not a fact.",
+            use: "News charts, rent ads, program outcome reports at work: read where the axis starts before you react to the shape." },
           number: { term: "Number", svg: svgNumber, short: "Keeps only how many.",
             alt: "A cookie, a music note and a calendar day become three identical dots, then the numeral 3",
             see: "Three unlike things (a cookie, a song, a day) turn into three identical dots, then one mark: 3. Each dot stands for one thing; the numeral stands for the whole group.",
@@ -7934,6 +7941,72 @@
           rng.addEventListener("change", function () { paint(true); });
           $(".x-do", card).addEventListener("click", function () { rng.value = 25; lo = 0; hi = 50; paint(true); });
           if (done) { rng.value = 25; lo = 0; hi = 50; } else lo = hi = +rng.value;
+          paint(false);
+        }
+        /* Day 15 graphs: Program A 20%, Program B 24%, drawn with the y-axis starting at b (top of the plot = 25%). Looks = (24 − b) ÷ (20 − b); really 1.2× */
+        function grLooks(b) { return ((24 - b) / (20 - b)).toFixed(1) + "×"; }
+        function grBars(b, ox, w) {
+          var ax = ox + 38, bw = (w - 48) / 3.2, k = 140 / (25 - b), y = function (v) { return +(170 - (v - b) * k).toFixed(1); }, s = "";
+          s += '<path d="M' + ax + " 170H" + (ox + w - 4) + "M" + ax + ' 170V26" stroke-opacity=".5"/>' + LBL(ax - 5, 174, b + "%", "text-anchor:end;font-size:12px");
+          [20, 24].forEach(function (v) { s += '<path d="M' + ax + " " + y(v) + "H" + (ox + w - 4) + '" stroke-opacity=".15"/>' + LBL(ax - 5, y(v) + 4, v + "%", "text-anchor:end;font-size:12px"); });
+          [[20, "A", "--cyan"], [24, "B", "--coral"]].forEach(function (p, i) {
+            var x = +(ax + bw * (0.4 + i * 1.4)).toFixed(1);
+            s += '<rect x="' + x + '" y="' + y(p[0]) + '" width="' + bw.toFixed(1) + '" height="' + (170 - y(p[0])).toFixed(1) + '" stroke="none" style="fill:var(' + p[2] + ')"/>' +
+              LBL(x + bw / 2, 186, p[1], "font-size:12px;font-weight:600");
+          });
+          return s;
+        }
+        function grSVG(b) {
+          return SVG_OPEN(196) + grBars(b, 0, 300) + LBL(150, 14, "Looks " + grLooks(b) + " · Really 1.2×", "font-weight:600" + (b === 0 ? ";fill:var(--ok)" : "")) + "</svg>";
+        }
+        function svgGraph() {
+          return SVG_OPEN(196) + grBars(18, 0, 150) + grBars(0, 150, 150) + LBL(84, 14, "From 18%: looks 3×", "font-weight:600") + LBL(234, 14, "From 0%: 1.2×", "font-weight:600;fill:var(--ok)") + "</svg>";
+        }
+        /* Day 15 build: Miami 1-bedroom rent $1,800 (2022) → $2,000 (2025) on a $1,780–$2,020 axis */
+        function grRent() {
+          var X = function (t) { return 70 + (t - 2022) * 70; }, Y = function (v) { return +(170 - (v - 1780) * 140 / 240).toFixed(1); }, s = SVG_OPEN(196), t;
+          s += '<path d="M64 170H290M64 170V26" stroke-opacity=".5"/>';
+          [1800, 2000].forEach(function (v) { s += '<path d="M64 ' + Y(v) + 'H290" stroke-opacity=".12"/>' + LBL(58, Y(v) + 4, "$" + (v / 1000).toFixed(3).replace(".", ","), "text-anchor:end;font-size:12px"); });
+          for (t = 2022; t <= 2025; t++) s += LBL(X(t), 188, t, "font-size:12px");
+          s += '<path d="M' + X(2022) + " " + Y(1800) + "L" + X(2025) + " " + Y(2000) + '" stroke-width="3" style="stroke:var(--coral)"/>' +
+            '<circle cx="' + X(2022) + '" cy="' + Y(1800) + '" r="6" stroke="none" style="fill:var(--coral)"/><circle cx="' + X(2025) + '" cy="' + Y(2000) + '" r="6" stroke="none" style="fill:var(--coral)"/>';
+          return s + LBL(170, 14, "Looks like a rocket", "font-weight:600") + "</svg>";
+        }
+        function grName() {
+          return SVG_OPEN(130) + LBL(150, 24, "A · W · R · S", "font-weight:600;font-size:18px") + LBL(150, 50, "Always Wonder, Read Slowly") +
+            LBL(150, 78, "Axis · Window · Rate · Source") + LBL(150, 106, "looks 3× → really 1.2×", "font-weight:600;fill:var(--ok)") + "</svg>";
+        }
+        /* Day 15 build check: accepts 11.1 (or 11.11…), with or without % */
+        function grFill(ans, tol) {
+          return function (card, api) {
+            var inp = $("input", card), res = $(".x-res", card), h = $(".x-hint", card), done = !!api.solved;
+            function check() {
+              if (done) return;
+              var v = parseFloat(inp.value.replace(/[$,%\s]/g, ""));
+              if (Math.abs(v - ans) <= tol) { done = true; res.hidden = false; h.hidden = true; inp.disabled = true; return api.solve(10); }
+              h.hidden = false;
+            }
+            $(".x-go", card).addEventListener("click", check);
+            inp.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); });
+            $(".x-do", card).addEventListener("click", function () { inp.value = ans; check(); });
+            if (done) { inp.value = ans; inp.disabled = true; }
+            res.hidden = !done;
+          };
+        }
+        /* Day 15 play: slide where the axis starts (0–19%). Solved when it starts at 0, where looks = really */
+        function grPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), rng = $("input", card), res = $(".x-res", card), done = !!api.solved;
+          function paint(stop) {
+            var b = +rng.value;
+            if (stop && b === 0 && !done) { done = true; api.solve(10); }
+            box.innerHTML = grSVG(b);
+            out.textContent = "Axis starts at " + b + "%. Looks: " + grLooks(b) + " bigger. Really: 1.2×." + (b === 0 ? " Looks = really." : " Slide until looks = really.");
+            res.hidden = !done;
+          }
+          rng.addEventListener("input", function () { paint(false); });
+          rng.addEventListener("change", function () { paint(true); });
+          $(".x-do", card).addEventListener("click", function () { rng.value = 0; paint(true); });
+          if (done) rng.value = 0;
           paint(false);
         }
         /* Day 22 proof puzzle: a 7 × 7 square (a = 3, b = 4), 26px a unit; four legs-3-4 triangles, each [x1, y1, x2, y2, turn]: corners (st 0) → two rectangles (st 1), translation only */
@@ -11980,6 +12053,99 @@
                 body: "<ul><li><b>Grow × shrink = an arc.</b> Price up, sales down: revenue rises, peaks, then falls.</li><li><b>The best point is the vertex.</b> $25 → $625; 10 × 10 → 100 sq ft.</li>" +
                   "<li><b>Halfway between the zeros.</b> (0 + 50) ÷ 2 = $25; (0 + 20) ÷ 2 = 10 ft.</li></ul>" +
                   '<p class="x-so"><b>So:</b> When one thing grows while another shrinks, look for the peak in the middle, not an extreme.</p>' }
+            ]
+          },
+          /* Day 15: reading any graph critically. A stretched axis, a picked window, a total posing as a rate */
+          15: {
+            home: ["Reading Any Graph Critically", "catch a stretched axis, a picked window, a total posing as a rate."],
+            flow: true,
+            scene: "canyon",
+            steps: [
+              { kind: "predict", title: "Program A vs Program B",
+                body: '<p class="x-q">A report compares relapse rates: Program A 20%, Program B 24%. The bar chart’s y-axis starts at 18%, so B’s bar looks 3× taller. How much worse is B, really?</p>' +
+                  ["3×", "1.2× (4 points)", "2×"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden>' + cpBox(grSVG(18), "Axis from 18%: bars 2 and 6 units tall", "Bars for A 20% and B 24% on an axis starting at 18%: B looks 3 times taller") +
+                  '<p class="why"><b>1.2×, a 4-point gap.</b> 24 ÷ 20 = 1.2. From 18%, the bars are 2 and 6 units tall on screen: that’s why it looks 3×.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l15axis", 1)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "Where the axis starts",
+                body: '<p class="x-q">Slide where the axis starts. Watch how much bigger B looks, then make looks match really.</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">A 20% · B 24% · the numbers never change</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="x-ctl"><label>Where the axis starts <input type="range" min="0" max="19" step="1" value="18" aria-label="Where the axis starts, in percent"></label></div>' +
+                  '<button type="button" class="prev press x-do">Do it for me</button>' +
+                  '<div class="x-res" hidden><p class="why"><b>From 0%, looks = really: 1.2×.</b> From 18% it looks 3.0×; from 19%, 5.0×.</p></div>' +
+                  LAB_CANYON,
+                mount: grPlay },
+              { kind: "notice", title: "Only the axis moved", hl: ".x-nl",
+                viz: cpBox(grSVG(0), "Axis from 0%: looks 1.2×, really 1.2×"),
+                q: "As you slid, what changed?",
+                options: ["Only the axis: the data stayed 20% and 24% the whole time", "B’s rate went up", "The gap between A and B grew"],
+                say: "The data never changed, only the axis did. Steep or tall on screen is a drawing choice." },
+              { kind: "plate", plate: "graph", title: "The axis decides the drama" },
+              { kind: "play", title: "Build it: the rent rocket",
+                body: cpBox(grRent(), "Average Miami 1-bedroom rent · y-axis $1,780–$2,020", "Rent line from $1,800 in 2022 to $2,000 in 2025 on an axis from $1,780 to $2,020, so it looks nearly vertical") +
+                  '<p class="x-q">Rent went from $1,800 in 2022 to $2,000 in 2025. What’s the real percent change?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input type="text" inputmode="decimal" autocomplete="off" placeholder="% change" aria-label="Percent change in rent"></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden><b>Hint:</b> Change ÷ starting value.</p>' +
+                  '<div class="x-res" hidden><p class="why"><b>About 11.1% over 3 years.</b> 200 ÷ 1,800 ≈ 0.111: about $67 more per year. Not a rocket.</p></div>',
+                mount: grFill(11.1, 0.15) },
+              { kind: "formalize", title: "Name it: the 4-check habit",
+                body: cpBox(grName(), "A-W-R-S: Always Wonder, Read Slowly", "The 4-check habit: Axis, Window, Rate, Source. Mnemonic: Always Wonder, Read Slowly") +
+                  '<ol class="x-wk"><li><span>Axis</span><span>Where it starts, the units, the scale</span><b>18% or 0%?</b></li>' +
+                  "<li><span>Window</span><span>Which dates, and why those</span><b>Mar–May only?</b></li>" +
+                  "<li><span>Rate</span><span>Totals vs per-person</span><b>per 100,000</b></li>" +
+                  "<li><span>Source</span><span>Who made it, how many people</span><b>who and how many</b></li></ol>",
+                so: "Before trusting a chart’s shape, check A-W-R-S: Axis, Window, Rate, Source." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "A friend sees the rent chart and says: “The line is nearly vertical, so rent must have exploded.” What went wrong?",
+                options: ["Steepness depends on the axis: $1,800 → $2,000 is about 11.1% over 3 years", "Nothing: a nearly vertical line means a huge jump", "Nothing: the line went up, so rent exploded"], answer: 0, tags: [null, "GRAPH-STEEP-MEANS-BIG", "GRAPH-STEEP-MEANS-BIG"], concept: "l15-axis",
+                hints: ["Read the axis numbers, then compute change ÷ start."],
+                why: "The axis runs $1,780–$2,020, so a $200 rise fills the chart. 200 ÷ 1,800 ≈ 11.1%: real, but not an explosion." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“Miami-Dade had 270 cases and a small county had 30, so Miami-Dade is worse.” Miami-Dade has about 2,700,000 people; the small county has 100,000. What went wrong?",
+                options: ["Totals, not rates: Miami-Dade is 10 per 100,000, the small county 30 per 100,000, 3× higher", "Nothing: 270 is 9× more than 30", "Nothing: bigger places are always worse"], answer: 0, tags: [null, "GRAPH-TOTAL-VS-RATE", "GRAPH-TOTAL-VS-RATE"], concept: "l15-rate",
+                hints: ["Cases ÷ people, then × 100,000."],
+                why: "270 ÷ 2,700,000 = 10 per 100,000. The small county: 30 per 100,000. Its rate is 3× higher." },
+              { kind: "fade", title: "The picked window",
+                q: "Your photography Instagram chart shows only March–May: 400 → 600 followers. Fill in the missing line.",
+                lines: ["Mar–May: 200 ÷ 400 = +50%", "Full year: Jan 700 → Dec 650: −50 ÷ 700 ≈ −7.1%", "Verdict: the window was picked to impress; the year was a small dip"],
+                blank: 1, options: ["Full year: Jan 700 → Dec 650: −50 ÷ 700 ≈ −7.1%", "Full year: 650 − 400 = 250, so +62.5%", "Full year: 650 − 700 = −50, so −50%"], answer: 0, tags: [null, null, null], concept: "l15-window",
+                hints: ["Same formula, whole year: change ÷ January’s value."],
+                why: "Over the year, 700 → 650 is −50 ÷ 700 ≈ −7.1%. The +50% came from picking March–May." },
+              { kind: "quiz", title: "Quick check: looks taller",
+                q: "Bars of 50 and 55 on an axis starting at 45. How many times taller does 55 look?",
+                options: ["2×", "1.1×", "5×"], answer: 0, tags: [null, null, "GRAPH-STEEP-MEANS-BIG"], concept: "l15-axis",
+                hints: ["Measure each bar from 45, not from 0."],
+                why: "(55 − 45) ÷ (50 − 45) = 10 ÷ 5 = 2×. Really, 55 ÷ 50 = 1.1×." },
+              { kind: "quiz", title: "Quick check: two towns",
+                q: "Town A: 40 cases among 20,000 people. Town B: 90 cases among 90,000. Which has the higher rate?",
+                options: ["Town A: 200 per 100,000 vs 100", "Town B: more cases", "Same rate"], answer: 0, tags: [null, "GRAPH-TOTAL-VS-RATE", null], concept: "l15-rate",
+                hints: ["Cases ÷ people for each town."],
+                why: "40 ÷ 20,000 = 200 per 100,000. 90 ÷ 90,000 = 100 per 100,000. A’s rate is twice B’s." },
+              { kind: "quiz", title: "Quick check: no numbers",
+                q: "A chart has no numbers on its y-axis. What can’t you judge?",
+                options: ["How big the change is: only its direction", "Whether it went up or down", "Nothing: the shape says it all"], answer: 0, tags: [null, null, "GRAPH-STEEP-MEANS-BIG"], concept: "l15-axis",
+                hints: ["Without numbers, could the axis start anywhere?"],
+                why: "You can see up or down, but not how far. Without numbers, any axis start could be hiding behind the shape." },
+              { kind: "transfer", title: "New costume: a client’s PHQ-9",
+                q: "A client’s weekly PHQ-9 scores: 14, 13, 15, 12, 11, 12, 10. Zoomed to 10–15, the line looks wild. What should you report?",
+                options: ["Down 4 points, week 1 → week 7 (about 29%): a steady decline on the full 0–27 scale", "Unstable: it jumps around every week", "Down 4 points: a 40% drop"], answer: 0, tags: [null, "GRAPH-STEEP-MEANS-BIG", null], concept: "l15-window",
+                hints: ["Compare week 1 with week 7: 14 → 10.", "Change ÷ start: 4 ÷ 14."],
+                why: "14 → 10 is 4 points down: 4 ÷ 14 ≈ 28.6%, about 29%. On the full 0–27 scale it’s a steady decline. Report the trend over the window and show the full scale, not week-to-week bumps." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>News and social posts.</b> Read the axis before sharing.</li><li><b>Rent and insurance ads.</b> Where does the axis start, and which years?</li>" +
+                  "<li><b>Remittance fee comparisons.</b> Per transfer or per dollar sent?</li><li><b>Your photo analytics.</b> Which window is the app showing you?</li>" +
+                  "<li><b>Program outcome reports at GEO.</b> Rates per client, on the full scale.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>Read the axes before the shape.</b> “Looks 3×” can really be 1.2×.</li><li><b>Ask why this time window.</b> +50% over Mar–May, −7.1% over the year.</li>" +
+                  "<li><b>Compare rates, not totals.</b> 10 vs 30 per 100,000, not 270 vs 30.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> Steep or tall on screen is a drawing choice: check A-W-R-S before you react.</p>' }
             ]
           },
           22: {
