@@ -810,6 +810,31 @@
         .stage { grid-row: 4; }
         .pnav { grid-row: 5; }
       }
+      /* ============ DEEP MEMORY review (part 1) ============ */
+      .x-srs { max-width: 30rem; display: grid; gap: 12px; position: relative; }
+      .x-srs__q { font: 600 18px/1.4 var(--display); padding-right: 40px; }
+      .x-srs__in { width: 100%; min-height: var(--tap); padding: 10px 14px; border-radius: var(--r-s); background: var(--surface-2); border: 1px solid var(--border); color: var(--text); font: inherit; font-size: 15px; resize: vertical; }
+      .x-srs__row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+      .x-srs__row button { min-height: var(--tap); padding: 6px 4px; border-radius: var(--r-s); background: var(--surface-2); border: 1px solid var(--border); font-size: 13px; color: var(--text); display: grid; gap: 2px; align-content: center; justify-items: center; }
+      .x-srs__row button small { font-family: var(--mono); font-size: 12px; color: var(--dim); }
+      .x-srs__row button[aria-pressed="true"] { background: color-mix(in srgb, var(--primary) 16%, transparent); box-shadow: inset 0 0 0 1.5px var(--primary); }
+      .x-srs__row button:disabled { opacity: 0.6; }
+      .x-srs .start { margin-top: 0; width: 100%; }
+      .x-srs .start:disabled, .x-srs-home .start:disabled { opacity: 0.45; cursor: default; }
+      .x-srs__back { display: grid; gap: 10px; padding-top: 12px; border-top: 1px solid var(--border); }
+      .x-srs__back[hidden] { display: none; }
+      .x-srs__a { font-weight: 600; font-size: 15px; line-height: 1.45; }
+      .x-srs__why { color: var(--dim); font-size: 13.5px; line-height: 1.5; }
+      .x-srs__v { font-weight: 600; font-size: 14px; }
+      .x-srs__v--ok { color: var(--ok); }
+      .x-srs__v--bad { color: var(--bad); }
+      .x-srs__x { position: absolute; top: -6px; right: -6px; width: var(--tap); height: var(--tap); border-radius: 999px; font-size: 22px; color: var(--dim); }
+      .x-srs__skip { min-height: var(--tap); color: var(--dim); font-size: 13.5px; text-decoration: underline; }
+      .x-srs-home .chips { justify-content: center; }
+      .x-srs-home .start { min-width: 15rem; }
+      .x-srs-home .x-srs-alt { margin-top: 0; background: transparent; color: var(--text); box-shadow: inset 0 0 0 1.5px var(--border); }
+      .tabbar button { position: relative; }
+      .x-tbadge { position: absolute; top: 2px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--primary); color: var(--bg); font: 600 12px/18px var(--mono); box-shadow: 0 0 0 2px var(--bg); }
     </style>
   <link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-180.png"><meta name="theme-color" content="#0b1020"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
 </head>
@@ -1153,6 +1178,7 @@
           cloud: function (o) {
             var c = { app: o.app, kind: o.kind, version: o.version, exportedAt: o.exportedAt, settings: o.settings, theme: o.theme, xp: o.xp, streak: o.streak, lessons: o.lessons, quizHistory: o.quizHistory };
             NM_KEYS.forEach(function (k) { if (o[k] != null) c[k] = o[k]; });
+            try { if (o.srs && typeof SRS !== "undefined" && SRS) { c.srs = SRS.compact(o.srs); if (JSON.stringify(c).length > 60000) c.srs = SRS.compact(o.srs, true); } } catch (e) {}
             if (JSON.stringify(c).length > 60000) delete c.quizHistory;
             if (JSON.stringify(c).length > 60000) delete c.predictions;
             return c;
@@ -1222,12 +1248,13 @@
             o.mastery = hi(l.mastery, r.mastery); o.misses = hi(l.misses, r.misses); o.hints = hi(l.hints, r.hints);
             o.proven = Object.assign({}, r.proven || {}, l.proven || {});
             o.predictions = uni(l.predictions, r.predictions).sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); }).slice(-300);
+            try { var srsM = SRS.merge(l.srs, r.srs); if (srsM) o.srs = srsM; } catch (e) {}
             var ld = l.daily || {}, rd = r.daily || {};
             o.daily = (rd.date || "") > (ld.date || "") ? { date: rd.date, streak: rd.streak || 0 } : (ld.date || "") > (rd.date || "") ? { date: ld.date, streak: ld.streak || 0 } : { date: ld.date || rd.date || null, streak: Math.max(ld.streak || 0, rd.streak || 0) };
             return o;
           },
           differs: function (a, b) {
-            var key = function (o) { return JSON.stringify([o.xp, o.streak, o.lessons, o.quizHistory, o.settings, o.theme, o.mastery || {}, o.misses || {}, o.hints || {}, o.predictions || [], o.proven || {}, o.daily && o.daily.date ? o.daily : null]); };
+            var key = function (o) { return JSON.stringify([o.xp, o.streak, o.lessons, o.quizHistory, o.settings, o.theme, o.mastery || {}, o.misses || {}, o.hints || {}, o.predictions || [], o.proven || {}, o.daily && o.daily.date ? o.daily : null, (function () { try { return SRS.sig(o.srs); } catch (e) { return null; } })()]); };
             return key(a) !== key(b);
           },
           begin: function () { if (Sync.on()) Sync.pull(); else Sync.set("off"); }
@@ -1335,8 +1362,11 @@
 
         var TABS = [{ v: "home", t: "Home", i: "home" }, { v: "library", t: "Library", i: "library" }, { v: "lab", t: "Lab", i: "flask" }, { v: "review", t: "Review", i: "review" }, { v: "settings", t: "Settings", i: "gear" }];
         function paintTabs() {
+          var srsN = 0;
+          try { if (typeof SRS !== "undefined" && SRS) srsN = SRS.today(); } catch (e) { srsN = 0; }
           $("#tabbar").innerHTML = TABS.map(function (t) {
-            return '<button type="button" class="press" data-tab="' + t.v + '"' + (State.tab === t.v ? ' aria-current="page"' : "") + ">" + I[t.i] + "<span>" + t.t + "</span></button>";
+            var bd = t.v === "review" && srsN ? '<span class="x-tbadge" aria-label="' + srsN + ' to review">' + (srsN > 99 ? "99+" : srsN) + "</span>" : "";
+            return '<button type="button" class="press" data-tab="' + t.v + '"' + (State.tab === t.v ? ' aria-current="page"' : "") + ">" + I[t.i] + "<span>" + t.t + "</span>" + bd + "</button>";
           }).join("");
         }
         function go(tab) {
@@ -5844,6 +5874,7 @@
             }).join("");
           },
           review: function () {
+            try { if (typeof SRS !== "undefined" && SRS) { var srsHome = SRS.home(); if (srsHome) return srsHome; } } catch (e) {}
             return '<div><h1 class="greet">Review</h1></div>' +
               '<section class="empty glass"><div class="empty__ring">' + I.review.replace(/width="20" height="20"/, 'width="32" height="32"') + "</div>" +
               "<h3>Nothing to review yet</h3><p>Finish a lesson and its key ideas will come back here, spaced out so they stick.</p>" +
@@ -13025,6 +13056,7 @@
                 prefs.mastered = (prefs.mastered || []).concat([day]);
                 savePrefs();
               }
+              try { SRS.seed(day); } catch (e) {}
               History.closeTop();
               go("home");
               if (first) confetti();
@@ -13238,7 +13270,8 @@
               quizHistory: prefs.quiz || [],
               dictionary: { filter: prefs.plateF || "all" },
               mastery: Object.assign({}, prefs.mastery || {}), misses: Object.assign({}, prefs.misses || {}), hints: Object.assign({}, prefs.hints || {}),
-              predictions: (prefs.predictions || []).slice(), proven: Object.assign({}, prefs.proven || {}), daily: Object.assign(nmEmpty("daily"), prefs.daily || {})
+              predictions: (prefs.predictions || []).slice(), proven: Object.assign({}, prefs.proven || {}), daily: Object.assign(nmEmpty("daily"), prefs.daily || {}),
+              srs: prefs.srs && typeof prefs.srs === "object" ? JSON.parse(JSON.stringify(prefs.srs)) : undefined
             };
           },
           encode: function (o) { var s = JSON.stringify(o); try { return btoa(unescape(encodeURIComponent(s))); } catch (e) { return s; } },
@@ -13257,6 +13290,7 @@
             var ok = function (d) { return (typeof d === "number" && d >= 1 && d <= 30 && d % 1 === 0) || (typeof d === "string" && (/^w\d+$/.test(d) || !!NM_SOON[d])); };
             o.lessons.mastered = o.lessons.mastered.filter(ok);
             o.lessons.recent = (Array.isArray(o.lessons.recent) ? o.lessons.recent : []).filter(ok);
+            if (o.srs != null) { try { o.srs = SRS.clean(o.srs); } catch (e) { o.srs = null; } if (!o.srs) delete o.srs; }
             return nmClean(o);
           },
           apply: function (o) {
@@ -13266,6 +13300,8 @@
             prefs.quiz = Array.isArray(o.quizHistory) ? o.quizHistory : [];
             /* foundations fields: only when present, so an older backup keeps what this device has */
             NM_KEYS.forEach(function (k) { if (o[k] != null) prefs[k] = JSON.parse(JSON.stringify(o[k])); });
+            /* review cards: only when present; seeding refills card text the compact cloud copy leaves out */
+            try { if (o.srs != null && typeof o.srs === "object") { prefs.srs = JSON.parse(JSON.stringify(o.srs)); SRS.seed(false); paintTabs(); } } catch (e) {}
             if (pick(s.goal, GOALS)) prefs.goal = s.goal;
             if (pick(s.sort, SORTS)) prefs.sort = s.sort;
             if (pick(s.level, LEVELS)) prefs.level = s.level;
@@ -13292,6 +13328,275 @@
               row("Lessons done", days + " of 30" + (w ? " · " + w + " warm-up" + (w > 1 ? "s" : "") : "")) + row("Day streak", String(o.streak || 0)) + row("Exported", when) + "</div>";
           }
         };
+        /* ============ DEEP MEMORY: recall-first spaced review (part 1 of 3) ============
+           prefs.srs = { cards: { id: card }, log: [] }; saved with savePrefs, carried by Backup and the numina_progress sync.
+           Cards are seeded from mastered lessons; ids "d<day>-<kind>-<index>" stay stable so re-seeding never duplicates. */
+        var SRS = null;
+        try {
+          SRS = (function () {
+            var NEW_PER_DAY = 8, CAP = 12;
+            var KIND_T = { explain: "Explain", prod: "Recall", cloze: "Fill the blank", trap: "Spot the trap" };
+            var CONF = ["Guessing", "Unsure", "Fairly sure", "Certain"];
+            var GR = [{ g: 0, t: "Again" }, { g: 3, t: "Hard" }, { g: 4, t: "Good" }, { g: 5, t: "Easy" }];
+            function bag() {
+              var s = prefs.srs;
+              if (!s || typeof s !== "object" || Array.isArray(s)) s = prefs.srs = { cards: {}, log: [] };
+              if (!s.cards || typeof s.cards !== "object" || Array.isArray(s.cards)) s.cards = {};
+              if (!Array.isArray(s.log)) s.log = [];
+              return s;
+            }
+            function txt(h) { var t = doc.createElement("template"); t.innerHTML = String(h == null ? "" : h); return (t.content.textContent || "").replace(/\s+/g, " ").trim(); }
+            function midnight(ts, add) { var d = new Date(ts); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + (add || 0)); return d.getTime(); }
+            function numOf(s) { var m = String(s).replace(/[−–]/g, "-").replace(/,/g, "").match(/-?\d*\.?\d+/); return m ? parseFloat(m[0]) : NaN; }
+            function isNum(a) { return /^[^\d\s]{0,2}-?\d[\d.,]*\s*[%°a-zA-Z¢ ]{0,8}$/.test(String(a).replace(/[−–]/g, "-").trim()); }
+            function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+            /* B) cards from one lesson's steps: explain (plates), traps (misconceptions), recall (short answers), cloze (recap) */
+            function build(day) {
+              var L = LESSON_CONTENT[day];
+              if (!L || !Array.isArray(L.steps)) return [];
+              var ex = [], tr = [], pr = [], cl = [], seen = {};
+              L.steps.forEach(function (s) {
+                if (!s) return;
+                if (s.kind === "plate" && PLATES[s.plate]) {
+                  var p = PLATES[s.plate], term = txt(String(p.term || s.plate).split(" = ")[0]).replace(/^(an?|the)\s+/i, "");
+                  ex.push({ front: "In your own words: what is a " + term + ", and where would you use it?", back: txt(p.term) + (p.short ? ". " + txt(p.short) : ""), why: p.use ? "Where it’s useful: " + txt(p.use) : txt(p.why), tag: s.plate });
+                }
+                var opts = Array.isArray(s.options) ? s.options : (Array.isArray(s.opts) ? s.opts : []).map(function (o) { return o && o.t; });
+                var ans = typeof s.answer === "number" ? opts[s.answer] : null;
+                if (ans && /^(quiz|predict|transfer|fade|challenge|practice)$/.test(s.kind)) {
+                  var a = txt(ans), front = s.kind === "fade" && Array.isArray(s.lines) ? "Fill in the missing step: " + s.lines.map(function (l, i) { return i === s.blank ? "____" : txt(l); }).join(" → ") : txt(s.q);
+                  if (front && a && a.length <= 48) pr.push({ front: front, back: a, why: [txt(s.res), txt(s.why)].filter(Boolean).join(" "), num: isNum(a) ? numOf(a) : null, tag: s.concept || "" });
+                }
+                (Array.isArray(s.tags) ? s.tags : []).forEach(function (id, i) {
+                  if (!id || seen[id] || !MISCONCEPTIONS[id] || !opts[i]) return;
+                  seen[id] = 1;
+                  tr.push({ front: "True or not, and why? “" + txt(opts[i]) + "”" + (s.q ? " (Question: " + txt(s.q) + ")" : ""), back: "Not true. " + MISCONCEPTIONS[id], why: (ans ? "The answer there: " + txt(ans) + ". " : "") + txt(s.why), tag: id });
+                });
+                if (s.kind === "recap" && typeof s.body === "string") {
+                  (s.body.match(/<li>[\s\S]*?<\/li>/g) || []).forEach(function (li) {
+                    var line = txt(li), best = "";
+                    (li.match(/<b>[\s\S]*?<\/b>|“[^”]+”|"[^"<>]+"/g) || []).forEach(function (m) { m = txt(m).replace(/^[“"]|[”"]$/g, "").replace(/[.:]$/, ""); if (m.length > best.length) best = m; });
+                    if (!best || line.indexOf(best) < 0) { var n = line.match(/[−-]?\d+(?:[.,]\d+)*%?/); best = n ? n[0] : ""; }
+                    if (best && best.length < line.length) cl.push({ front: "Fill the blank: " + line.replace(best, "____"), back: best, why: line, num: isNum(best) ? numOf(best) : null, tag: "recap" });
+                  });
+                }
+              });
+              var pick = [];
+              ex.slice(0, 3).forEach(function (c, i) { pick.push([c, "explain", i]); });
+              tr.slice(0, 3).forEach(function (c, i) { pick.push([c, "trap", i]); });
+              for (var i = 0; pick.length < CAP && (i < pr.length || i < cl.length); i++) {
+                if (i < pr.length) pick.push([pr[i], "prod", i]);
+                if (i < cl.length && pick.length < CAP) pick.push([cl[i], "cloze", i]);
+              }
+              return pick.map(function (x) { var c = x[0]; c.kind = x[1]; c.id = "d" + day + "-" + x[1] + "-" + x[2]; c.day = day; return c; });
+            }
+            /* seed(day) for one lesson, seed() for every mastered lesson; seed(false) refills text without saving */
+            function seed(day) {
+              var s = bag(), quiet = day === false, days = day == null || quiet ? (prefs.mastered || []).slice() : [day], changed = 0;
+              days.forEach(function (d) {
+                build(d).forEach(function (c) {
+                  var o = s.cards[c.id];
+                  if (!o || typeof o !== "object") { s.cards[c.id] = Object.assign(c, { ease: 2.5, interval: 0, reps: 0, lapses: 0, due: null, last: null, conf: [], hist: [] }); changed++; }
+                  else if (o.front !== c.front || o.back !== c.back || o.why !== c.why || o.num !== c.num) { o.id = c.id; o.day = c.day; o.kind = c.kind; o.front = c.front; o.back = c.back; o.why = c.why; o.tag = c.tag; o.num = c.num; changed++; }
+                });
+              });
+              if (changed && !quiet) savePrefs();
+              return changed;
+            }
+
+            /* C) SM-2 style scheduling; due is local midnight + interval days */
+            function next(c, g) {
+              var ease = c.ease || 2.5, reps = c.reps || 0, iv = c.interval || 0;
+              if (g === 0) return { ease: Math.max(1.3, ease - 0.2), reps: 0, interval: 1 };
+              var base = reps === 0 ? 1 : reps === 1 ? 3 : iv * ease;
+              if (g === 3) { base = reps < 2 ? Math.max(1, base * 0.6) : iv * 1.2; ease = Math.max(1.3, ease - 0.15); }
+              if (g === 5) { base = (reps < 2 ? base : iv) * ease * 1.3; ease = ease + 0.15; }
+              return { ease: ease, reps: reps + 1, interval: Math.max(1, Math.round(base)) };
+            }
+            function label(c, g) { if (g === 0) return "10 min"; var d = next(c, g).interval; return d < 30 ? d + " d" : (d / 30).toFixed(1) + " mo"; }
+            function grade(c, g, conf, ok) {
+              var r = next(c, g), now = Date.now(), wasNew = !c.last, iv = r.interval, s = bag();
+              if (iv > 2) iv = Math.max(1, Math.round(iv * (0.9 + Math.random() * 0.2)));
+              c.ease = Math.round(r.ease * 100) / 100; c.reps = r.reps; c.interval = iv;
+              if (g === 0) c.lapses = (c.lapses || 0) + 1;
+              c.due = midnight(now, iv); c.last = now;
+              c.conf = (Array.isArray(c.conf) ? c.conf : []).concat([conf]).slice(-30);
+              c.hist = (Array.isArray(c.hist) ? c.hist : []).concat([{ t: now, g: g, conf: conf, ok: ok }]).slice(-30);
+              s.log.push({ t: now, id: c.id, g: g, conf: conf, ok: ok, n: wasNew ? 1 : 0 });
+              if (s.log.length > 1000) s.log.splice(0, s.log.length - 1000);
+              savePrefs();
+            }
+
+            function cards() { var s = bag(); return Object.keys(s.cards).map(function (k) { return s.cards[k]; }).filter(function (c) { return c && typeof c === "object" && c.front; }); }
+            function due() { var now = Date.now(); return cards().filter(function (c) { return c.last && c.due && c.due <= now; }).sort(function (a, b) { return a.due - b.due; }); }
+            function fresh() {
+              var t0 = midnight(Date.now()), used = bag().log.filter(function (e) { return e && e.n && e.t >= t0; }).length;
+              return cards().filter(function (c) { return !c.last; }).slice(0, Math.max(0, NEW_PER_DAY - used));
+            }
+            function stats() {
+              var now = Date.now(), all = cards(), up = all.filter(function (c) { return c.last && c.due > now; }).map(function (c) { return c.due; });
+              return { due: due().length, fresh: fresh().length, unseen: all.filter(function (c) { return !c.last; }).length, total: all.length,
+                week: bag().log.filter(function (e) { return e && e.t >= now - 7 * 864e5; }).length, next: up.length ? Math.min.apply(null, up) : null };
+            }
+            /* D) interleave: no two cards from the same lesson back to back when avoidable */
+            function mix(list) {
+              var g = {}, out = [], last = null;
+              shuffle(list).forEach(function (c) { var k = String(c.day); (g[k] = g[k] || []).push(c); });
+              var keys = shuffle(Object.keys(g));
+              while (out.length < list.length) {
+                keys.sort(function (a, b) { return g[b].length - g[a].length; });
+                var k = keys.filter(function (x) { return g[x].length && x !== last; })[0] || keys.filter(function (x) { return g[x].length; })[0];
+                out.push(g[k].shift()); last = k;
+              }
+              return out;
+            }
+
+            function run(queue, mode) {
+              if (!queue.length) return UI.toast("Nothing to review right now");
+              var layer = doc.createElement("div"), opener = doc.activeElement, i = 0, done = 0, right = 0, again = {}, st = {};
+              layer.className = "layer";
+              layer.innerHTML = '<div class="card x-srs" role="dialog" aria-modal="true" aria-label="' + (mode === "mix" ? "Mixed practice" : "Review") + '"></div>';
+              var box = layer.firstChild;
+              function paint() {
+                var c = queue[i];
+                if (!c) {
+                  box.innerHTML = '<p class="card__t">Session done</p><p class="dim">' + done + " card" + (done === 1 ? "" : "s") + " graded · " + right + " recalled. Each one comes back just before you’d forget it.</p>" +
+                    '<button type="button" class="start press" data-sr="close">Close</button>';
+                  return $("[data-sr=close]", box).focus();
+                }
+                st = { conf: null, ok: null };
+                box.innerHTML = '<button type="button" class="x-srs__x press" data-sr="close" aria-label="End session">×</button>' +
+                  '<p class="eyebrow">' + (i + 1) + " of " + queue.length + " · " + esc(KIND_T[c.kind] || "Card") + " · " + esc(dayLabel(c.day)) + "</p>" +
+                  '<p class="x-srs__q">' + esc(c.front) + "</p>" +
+                  (c.num != null ? '<input class="x-srs__in" inputmode="decimal" autocomplete="off" aria-label="Your answer" placeholder="Type your answer">'
+                    : '<textarea class="x-srs__in" rows="3" aria-label="Your answer" placeholder="Type or think your answer first"></textarea>') +
+                  '<p class="eyebrow">How sure are you?</p><div class="x-srs__row" role="group" aria-label="How sure are you?">' +
+                  CONF.map(function (t, k) { return '<button type="button" class="press" data-sc="' + k + '" aria-pressed="false">' + t + "</button>"; }).join("") + "</div>" +
+                  '<button type="button" class="start press" data-sr="show" disabled>Pick how sure you are to reveal</button><div class="x-srs__back" hidden></div>';
+                $(".x-srs__in", box).focus();
+              }
+              function reveal() {
+                var c = queue[i], inp = $(".x-srs__in", box), typed = inp.value.trim(), back = $(".x-srs__back", box);
+                if (c.num != null) { var v = numOf(typed); st.ok = !!typed && isFinite(v) && Math.abs(v - c.num) <= Math.max(0.01, Math.abs(c.num) * 0.01); }
+                inp.readOnly = true;
+                box.querySelectorAll("[data-sc]").forEach(function (b) { b.disabled = true; });
+                $("[data-sr=show]", box).hidden = true;
+                back.innerHTML = (st.ok === true ? '<p class="x-srs__v x-srs__v--ok">✓ Correct</p>'
+                    : st.ok === false ? '<p class="x-srs__v x-srs__v--bad">' + (typed ? "Not quite: you typed " + esc(typed) + "." : "No answer typed.") + " Here’s the answer and why.</p>"
+                    : typed ? '<p class="x-srs__why">You wrote: ' + esc(typed) + "</p>" : "") +
+                  '<p class="x-srs__a">' + esc(c.back) + "</p>" + (c.why ? '<p class="x-srs__why">' + esc(c.why) + "</p>" : "") +
+                  /* PARTS 2–3 HOOK: elaboration notes / mnemonics (part 2) and calibration feedback (part 3) render here, before grading */
+                  '<p class="eyebrow">How well did you recall it?</p><div class="x-srs__row" role="group" aria-label="Grade your recall">' +
+                  GR.map(function (x) { return '<button type="button" class="press" data-sg="' + x.g + '" aria-pressed="' + (st.ok === false && x.g === 0) + '">' + x.t + "<small>" + label(c, x.g) + "</small></button>"; }).join("") + "</div>" +
+                  (mode === "mix" ? '<button type="button" class="x-srs__skip press" data-sr="skip">Next without grading</button>' : "");
+                back.hidden = false;
+                ($('[data-sg][aria-pressed="true"]', back) || $("[data-sg]", back)).focus();
+              }
+              function rate(g) {
+                var c = queue[i], ok = c.num != null ? st.ok : g > 0;
+                grade(c, g, st.conf, ok); done++; if (ok) right++;
+                if (g === 0 && (again[c.id] = (again[c.id] || 0) + 1) <= 3) queue.splice(Math.min(queue.length, i + 4), 0, c);
+                i++; paint();
+              }
+              box.addEventListener("click", function (e) {
+                var b = e.target.closest("button");
+                if (!b || b.disabled) return;
+                e.stopPropagation();
+                if (b.dataset.sc) {
+                  st.conf = +b.dataset.sc;
+                  box.querySelectorAll("[data-sc]").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+                  var sh = $("[data-sr=show]", box); sh.disabled = false; sh.textContent = "Show answer";
+                } else if (b.dataset.sg) rate(+b.dataset.sg);
+                else if (b.dataset.sr === "show") reveal();
+                else if (b.dataset.sr === "skip") { i++; paint(); }
+                else if (b.dataset.sr === "close") History.closeTop();
+              });
+              box.addEventListener("keydown", function (e) {
+                if (e.key === "Enter" && e.target.tagName === "INPUT" && st.conf != null && !$("[data-sr=show]", box).hidden) { e.preventDefault(); reveal(); }
+              });
+              doc.body.appendChild(layer);
+              History.push("srs", function () {
+                layer.remove();
+                try { paintTabs(); if (State.tab === "review") Views.render(); } catch (e) {}
+                if (opener && opener.isConnected) opener.focus({ preventScroll: true });
+              });
+              paint();
+            }
+            function start() { run(mix(due().concat(fresh())), "due"); }
+            function practice() { run(mix(shuffle(cards()).slice(0, 10)), "mix"); }
+
+            /* E) the Review tab's home */
+            function home() {
+              var t = stats(), n = t.due + t.fresh, ring = '<div class="empty__ring">' + I.review.replace(/width="20" height="20"/, 'width="32" height="32"') + "</div>";
+              if (!t.total) return "";
+              var when = t.next ? new Date(t.next).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" }) : "";
+              var idle = t.unseen && !t.fresh ? "New cards unlock tomorrow" + (when ? "; next review " + when : "") + "." : when ? "Next card is due " + when + "." : "Master another lesson to add cards.";
+              return '<div><h1 class="greet">Review</h1></div>' +
+                '<section class="empty glass x-srs-home">' + ring + "<h3>Deep Memory</h3>" +
+                "<p>Recall first, then check. Cards return just before you’d forget them.</p>" +
+                '<div class="chips"><span class="chip">Due today <b>' + t.due + '</b></span><span class="chip">New <b>' + t.fresh + '</b></span><span class="chip">Reviewed this week <b>' + t.week + "</b></span></div>" +
+                '<button type="button" class="start press" data-srs="start"' + (n ? "" : " disabled") + ">" + (n ? "Start review · " + n + " card" + (n === 1 ? "" : "s") : "All caught up for today") + "</button>" +
+                (n ? "" : "<p>" + esc(idle) + "</p>") +
+                '<button type="button" class="start press x-srs-alt" data-srs="mix">Mixed practice · 10 cards</button>' +
+                "<p>Mixed practice pulls random cards from lessons you’ve mastered. Your schedule only changes if you grade a card.</p></section>";
+            }
+            doc.addEventListener("click", function (e) {
+              var b = e.target.closest && e.target.closest("[data-srs]");
+              if (!b || b.disabled) return;
+              try { if (b.dataset.srs === "start") start(); else practice(); } catch (err) { UI.toast("Review couldn’t open"); }
+            });
+
+            /* sync helpers: compact cloud copy (schedule only, text is re-seeded), per-card newest-wins merge */
+            function clean(s) {
+              if (!s || typeof s !== "object" || !s.cards || typeof s.cards !== "object" || Array.isArray(s.cards)) return null;
+              var o = { cards: {}, log: (Array.isArray(s.log) ? s.log : []).filter(function (e) { return e && isFinite(+e.t); }).slice(-1000) };
+              Object.keys(s.cards).forEach(function (k) {
+                var c = s.cards[k];
+                if (!c || typeof c !== "object" || !/^d[\w-]+-(explain|prod|cloze|trap)-\d+$/.test(k)) return;
+                c.id = k; c.ease = Math.min(5, Math.max(1.3, +c.ease || 2.5)); c.interval = Math.max(0, +c.interval || 0); c.reps = Math.max(0, +c.reps || 0); c.lapses = Math.max(0, +c.lapses || 0);
+                c.due = isFinite(+c.due) && c.due ? +c.due : null; c.last = isFinite(+c.last) && c.last ? +c.last : null;
+                if (!Array.isArray(c.conf)) c.conf = []; if (!Array.isArray(c.hist)) c.hist = [];
+                o.cards[k] = c;
+              });
+              return o;
+            }
+            function compact(s, tight) {
+              s = clean(JSON.parse(JSON.stringify(s)));
+              if (!s) return undefined;
+              var o = { cards: {}, log: s.log.slice(tight ? -40 : -150) };
+              Object.keys(s.cards).forEach(function (k) {
+                var c = s.cards[k];
+                if (c.last) o.cards[k] = { id: k, day: c.day, kind: c.kind, ease: c.ease, interval: c.interval, reps: c.reps, lapses: c.lapses, due: c.due, last: c.last, conf: c.conf.slice(tight ? -3 : -10), hist: c.hist.slice(tight ? -2 : -8) };
+              });
+              return o;
+            }
+            function merge(a, b) {
+              a = a ? clean(JSON.parse(JSON.stringify(a))) : null; b = b ? clean(JSON.parse(JSON.stringify(b))) : null;
+              if (!a && !b) return undefined;
+              a = a || { cards: {}, log: [] }; b = b || { cards: {}, log: [] };
+              var out = { cards: {}, log: [] }, seenL = {};
+              Object.keys(a.cards).concat(Object.keys(b.cards)).forEach(function (k) {
+                var x = a.cards[k], y = b.cards[k], w = !y ? x : !x ? y : (y.last || 0) > (x.last || 0) ? y : x;
+                out.cards[k] = Object.assign({}, w === x ? y : x, w);
+              });
+              a.log.concat(b.log).forEach(function (e) { var k = e.t + ":" + e.id; if (!seenL[k]) { seenL[k] = 1; out.log.push(e); } });
+              out.log.sort(function (p, q) { return p.t - q.t; }); out.log = out.log.slice(-1000);
+              return out;
+            }
+            function sig(s) {
+              if (!s || !s.cards) return null;
+              return Object.keys(s.cards).sort().filter(function (k) { return s.cards[k] && s.cards[k].last; }).map(function (k) { var c = s.cards[k]; return [k, c.reps, c.last, c.due]; });
+            }
+
+            return { seed: seed, due: due, fresh: fresh, stats: stats, cards: cards, grade: grade, next: next, mix: mix, home: home, start: start, practice: practice,
+              today: function () { var t = stats(); return t.due + t.fresh; }, clean: clean, compact: compact, merge: merge, sig: sig, CONF: CONF, KIND_T: KIND_T };
+          })();
+          /* for parts 2–3 (elaboration notes, mnemonics, calibration dashboard) */
+          window.NuminaSRS = { due: function () { try { return SRS.due(); } catch (e) { return []; } }, seed: function (d) { try { return SRS.seed(d); } catch (e) { return 0; } },
+            stats: function () { try { return SRS.stats(); } catch (e) { return null; } }, api: SRS };
+        } catch (e) { SRS = null; }
+
         /* a centered card on the back/Esc layer stack */
         function dialog(title, html) {
           var layer = doc.createElement("div"), opener = doc.activeElement;
@@ -13576,6 +13881,7 @@
           History.root();
           State.tab = "home";
           State.open = null;
+          try { SRS.seed(); } catch (e) {}
           paintTabs();
           Views.render();
           Themes.apply();
