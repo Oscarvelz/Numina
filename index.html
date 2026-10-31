@@ -1419,6 +1419,8 @@
           "LIN-RATE-AS-TOTAL": "The rate is per use: multiply it by how many uses.",
           "RATE-FLIPPED": "Divide by the thing after “per”: $ per oz is dollars ÷ ounces. Ounces ÷ dollars gives ounces per dollar.",
           "RATE-BIGGER-PACK-CHEAPER": "Bigger isn’t always cheaper: divide price by size and compare the unit price.",
+          "PROP-ADD-NOT-MULTIPLY": "Scale by multiplying, not adding: 2 cups for 4 people is ½ cup each, so 6 people need 3 cups, not 2 + 2 = 4.",
+          "CONV-WRONG-DIRECTION": "Converting to a bigger unit gives a smaller number, so divide: 1,000 C$ ÷ 36.6 ≈ $27, not × 36.6.",
           "EXP-TIMES-TWO": "3² means 3 × 3, not 3 × 2. The exponent counts how many times the base is multiplied.",
           "EXP-SMALL-JUMP": "Exponential growth looks slow at first and then explodes. Each step multiplies, so late steps add far more than early ones.",
           "EXP-MULT-EXPONENTS": "Same base: add the counts, don't multiply them.",
@@ -6114,6 +6116,11 @@
             see: "One price split evenly across the ounces. Each piece is one ounce, and each costs the same: $0.75. That one piece is the unit rate.",
             why: "Cutting both packages down to one ounce puts them on the same ruler, so a small bag and a big bag can be compared directly. It hides quality and waste: the cheaper ounce only wins if you use it all.",
             use: "Shelf tags, gas per gallon, pay per hour, pages per hour, sessions per day: divide, then compare the “per one” numbers." },
+          proportion: { term: "A proportion = two ratios that stay equal as things scale", svg: svgProp, scene: "fairshare", short: "Two equal ratios: 2/4 = 3/6.",
+            alt: "A double number line: 4 people over 2 cups, and 6 people over 3 cups, both lines stretched by 1.5",
+            see: "People on top, cups below. Going from 4 people to 6 is × 1.5, and the cups go × 1.5 too: 2 becomes 3. The pairs 2/4 and 3/6 are equal ratios.",
+            why: "Multiplying both lines by the same number keeps the ratio fixed, so any amount can be scaled without redoing the recipe. Adding the same amount to both breaks it. It also assumes the link really is proportional; a fixed fee or a pan size doesn’t scale.",
+            use: "Recipes for more guests, money in another currency, km to miles, map scales, dose labels: find the factor, then multiply both sides." },
           linear: { term: "Every bill = fixed part + rate × use", svg: svgLinear, scene: "billbuilder3d", short: "Fixed fee plus a price per use.",
             alt: "Six bars, each on the same dark base block, with one more light block per use; a line runs through their tops",
             see: "The dark block is the fee you pay even at zero use. Each light block is one use at the rate. The line through the tops is the total for any amount of use.",
@@ -7259,9 +7266,46 @@
             res.hidden = !done;
           }
           Array.prototype.forEach.call(ins, function (i) { i.addEventListener("input", draw); });
-          $(".x-do", card).addEventListener("click", function () { ins[0].value = 6; draw(); });
+          /* reset to the start sizes so $6 always wins, then fire input so the label beside each slider updates at once */
+          $(".x-do", card).addEventListener("click", function () {
+            [6, 12, 22, 32].forEach(function (v, i) { ins[i].value = v; });
+            ins[0].dispatchEvent(new Event("input", { bubbles: true }));
+            os[0].textContent = "Small $" + (+ins[0].value).toFixed(2);
+          });
           if (done) ins[0].value = 6;
           draw();
+        }
+        /* Day 4 double number line: people 0–12 on top, cups (½ per person) below; the anchor 4 → 2 stays, the gold pair follows the drag */
+        function ppSVG(p) {
+          var pr = [{ v: 4, t: "4", b: "2" }];
+          if (p && p !== 4) pr.push({ v: p, t: String(p), b: nlFmt(p / 2), c: p === 10 ? "var(--ok)" : "var(--gold)" });
+          return dnSVG({ mx: 12, step: 1, cur: p === 4 ? 4 : null, pairs: pr });
+        }
+        function ppPlay(card, api) {
+          var box = $(".x-nl", card), inp = $("input", card), o = $("output", card), out = $(".x-nl__out", card), res = $(".x-res", card), done = !!api.solved, p = done ? 10 : 4;
+          function set(v) {
+            p = Math.max(0, Math.min(12, Math.round(v))); inp.value = p;
+            o.textContent = p + (p === 1 ? " person" : " people"); box.innerHTML = ppSVG(p);
+            out.textContent = p + " people ↔ " + nlFmt(p / 2) + " cups. " + (p === 10 ? "Found it." : "Find the cups for 10 people.");
+            if (!done && p === 10) { done = true; api.solve(10); }
+            res.hidden = !done;
+          }
+          inp.addEventListener("input", function () { set(+inp.value); });
+          nlDrag(box, 0, 12, set);
+          $(".x-do", card).addEventListener("click", function () { set(10); });
+          set(p);
+        }
+        /* Day 4 plate: 4 people → 2 cups and 6 → 3 on one double line, ×1.5 on both tracks */
+        function svgProp() {
+          return dnSVG({ mx: 8, step: 1, pairs: [{ v: 4, t: "4 people", b: "2 cups" }, { v: 6, t: "6", b: "3", c: "var(--gold)" }] })
+            .replace(/<\/svg>$/, LBL(82, 68, "× 1.5 on both", "font-weight:600;fill:var(--gold)") + "</svg>");
+        }
+        /* Day 4 unit factor: $150 × (36.6 C$ / $1); the two $ signs are struck through as they cancel */
+        function ppUnits() {
+          var st = "stroke:var(--coral)";
+          return SVG_OPEN(110) + LBL(36, 62, "$") + LBL(60, 62, "150") + '<path d="M29 66L43 50" style="' + st + '"/>' + LBL(98, 62, "×") +
+            LBL(162, 44, "36.6 C$") + '<path d="M126 54H198" stroke-opacity=".6"/>' + LBL(156, 80, "$") + LBL(168, 80, "1") + '<path d="M149 84L163 68" style="' + st + '"/>' +
+            LBL(216, 62, "=") + LBL(260, 62, "5,490 C$", "font-weight:600;fill:var(--gold)") + LBL(150, 104, "$ on top and bottom cancel; C$ is left", "fill:var(--coral)") + "</svg>";
         }
         /* Day 22 proof puzzle: a 7 × 7 square (a = 3, b = 4), 26px a unit; four legs-3-4 triangles, each [x1, y1, x2, y2, turn]: corners (st 0) → two rectangles (st 1), translation only */
         var PZ_T = [[0, 0, 3, 0, 0], [7, 0, 3, 3, 90], [7, 7, 7, 3, 180], [0, 7, 0, 7, 270]], PZ_TR = EX_RM ? "none" : "transform 1s var(--ease),opacity .6s var(--ease)";
@@ -10203,7 +10247,7 @@
                 body: '<p class="x-q">12 oz for $8.99, or 32 oz for $21.99. Which is the better deal?</p>' +
                   ["12 oz", "32 oz", "Same"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
                   '<p class="why x-saved" hidden>Guess saved.</p>' +
-                  '<div class="x-res" hidden><p class="why"><b>32 oz: $0.69/oz vs $0.75/oz.</b> The big bag saves about $1.90 per 32 oz.</p></div>',
+                  '<div class="x-res" hidden><p class="why"><b>32 oz: $0.69/oz vs $0.75/oz.</b> The big bag saves about $2 per 32 oz.</p></div>',
                 /* stored, never graded; the reveal opens once a guess is in */
                 mount: function (card, api) {
                   a2Pred("l3coffee", 1)(card, api);
@@ -10283,6 +10327,97 @@
                 body: "<ul><li><b>Per = divide.</b> The word after “per” goes on the bottom.</li><li><b>Put both on the same “one”.</b> One ounce, one gallon, one hour.</li>" +
                   "<li><b>Bigger pack ≠ always cheaper.</b> Check the unit price.</li></ul>" +
                   '<p class="x-so"><b>So:</b> A unit rate is the amount for one: “per” means divide, and the word after “per” goes on the bottom.</p>' }
+            ]
+          },
+          /* Day 4: proportions & unit conversion. Scale a recipe on a double number line before "proportion" or cross-multiplying gets a name */
+          4: {
+            home: ["Proportions & Unit Conversion", "scale a recipe, send money home and turn a 10K into miles."],
+            flow: true,
+            scene: "fairshare",
+            steps: [
+              { kind: "predict", title: "Rice for 6",
+                body: '<p class="x-q">A rice recipe for 4 people uses 2 cups of rice. You’re cooking for 6. How much rice?</p>' +
+                  ["3 cups", "4 cups", "2.5 cups"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden><p class="why"><b>3 cups.</b> 2 cups for 4 people is ½ cup each, and 6 × ½ = 3. “Add 2 people, add 2 cups” is the trap.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l4rice", 0)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "Stretch the double line",
+                body: '<p class="x-q">Drag the people marker. The cups follow. How many cups for 10 people?</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl is-drag" aria-hidden="true"></div><p class="x-cap">Top: people · bottom: cups of rice</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="x-range"><input type="range" min="0" max="12" step="1" value="4" aria-label="People"><output>4 people</output></div>' +
+                  '<button type="button" class="prev press x-do">Do it for me</button>' +
+                  '<div class="x-res" hidden><p class="why"><b>10 people ↔ 5 cups.</b> Every person brings ½ cup, so 10 × ½ = 5.</p></div>' +
+                  LAB_SHARE,
+                mount: ppPlay },
+              { kind: "notice", title: "What stayed the same?", hl: ".x-nl",
+                viz: cpBox(dnSVG({ mx: 12, pairs: [{ v: 4, t: "4", b: "2" }, { v: 6, t: "6", b: "3" }, { v: 10, t: "10", b: "5", c: "var(--gold)" }] }), "4 → 10 people is × 2.5; 2 → 5 cups is × 2.5"),
+                q: "From 4 people to 10, what happened on both lines?",
+                options: ["Both stretched by the same factor, so cups ÷ people stayed ½", "Both grew by the same amount", "Cups grew faster than people"],
+                say: "Both lines stretch by the same factor. The ratio, ½ cup per person, stays fixed." },
+              { kind: "plate", plate: "proportion", title: "A proportion: equal ratios" },
+              { kind: "play", title: "Build it: money for home",
+                body: '<p class="x-q">You’re sending $150 to family in Nicaragua. At $1 = 36.6 córdobas, how many córdobas arrive?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input type="text" inputmode="decimal" autocomplete="off" placeholder="C$" aria-label="Córdobas for $150"></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden><b>Hint:</b> More dollars → more córdobas, so multiply.</p>' +
+                  '<div class="x-res" hidden><p class="why"><b>$150 × 36.6 = 5,490 C$.</b></p></div>' +
+                  '<p class="fineprint">Example rate, rounded. Check the day’s rate and the transfer fee before you send.</p>',
+                mount: blFill(5490) },
+              { kind: "formalize", title: "Name it: unit factor and cross-multiplying",
+                body: cpBox(ppUnits(), "The rate as a fraction you multiply by", "$150 times 36.6 córdobas over $1 equals 5,490 córdobas; the dollar signs cancel") +
+                  '<ol class="x-wk"><li><span>Unit factor</span><span>The rate written as a fraction</span><b>36.6 C$ / $1</b></li>' +
+                  "<li><span>Cancel</span><span>The unit you have goes on the bottom, so it cancels</span><b>$150 × 36.6 C$/$1</b></li>" +
+                  "<li><span>Shortcut</span><span>Cross-multiply: 2/4 = x/6 gives 4·x = 2 × 6</span><b>x = 3 cups</b></li></ol>",
+                so: "Write the rate as a fraction so the units cancel. Cross-multiplying is a shortcut for the same scaling." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "2 cups of rice for 4 people. Your cousin says: “6 people, 2 more people, so 4 cups.” What went wrong?",
+                options: ["They added instead of scaling: 6 is 1.5 × 4, so 3 cups", "They should have added 3 cups", "Nothing: 4 cups is right"], answer: 0, tags: [null, "PROP-ADD-NOT-MULTIPLY", "PROP-ADD-NOT-MULTIPLY"], concept: "l4-scale",
+                hints: ["How much rice does one person get?", "2 ÷ 4 = ½ cup each. Now times 6."],
+                why: "Each person gets ½ cup, so 6 people need 3 cups. Adding 2 cups gives 4 cups, enough for 8 people." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "At $1 = 36.6 C$ (example rate), someone says 1,000 C$ = $36,600. What went wrong?",
+                options: ["They multiplied when they should divide: 1,000 ÷ 36.6 ≈ $27", "They used the wrong rate", "Nothing: that’s the conversion"], answer: 0, tags: [null, null, "CONV-WRONG-DIRECTION"], concept: "l4-convert",
+                hints: ["A dollar is worth more than a córdoba. Should the dollar number be bigger or smaller?", "Bigger unit → smaller number: divide by 36.6."],
+                why: "Each dollar takes 36.6 córdobas, so 1,000 C$ ÷ 36.6 ≈ $27. Multiplying gave the wrong direction." },
+              { kind: "fade", title: "A 10K in Miami heat",
+                q: "33 °C on a Miami morning, and you’re running a 10K: 10 km. 1 mile ≈ 1.6 km. About how many miles? Fill in the missing line.",
+                lines: ["A mile is the bigger unit, so expect a smaller number", "10 km ÷ 1.6 km per mile", "≈ 6.2 miles"],
+                blank: 1, options: ["10 km ÷ 1.6 km per mile", "10 km × 1.6 = 16 miles", "10 − 1.6 = 8.4 miles"], answer: 0, tags: [null, "CONV-WRONG-DIRECTION", "PROP-ADD-NOT-MULTIPLY"], concept: "l4-convert",
+                hints: ["Bigger unit → smaller number."],
+                why: "Each mile eats 1.6 km, so 10 ÷ 1.6 ≈ 6.2 miles. Multiplying gives 16, more miles than kilometers." },
+              { kind: "quiz", title: "Quick check: reading a label",
+                q: "A label says 5 mL per 10 kg of body weight. What does it work out to for 25 kg? (Reading practice, not medical advice.)",
+                options: ["12.5 mL", "20 mL", "2.5 mL"], answer: 0, tags: [null, "PROP-ADD-NOT-MULTIPLY", null], concept: "l4-scale",
+                hints: ["25 kg is how many times 10 kg?", "25 ÷ 10 = 2.5. Now 2.5 × 5 mL."],
+                why: "25 kg is 2.5 × 10 kg, so 2.5 × 5 = 12.5 mL. 20 mL adds 15 instead of scaling. Always follow a doctor or pharmacist." },
+              { kind: "quiz", title: "Quick check",
+                q: "A map’s scale: 1 inch = 20 miles. Two towns are 3.5 inches apart. How far is that?",
+                options: ["70 miles", "23.5 miles", "5.7 miles"], answer: 0, tags: [null, "PROP-ADD-NOT-MULTIPLY", "CONV-WRONG-DIRECTION"], concept: "l4-convert",
+                hints: ["Each inch is 20 miles.", "3.5 × 20."],
+                why: "3.5 inches × 20 miles per inch = 70 miles. 5.7 divided the wrong way; 23.5 added." },
+              { kind: "quiz", title: "Quick check",
+                q: "A recipe serves 6 and you’re cooking for 2. How do you scale every amount?",
+                options: ["Divide by 3", "Subtract 4 from each amount", "Divide by 2"], answer: 0, tags: [null, "PROP-ADD-NOT-MULTIPLY", null], concept: "l4-scale",
+                hints: ["6 servings down to 2 is what factor?", "6 ÷ 2 = 3."],
+                why: "2 is a third of 6, so every amount is divided by 3: 3 cups of broth becomes 1 cup." },
+              { kind: "transfer", title: "New costume: group sessions",
+                q: "Your clinic runs 3 group sessions for every 24 clients. Your caseload grows to 40. At the same ratio, how many sessions?",
+                options: ["5", "19", "8"], answer: 0, tags: [null, "PROP-ADD-NOT-MULTIPLY", null], concept: "l4-scale",
+                hints: ["24 ÷ 3 = 8 clients per session.", "40 ÷ 8."],
+                why: "One session per 8 clients, so 40 ÷ 8 = 5 sessions. 19 adds 16 to the 3 instead of scaling; 8 is clients per session." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Cooking for guests.</b> Find the factor (6 ÷ 4 = 1.5), then multiply every amount.</li><li><b>Sending money to family.</b> Dollars × the rate gives córdobas; córdobas ÷ the rate gives dollars.</li>" +
+                  "<li><b>Running.</b> km ÷ 1.6 for miles, so a 5K is about 3.1 miles.</li><li><b>Maps and GPS.</b> Inches on a map × the scale gives real miles.</li>" +
+                  "<li><b>Dose labels.</b> “Per 10 kg” scales with weight. Read it, then confirm with a pharmacist.</li><li><b>Caseload.</b> Keep the same sessions-per-client ratio as your list grows.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>Scale by multiplying, not adding.</b> 4 → 6 people is × 1.5 for every amount.</li><li><b>Keep units as a fraction so they cancel.</b> $150 × 36.6 C$/$1.</li>" +
+                  "<li><b>Bigger unit → smaller number.</b> 10 km is only about 6.2 miles.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> Write the rate as a fraction so the units cancel. Cross-multiplying is a shortcut for the same scaling.</p>' }
             ]
           },
           /* Day 13: linear models as bills. Fixed fee + rate × use, built from bills before y = mx + b gets a name */
