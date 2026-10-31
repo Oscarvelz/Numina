@@ -1540,6 +1540,8 @@
           "GRAPH-TOTAL-VS-RATE": "Bigger places have bigger totals. Compare rates (per 100,000 people, per client) before saying who’s worse.",
           "EXP-TIMES-NOT-POWER": "An exponent isn't multiplying by the exponent. 3⁵ means five 3s multiplied together: 243, not 3 × 5 = 15.",
           "EXP-DOUBLE-SIDE-DOUBLE-AREA": "Area uses two lengths, so doubling both sides multiplies area by 2² = 4. Tripling both sides multiplies it by 9.",
+          "EXPG-SAME-AMOUNT": "A percent grows on the new total each year, so the raise gets bigger every year: $100, $105, $110.25…",
+          "EXPG-DECAY-REACHES-ZERO": "Each half-life removes half of what's LEFT: after 2 half-lives ¼ remains, after 3 it's ⅛. It fades but doesn't vanish on schedule.",
           "FUNC-IN-OUT-SWAP": "f(11) means feed 11 in, not find what gives 11: with f(x) = 2x + 3, f(11) = 2 × 11 + 3 = 25. The 4 solves 2x + 3 = 11, which runs the machine backward.",
           "SYS-CROSS-MEANS-CHEAPER": "The crossing is where the plans are equal, not where one wins: at month 5 both gyms cost $200. Before it B is cheaper; after it A is.",
           "INEQ-EXACT-ONLY": "“At most $60” is a range, not one exact value, and you round in the safe direction: at $6.75 a pack, 18 + 6.75p ≤ 60 gives p ≤ 6.2, so at most 6 packs. 7 packs is $65.25, over the limit.",
@@ -6308,6 +6310,11 @@
             see: "The tree tripling. One photo, then 3 sharers, then 9, then 27: each dot branches into 3 new ones. 3⁵ means 3 × 3 × 3 × 3 × 3, five levels down.",
             why: "Each level multiplies the one before, so the exponent just counts the levels. That’s why late rounds dwarf early ones: round 5 alone is 243.",
             use: "Viral posts, print sizes, file sizes, big numbers in the news: count how many times something multiplies." },
+          pctstep: { term: "Change by a percent = multiply each step", svg: svgPctStep, scene: "race", short: "amount = start × factor^steps.",
+            alt: "Caffeine curve from 200 mg at 8 AM, halving every 5 hours: 100 at 1 PM, 50 at 6 PM, 25 at 11 PM, 12.5 at 4 AM, with dashed markers at each halving",
+            see: "The curve halving. 200 mg at 8 AM, 100 at 1 PM, 50 at 6 PM, 25 at 11 PM, 12.5 at 4 AM. Each dashed marker is one more × ½. amount = start × factor^steps: 200 × ½³ = 25.",
+            why: "Each step takes a percent of what’s left, not a fixed amount. So growth speeds up (5% of a bigger rent is more dollars) and decay slows down (half of a smaller amount is less), but never quite hits zero.",
+            use: "Caffeine and meds, savings, rent, inflation: anything that changes by a percent each step." },
           number: { term: "Number", svg: svgNumber, short: "Keeps only how many.",
             alt: "A cookie, a music note and a calendar day become three identical dots, then the numeral 3",
             see: "Three unlike things (a cookie, a song, a day) turn into three identical dots, then one mark: 3. Each dot stands for one thing; the numeral stands for the whole group.",
@@ -8082,6 +8089,74 @@
           $(".x-go", card).addEventListener("click", check);
           [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
           $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "4"; check(); } if (st === 1) { b.value = "20"; check(); } });
+          paint();
+        }
+        /* Day 17 exponential growth & decay: 200 mg of caffeine at 8 AM, half-life 5 h → amount = 200 × 0.5^(t/5); 11 PM (t = 15) = 25 mg */
+        function egMg(t) { return 200 * Math.pow(0.5, t / 5); }
+        function egNum(v) { return (Math.round(v * 10) / 10).toLocaleString("en-US"); }
+        function egClock(t) { var h = (8 + t) % 24; return (h % 12 || 12) + (h < 12 ? " AM" : " PM"); }
+        function egX(h) { return +(40 + h * 11.6).toFixed(1); }
+        function egY(v) { return +(166 - v * 0.62).toFixed(1); }
+        function egSVG(t, head) {
+          var s = SVG_OPEN(196), all = "", now = "", k, h;
+          s += '<path d="M40 166H276M40 166V34" stroke-opacity=".5"/>';
+          [100, 200].forEach(function (v) { s += '<path d="M40 ' + egY(v) + 'H276" stroke-opacity=".12"/>' + LBL(34, egY(v) + 4, v, "text-anchor:end;font-size:12px"); });
+          s += LBL(34, 170, 0, "text-anchor:end;font-size:12px");
+          for (k = 0; k <= 80; k++) { h = k / 4; all += (k ? "L" : "M") + egX(h) + " " + egY(egMg(h)); if (h <= t) now += (k ? "L" : "M") + egX(h) + " " + egY(egMg(h)); }
+          s += '<path d="' + all + '" stroke-opacity=".22"/>';
+          for (k = 5; k <= 20; k += 5) s += '<path d="M' + egX(k) + " 166V" + egY(egMg(k)) + '" stroke-dasharray="4 4" stroke-opacity=".55" stroke-width="1.5"/>' +
+            LBL(egX(k) + 6, egY(egMg(k)) - 8, egNum(egMg(k)), "text-anchor:start;font-size:12px");
+          for (k = 0; k <= 20; k += 5) s += LBL(egX(k), 184, egClock(k), "font-size:12px");
+          if (now) s += '<path d="' + now + '" stroke-width="3" style="stroke:var(--cyan)"/>';
+          s += '<circle cx="' + egX(t) + '" cy="' + egY(egMg(t)) + '" r="6" stroke="none" style="fill:var(--gold)"/>';
+          return s + LBL(160, 16, head || egClock(t) + " · " + egNum(egMg(t)) + " mg left", "font-weight:600" + (head || t === 15 ? ";fill:var(--ok)" : "")) + "</svg>";
+        }
+        /* the plate: the same curve, halving every 5 hours */
+        function svgPctStep() { return egSVG(20, "× ½ every 5 hours"); }
+        /* Day 17 build: Miami rent $2,000 rising 5% a year; years 2 and 3 left as "?" */
+        function egRent() {
+          var s = SVG_OPEN(196), v = [2000, 2100, null, null];
+          s += '<path d="M24 166H290" stroke-opacity=".5"/>';
+          v.forEach(function (a, i) {
+            var x = 48 + i * 60, hgt = 2000 * 0.055 + i * 6, y = +(166 - hgt).toFixed(1), c = a ? "--cyan" : "--gold";
+            s += '<rect x="' + x + '" y="' + y + '" width="40" height="' + (166 - y).toFixed(1) + '" rx="3" style="fill:var(' + c + ");fill-opacity:" + (a ? ".35" : ".12") + ";stroke:var(" + c + ')"' + (a ? "" : ' stroke-dasharray="4 4"') + "/>" +
+              LBL(x + 20, y - 8, a ? "$" + a.toLocaleString("en-US") : "?", "font-size:12px" + (a ? "" : ";font-weight:600")) + LBL(x + 20, 184, "Year " + i, "font-size:12px");
+          });
+          return s + LBL(150, 16, "× 1.05 each year", "font-weight:600") + "</svg>";
+        }
+        function egName() {
+          return SVG_OPEN(150) + LBL(150, 24, "growth: y = a · (1 + r)ᵗ", "font-weight:600;font-size:16px") + LBL(150, 50, "decay: y = a · (1 − r)ᵗ", "font-weight:600;font-size:16px") +
+            LBL(150, 78, "half-life · doubling time") + LBL(150, 104, "Rule of 72: years ≈ 72 ÷ rate%") + LBL(150, 132, "6% → about 12 years", "font-weight:600;fill:var(--ok)") + "</svg>";
+        }
+        /* Day 17 play: hours since 8 AM (0–20). Solved when he stops on 15 h: 11 PM, 25 mg */
+        function egPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), rng = $("input", card), res = $(".x-res", card), done = !!api.solved;
+          function paint(stop) {
+            var t = +rng.value;
+            if (stop && t === 15 && !done) { done = true; api.solve(10); }
+            box.innerHTML = egSVG(t);
+            out.textContent = t + " hours after 8 AM: " + egClock(t) + ", " + egNum(egMg(t)) + " mg left." + (t === 15 ? " 11 PM: 25 mg." : done ? "" : " Find 11 PM.");
+            res.hidden = !done;
+          }
+          rng.addEventListener("input", function () { paint(false); });
+          rng.addEventListener("change", function () { paint(true); });
+          $(".x-do", card).addEventListener("click", function () { rng.value = 15; paint(true); });
+          if (done) rng.value = 15;
+          paint(false);
+        }
+        /* Day 17 build: year 2 ($2,205) first, then year 3 ($2,315.25; 2,315 accepted) */
+        function egBuild(card, api) {
+          var a = $(".x-a", card), b = $(".x-b", card), two = $(".x-st2", card), res = $(".x-res", card), h = $(".x-hint", card), st = api.solved ? 2 : 0;
+          function num(i) { return parseFloat(i.value.replace(/[$,\s]/g, "")); }
+          function paint() { a.disabled = st > 0; b.disabled = st !== 1; two.hidden = st < 1; res.hidden = st < 2; if (st > 0) a.value = "2,205"; if (st > 1) b.value = "2,315.25"; }
+          function check() {
+            if (st === 0) { if (Math.abs(num(a) - 2205) < 0.01) { st = 1; h.hidden = true; } else { h.innerHTML = "<b>Hint:</b> Multiply by 1.05 each year, not add $100: $2,100 × 1.05."; h.hidden = false; } }
+            else if (st === 1) { if (Math.abs(num(b) - 2315.25) <= 0.3) { st = 2; h.hidden = true; api.solve(10); } else { h.innerHTML = "<b>Hint:</b> Multiply by 1.05 again, not add $100: $2,205 × 1.05."; h.hidden = false; } }
+            paint();
+          }
+          $(".x-go", card).addEventListener("click", check);
+          [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
+          $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "2205"; check(); } if (st === 1) { b.value = "2315.25"; check(); } });
           paint();
         }
         /* Day 22 proof puzzle: a 7 × 7 square (a = 3, b = 4), 26px a unit; four legs-3-4 triangles, each [x1, y1, x2, y2, turn]: corners (st 0) → two rectangles (st 1), translation only */
@@ -12317,6 +12392,102 @@
                 body: "<ul><li><b>An exponent is repeated multiplying.</b> 3⁵ = 3 × 3 × 3 × 3 × 3 = 243.</li><li><b>Each step multiplies, so growth sneaks up.</b> Round 5 alone: 243; round 8: 6,561.</li>" +
                   "<li><b>Doubling the sides = ×4 area.</b> 80 → 320 sq in, $5 → $20.</li><li><b>Scientific notation makes huge numbers comparable.</b> 3.4 × 10⁸ vs 2.7 × 10⁶: about 126×.</li></ul>" +
                   '<p class="x-so"><b>So:</b> An exponent counts how many times you multiply, and each step multiplies, so growth sneaks up.</p>' + LAB_DOUBLE }
+            ]
+          },
+          /* Day 17: exponential growth & decay. Caffeine halves every 5 hours; rent grows 5% a year; Rule of 72 for doubling */
+          17: {
+            home: ["Exponential Growth & Decay", "why tonight's coffee still counts, and when your savings double."],
+            flow: true,
+            scene: "race",
+            steps: [
+              { kind: "predict", title: "The 8 AM coffee",
+                body: '<p class="x-q">A 200 mg coffee at 8 AM. Caffeine’s half-life is about 5 hours: every 5 hours, half of it is gone. How much is still in you at 11 PM?</p>' +
+                  ["0 mg", "25 mg", "50 mg"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden>' + cpBox(egSVG(15), "8 AM 200 → 1 PM 100 → 6 PM 50 → 11 PM 25", "Caffeine curve: 200 mg at 8 AM, 100 at 1 PM, 50 at 6 PM, 25 at 11 PM") +
+                  '<p class="why"><b>25 mg.</b> 1 PM: 100. 6 PM: 50. 11 PM: 25. It halves three times, and never hits 0.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l17coffee", 1)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "Hour by hour",
+                body: '<p class="x-q">Slide the hours since 8 AM. Watch the caffeine fade. Stop at 11 PM.</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">amount = 200 × 0.5^(hours ÷ 5) · dashed lines mark each halving</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="x-ctl"><label>Hours since 8 AM <input type="range" min="0" max="20" step="1" value="0" aria-label="Hours since 8 AM"></label></div>' +
+                  '<button type="button" class="prev press x-do">Do it for me</button>' +
+                  '<div class="x-res" hidden><p class="why"><b>15 hours: 11 PM, 25 mg.</b> 200 × 0.5³ = 25. Keep going: 4 AM is still 12.5 mg.</p></div>' +
+                  LAB_RACE,
+                mount: egPlay },
+              { kind: "notice", title: "Same fraction, not same amount", hl: ".x-nl",
+                viz: cpBox(egSVG(20), "Every 5 hours: × ½. 200 → 100 → 50 → 25 → 12.5"),
+                q: "What stayed the same every 5 hours?",
+                options: ["The fraction: half of what was left went, and it never hit zero", "The amount: 100 mg went every 5 hours", "Nothing: it was gone by 6 PM"],
+                say: "It loses the same fraction (half) every 5 hours, not the same amount: 100 mg, then 50, then 25. Halving never reaches zero." },
+              { kind: "plate", plate: "pctstep", title: "Change by a percent = multiply each step" },
+              { kind: "play", title: "Build it: Miami rent",
+                body: cpBox(egRent(), "Miami rent $2,000, up 5% a year", "Rent bars: $2,000 in year 0, $2,100 in year 1, years 2 and 3 marked with question marks") +
+                  '<p class="x-q">Rent is $2,000 and rises 5% a year. Year 1 = $2,100. What is it in year 2?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-a" type="text" inputmode="decimal" autocomplete="off" placeholder="$ year 2" aria-label="Rent in year 2 in dollars"></div>' +
+                  '<div class="x-st2" hidden><p class="why"><b>$2,205.</b> $2,100 × 1.05: the raise was $105, not $100.</p>' +
+                  '<p class="x-q">And year 3?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-b" type="text" inputmode="decimal" autocomplete="off" placeholder="$ year 3" aria-label="Rent in year 3 in dollars"></div></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden></p>' +
+                  '<div class="x-res" hidden><p class="why"><b>$2,315.25.</b> $2,205 × 1.05. Raises: $100, $105, $110.25: each one bigger.</p></div>',
+                mount: egBuild },
+              { kind: "formalize", title: "Name it: growth, decay, and the Rule of 72",
+                body: cpBox(egName(), "Growth × (1 + r), decay × (1 − r), every step", "Growth y = a times (1 + r) to the t. Decay y = a times (1 − r) to the t. Rule of 72: doubling time is about 72 divided by the rate; 6% gives about 12 years") +
+                  '<ol class="x-wk"><li><span>Growth</span><span>a = start, r = percent per step, t = steps</span><b>y = a·(1 + r)ᵗ</b></li>' +
+                  "<li><span>Decay</span><span>Lose a percent of what’s left each step</span><b>y = a·(1 − r)ᵗ</b></li>" +
+                  "<li><span>Half-life</span><span>Time to drop to half</span><b>caffeine ≈ 5 h</b></li>" +
+                  "<li><span>Doubling time</span><span>Rule of 72: years ≈ 72 ÷ rate%</span><b>6% → about 12 years</b></li></ol>",
+                so: "Growth multiplies by (1 + r) each step, decay by (1 − r). Doubling time ≈ 72 ÷ rate%." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "A friend says: “5% a year on $2,000 adds $100 every year.” What went wrong?",
+                options: ["The 5% is taken of the new total: +$100, then +$105, then +$110.25", "Nothing: 5% of $2,000 is always $100", "Nothing, but it’s $105 every year"], answer: 0, tags: [null, "EXPG-SAME-AMOUNT", null], concept: "l17-growth",
+                hints: ["Year 2’s 5% is taken of $2,100, not $2,000."],
+                why: "$2,000 × 0.05 = $100. $2,100 × 0.05 = $105. $2,205 × 0.05 = $110.25. The raise grows every year." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“After two half-lives it’s all gone.” What went wrong?",
+                options: ["Each half-life halves what’s left: ½ × ½ = ¼ is still there", "Nothing: two halves make a whole", "Half is still there"], answer: 0, tags: [null, "EXPG-DECAY-REACHES-ZERO", null], concept: "l17-decay",
+                hints: ["The second half-life takes half of what’s left, not the other half."],
+                why: "200 → 100 → 50 mg: a quarter is left. After 3 half-lives, ⅛." },
+              { kind: "fade", title: "Savings for family in Nicaragua",
+                q: "You save $1,000 for family in Nicaragua at 8% a year. When does it double? Fill in the missing line.",
+                lines: ["Rule of 72: 72 ÷ 8 = 9 years", "Check: 1,000 × 1.08⁹ ≈ $1,999", "About $2,000 in 9 years"],
+                blank: 1, options: ["Check: 1,000 × 1.08⁹ ≈ $1,999", "Check: 1,000 + 9 × $80 = $1,720", "Check: 1,000 × 8 × 9 = $72,000"], answer: 0, tags: [null, "EXPG-SAME-AMOUNT", null], concept: "l17-rule72",
+                hints: ["Multiply by 1.08 once for each of the 9 years."],
+                why: "1,000 × 1.08⁹ ≈ $1,999: about double, as the Rule of 72 said. Adding $80 a year forgets the 8% grows on the new total." },
+              { kind: "quiz", title: "Quick check: three half-lives",
+                q: "100 mg of a medicine with a 4-hour half-life. How much is left after 12 hours?",
+                options: ["12.5 mg", "0 mg", "25 mg"], answer: 0, tags: [null, "EXPG-DECAY-REACHES-ZERO", null], concept: "l17-decay",
+                hints: ["12 ÷ 4 = how many half-lives?"],
+                why: "12 ÷ 4 = 3 half-lives: 100 → 50 → 25 → 12.5 mg. 25 stops one short." },
+              { kind: "quiz", title: "Quick check: up then down",
+                q: "$100 goes up 10%, then down 10%. Where does it end?",
+                options: ["$99", "$100", "$101"], answer: 0, tags: [null, "PCT-MIRROR", null], concept: "l17-growth",
+                hints: ["The 10% down is taken of the new amount."],
+                why: "$100 × 1.10 = $110. $110 × 0.90 = $99. The drop was 10% of $110: $11." },
+              { kind: "quiz", title: "Quick check: Rule of 72",
+                q: "Money grows 3% a year. About how long to double?",
+                options: ["24 years", "About 33 years", "216 years"], answer: 0, tags: [null, "EXPG-SAME-AMOUNT", null], concept: "l17-rule72",
+                hints: ["Doubling time ≈ 72 ÷ rate%."],
+                why: "72 ÷ 3 = 24 years. 33 years would be adding $3 per $100 every year; the 3% grows on the new total, so it’s faster." },
+              { kind: "transfer", title: "New costume: “I stopped yesterday”",
+                q: "In substance-abuse counseling: a medication has a 24-hour half-life. After 5 half-lives (5 days), about how much is still in the system?",
+                options: ["About 3%: ½⁵ = 1/32 ≈ 3.1%", "0%: after 5 days it’s gone", "About 50%"], answer: 0, tags: [null, "EXPG-DECAY-REACHES-ZERO", null], concept: "l17-decay",
+                hints: ["Halve 5 times: 100% → 50% → 25% → …", "½⁵ = 1/32."],
+                why: "100% → 50 → 25 → 12.5 → 6.25 → 3.1%: about 3% after 5 days. In sessions: “I stopped yesterday” doesn’t mean it’s out of the system. Effects and test results can linger for days." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Caffeine and meds.</b> Half-lives: tonight’s coffee still counts.</li><li><b>Savings and debt.</b> A percent on a growing total, for you or against you.</li>" +
+                  "<li><b>Rent and inflation.</b> 5% a year is a bigger raise every year.</li><li><b>Photo follower growth.</b> Growing by a percent speeds up.</li>" +
+                  "<li><b>Phone battery fade.</b> Capacity drops by a share each year.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>Percent change = multiply each step.</b> amount = start × factor^steps: 200 × ½³ = 25 mg.</li><li><b>Growth speeds up.</b> Rent raises: $100, $105, $110.25.</li>" +
+                  "<li><b>Decay slows down but never quite hits zero.</b> After 2 half-lives ¼ is left; after 5, about 3%.</li><li><b>Rule of 72 for doubling, half-life for fading.</b> 8% doubles in about 9 years.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> When something changes by a percent, multiply each step: growth speeds up, decay fades but lingers.</p>' + LAB_RACE }
             ]
           },
           22: {
