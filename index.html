@@ -1538,6 +1538,8 @@
           "QUAD-PICK-AN-END": "The best point is usually the peak in the middle, not an extreme: a 1 × 19 pen uses all 40 ft of fencing but holds only 19 sq ft. A 10 × 10 pen holds 100 sq ft.",
           "GRAPH-STEEP-MEANS-BIG": "A steep line can be a small change on a zoomed-in axis. Check the axis numbers and compute the percent change before reacting.",
           "GRAPH-TOTAL-VS-RATE": "Bigger places have bigger totals. Compare rates (per 100,000 people, per client) before saying who’s worse.",
+          "EXP-TIMES-NOT-POWER": "An exponent isn't multiplying by the exponent. 3⁵ means five 3s multiplied together: 243, not 3 × 5 = 15.",
+          "EXP-DOUBLE-SIDE-DOUBLE-AREA": "Area uses two lengths, so doubling both sides multiplies area by 2² = 4. Tripling both sides multiplies it by 9.",
           "FUNC-IN-OUT-SWAP": "f(11) means feed 11 in, not find what gives 11: with f(x) = 2x + 3, f(11) = 2 × 11 + 3 = 25. The 4 solves 2x + 3 = 11, which runs the machine backward.",
           "SYS-CROSS-MEANS-CHEAPER": "The crossing is where the plans are equal, not where one wins: at month 5 both gyms cost $200. Before it B is cheaper; after it A is.",
           "INEQ-EXACT-ONLY": "“At most $60” is a range, not one exact value, and you round in the safe direction: at $6.75 a pack, 18 + 6.75p ≤ 60 gives p ≤ 6.2, so at most 6 packs. 7 packs is $65.25, over the limit.",
@@ -6301,6 +6303,11 @@
             see: "Same numbers, different starting line. From 18%, A’s bar is 2 units tall and B’s is 6, so B looks 3× bigger. From 0%, the bars are 20 and 24: B is really 1.2× A, a 4-point gap.",
             why: "A bar’s height only matches its value when the bar starts at zero. Cut the bottom off and small gaps look huge. Steep or tall on screen is a drawing choice, not a fact.",
             use: "News charts, rent ads, program outcome reports at work: read where the axis starts before you react to the shape." },
+          exp: { term: "Exponent = how many times you multiply", svg: svgExp, scene: "doublings3d", short: "3⁵ = 3 × 3 × 3 × 3 × 3 = 243.",
+            alt: "A tree of dots: 1 photo at the top, 3 sharers below it, then 9, then 27, each dot branching into 3",
+            see: "The tree tripling. One photo, then 3 sharers, then 9, then 27: each dot branches into 3 new ones. 3⁵ means 3 × 3 × 3 × 3 × 3, five levels down.",
+            why: "Each level multiplies the one before, so the exponent just counts the levels. That’s why late rounds dwarf early ones: round 5 alone is 243.",
+            use: "Viral posts, print sizes, file sizes, big numbers in the news: count how many times something multiplies." },
           number: { term: "Number", svg: svgNumber, short: "Keeps only how many.",
             alt: "A cookie, a music note and a calendar day become three identical dots, then the numeral 3",
             see: "Three unlike things (a cookie, a song, a day) turn into three identical dots, then one mark: 3. Each dot stands for one thing; the numeral stands for the whole group.",
@@ -8008,6 +8015,74 @@
           $(".x-do", card).addEventListener("click", function () { rng.value = 0; paint(true); });
           if (done) rng.value = 0;
           paint(false);
+        }
+        /* Day 16 exponents: base 3, round n brings 3ⁿ new sharers; running total = (3ⁿ⁺¹ − 3) ÷ 2 (rounds 1–5: 363). Rounds 6–8 draw compact bars, every one labeled */
+        var LAB_DOUBLE = '<button type="button" class="start press x-3dbtn" data-scene="doublings3d">Count doublings in the Lab</button>';
+        function exSup(k) { return String(k).split("").map(function (d) { return "⁰¹²³⁴⁵⁶⁷⁸⁹"[+d]; }).join(""); }
+        function exFmt(v) { return v.toLocaleString("en-US"); }
+        function exTot(n) { return (Math.pow(3, n + 1) - 3) / 2; }
+        function exSVG(n) {
+          var s = SVG_OPEN(196), top = Math.pow(3, n), slot = 252 / n, bw = Math.min(40, slot * (n > 5 ? 0.62 : 0.7)), k;
+          s += '<path d="M24 166H290" stroke-opacity=".5"/>';
+          for (k = 1; k <= n; k++) {
+            var v = Math.pow(3, k), h = Math.max(2, v / top * 118), x = +(32 + (k - 0.5) * slot - bw / 2).toFixed(1), y = +(166 - h).toFixed(1), last = k === n;
+            s += '<rect x="' + x + '" y="' + y + '" width="' + bw.toFixed(1) + '" height="' + (166 - y).toFixed(1) + '" rx="3" stroke="none" style="fill:var(' + (last ? "--gold" : "--cyan") + ')"/>' +
+              LBL(+(x + bw / 2).toFixed(1), y - 6, exFmt(v), "font-size:12px" + (last ? ";font-weight:600" : "")) + LBL(+(x + bw / 2).toFixed(1), 184, "R" + k, "font-size:12px");
+          }
+          return s + LBL(150, 16, "Round " + n + ": 3" + exSup(n) + " = " + exFmt(top) + " new · total " + exFmt(exTot(n)), "font-weight:600" + (n === 5 ? ";fill:var(--ok)" : "")) + "</svg>";
+        }
+        /* the plate: one photo branching into 3, 9, 27 */
+        function svgExp() {
+          var s = SVG_OPEN(196), lv = [[150]], sp = [70, 24, 8], ys = [24, 68, 112, 156], rr = [8, 6, 5, 3.5], i;
+          for (i = 0; i < 3; i++) lv.push([].concat.apply([], lv[i].map(function (p) { return [p - sp[i], p, p + sp[i]]; })));
+          for (i = 1; i < 4; i++) lv[i].forEach(function (x, j) { s += '<path d="M' + lv[i - 1][Math.floor(j / 3)] + " " + ys[i - 1] + "L" + x + " " + ys[i] + '" stroke-opacity=".3" stroke-width="1.5"/>'; });
+          lv.forEach(function (row, i) {
+            row.forEach(function (x) { s += '<circle cx="' + x + '" cy="' + ys[i] + '" r="' + rr[i] + '" stroke="none" style="fill:var(' + (i ? "--cyan" : "--gold") + ')"/>'; });
+            s += LBL(18, ys[i] + 4, "3" + exSup(i), "font-size:12px;font-weight:600") + LBL(282, ys[i] + 4, row.length, "font-size:12px");
+          });
+          return s + LBL(150, 188, "Each level × 3 → 3⁵ = 243", "font-weight:600;fill:var(--ok)") + "</svg>";
+        }
+        function exPrint() {
+          var s = SVG_OPEN(156);
+          s += '<rect x="50" y="74" width="40" height="50" style="fill:var(--cyan);fill-opacity:.25;stroke:var(--cyan)"/>' + LBL(70, 144, "8 × 10 = 80 sq in", "font-size:12px");
+          s += '<rect x="160" y="24" width="80" height="100" style="fill:var(--gold);fill-opacity:.2;stroke:var(--gold)"/><path d="M200 24V124M160 74H240" stroke-dasharray="4 4" style="stroke:var(--gold)"/>' +
+            LBL(200, 144, "16 × 20 = 320 sq in", "font-size:12px;font-weight:600");
+          return s + LBL(125, 16, "each side × 2", "font-size:12px") + "</svg>";
+        }
+        function exName() {
+          return SVG_OPEN(130) + LBL(150, 24, "bⁿ: base b, exponent n", "font-weight:600;font-size:18px") + LBL(150, 50, "10³ × 10³ = 10⁶ (add exponents)") +
+            LBL(150, 76, "2,700,000 = 2.7 × 10⁶") + LBL(150, 102, "anything⁰ = 1") + LBL(150, 124, "3⁵ = 243", "font-weight:600;fill:var(--ok)") + "</svg>";
+        }
+        /* Day 16 play: slide the rounds (1–8). Solved when he stops on round 5, 243 new sharers */
+        function exPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), rng = $("input", card), res = $(".x-res", card), done = !!api.solved;
+          function paint(stop) {
+            var n = +rng.value;
+            if (stop && n === 5 && !done) { done = true; api.solve(10); }
+            box.innerHTML = exSVG(n);
+            out.textContent = "Round " + n + ": 3" + exSup(n) + " = " + exFmt(Math.pow(3, n)) + " new sharers. Running total: " + exFmt(exTot(n)) + "." + (n === 5 ? " Round 5 alone: 243." : done ? "" : " Find round 5.");
+            res.hidden = !done;
+          }
+          rng.addEventListener("input", function () { paint(false); });
+          rng.addEventListener("change", function () { paint(true); });
+          $(".x-do", card).addEventListener("click", function () { rng.value = 5; paint(true); });
+          if (done) rng.value = 5;
+          paint(false);
+        }
+        /* Day 16 build: the multiplier (4) first, then the cost ($20) */
+        function exBuild(card, api) {
+          var a = $(".x-m", card), b = $(".x-c", card), two = $(".x-st2", card), res = $(".x-res", card), h = $(".x-hint", card), st = api.solved ? 2 : 0;
+          function num(i) { return parseFloat(i.value.replace(/[$,×x\s]/gi, "")); }
+          function paint() { a.disabled = st > 0; b.disabled = st !== 1; two.hidden = st < 1; res.hidden = st < 2; if (st > 0) a.value = "4"; if (st > 1) b.value = "20"; }
+          function check() {
+            if (st === 0) { if (num(a) === 4) { st = 1; h.hidden = true; } else { h.innerHTML = "<b>Hint:</b> Both sides double, so 2 × 2."; h.hidden = false; } }
+            else if (st === 1) { if (Math.abs(num(b) - 20) < 0.01) { st = 2; h.hidden = true; api.solve(10); } else { h.innerHTML = "<b>Hint:</b> 4 times the paper and ink: 4 × $5."; h.hidden = false; } }
+            paint();
+          }
+          $(".x-go", card).addEventListener("click", check);
+          [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
+          $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "4"; check(); } if (st === 1) { b.value = "20"; check(); } });
+          paint();
         }
         /* Day 22 proof puzzle: a 7 × 7 square (a = 3, b = 4), 26px a unit; four legs-3-4 triangles, each [x1, y1, x2, y2, turn]: corners (st 0) → two rectangles (st 1), translation only */
         var PZ_T = [[0, 0, 3, 0, 0], [7, 0, 3, 3, 90], [7, 7, 7, 3, 180], [0, 7, 0, 7, 270]], PZ_TR = EX_RM ? "none" : "transform 1s var(--ease),opacity .6s var(--ease)";
@@ -12146,6 +12221,102 @@
                 body: "<ul><li><b>Read the axes before the shape.</b> “Looks 3×” can really be 1.2×.</li><li><b>Ask why this time window.</b> +50% over Mar–May, −7.1% over the year.</li>" +
                   "<li><b>Compare rates, not totals.</b> 10 vs 30 per 100,000, not 270 vs 30.</li></ul>" +
                   '<p class="x-so"><b>So:</b> Steep or tall on screen is a drawing choice: check A-W-R-S before you react.</p>' }
+            ]
+          },
+          /* Day 16: exponents as repeated multiplying. A shared photo triples each round; a print with both sides doubled uses 4× the paper */
+          16: {
+            home: ["Exponents", "why a shared photo explodes, and why a bigger print costs 4×."],
+            flow: true,
+            scene: "doublings3d",
+            steps: [
+              { kind: "predict", title: "Share a photo",
+                body: '<p class="x-q">You post a photo and 3 friends share it; each of them gets 3 more to share, and so on. How many new people share it in round 5 alone?</p>' +
+                  ["15", "81", "243"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden>' + cpBox(exSVG(5), "Rounds 1–5: 3, 9, 27, 81, 243", "Bars for rounds 1 to 5: 3, 9, 27, 81 and 243 new sharers") +
+                  '<p class="why"><b>243.</b> 3 × 3 × 3 × 3 × 3 = 243. Round 4 alone is 81; 15 is 3 × 5.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l16share", 2)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "Round by round",
+                body: '<p class="x-q">Slide the rounds. Each sharer gets 3 more. Stop on round 5.</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">New sharers per round · base 3 · gold is the latest round</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="x-ctl"><label>Rounds <input type="range" min="1" max="8" step="1" value="1" aria-label="Rounds of sharing"></label></div>' +
+                  '<button type="button" class="prev press x-do">Do it for me</button>' +
+                  '<div class="x-res" hidden><p class="why"><b>Round 5: 3⁵ = 243 new sharers.</b> Rounds 1–5 total 3 + 9 + 27 + 81 + 243 = 363. Keep going: round 8 alone is 3⁸ = 6,561.</p></div>' +
+                  LAB_DOUBLE,
+                mount: exPlay },
+              { kind: "notice", title: "Multiply, not add", hl: ".x-nl",
+                viz: cpBox(exSVG(5), "Each bar is 3× the one before"),
+                q: "Each time you added a round, what happened to the new sharers?",
+                options: ["They multiplied by 3", "3 more people shared", "They grew by the same amount each round"],
+                say: "Adding a round multiplies by 3; it doesn’t add 3. That’s why things “suddenly” explode." },
+              { kind: "plate", plate: "exp", title: "Exponent = how many times you multiply" },
+              { kind: "play", title: "Build it: the bigger print",
+                body: cpBox(exPrint(), "8 × 10 → 16 × 20: each side doubles", "An 8 by 10 print beside a 16 by 20 print; dashed lines split the big one into four 8 by 10 pieces") +
+                  '<p class="x-q">His 8×10 photo print is scaled to 16×20: each side doubles. How many times the paper does the big print use?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-m" type="text" inputmode="decimal" autocomplete="off" placeholder="× how many" aria-label="Paper multiplier"></div>' +
+                  '<div class="x-st2" hidden><p class="why"><b>×4.</b> 80 → 320 sq in: ×2² = ×4.</p>' +
+                  '<p class="x-q">Paper and ink for the 8×10 cost $5. About what does the 16×20 cost?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-c" type="text" inputmode="decimal" autocomplete="off" placeholder="$ cost" aria-label="Cost of the 16 by 20 print in dollars"></div></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden></p>' +
+                  '<div class="x-res" hidden><p class="why"><b>About $20.</b> 4 × $5: four 8×10s fit inside one 16×20.</p></div>',
+                mount: exBuild },
+              { kind: "formalize", title: "Name it: base and exponent",
+                body: cpBox(exName(), "bⁿ: b multiplied by itself n times", "bⁿ means base b, exponent n. 10³ × 10³ = 10⁶. 2,700,000 = 2.7 × 10⁶. Anything to the power 0 is 1") +
+                  '<ol class="x-wk"><li><span>bⁿ</span><span>The base b, multiplied n times</span><b>3⁵ = 243</b></li>' +
+                  "<li><span>Same base, multiply</span><span>Add the exponents: a thousand thousands is a million</span><b>10³ × 10³ = 10⁶</b></li>" +
+                  "<li><span>Scientific notation</span><span>A number times a power of 10</span><b>2,700,000 = 2.7 × 10⁶</b></li>" +
+                  "<li><span>Power 0</span><span>Round 0: just your one photo</span><b>anything⁰ = 1</b></li></ol>",
+                so: "bⁿ means n copies of b multiplied together. Same base: add the exponents. Anything⁰ = 1." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "A friend says: “3⁵ = 15.” What went wrong?",
+                options: ["3⁵ means five 3s multiplied: 3 × 3 × 3 × 3 × 3 = 243", "Nothing: 3 × 5 = 15", "Nothing, but it’s 3 + 5 = 8"], answer: 0, tags: [null, "EXP-TIMES-NOT-POWER", "EXP-TIMES-NOT-POWER"], concept: "l16-power",
+                hints: ["The 5 counts how many 3s you multiply."],
+                why: "3 × 3 = 9, × 3 = 27, × 3 = 81, × 3 = 243. 15 is 3 × 5, which multiplies by the exponent." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“Doubling both sides of a print doubles the paper.” What went wrong?",
+                options: ["Both sides double, so the paper goes ×2 × 2 = ×4: 80 → 320 sq in", "Nothing: double the sides, double the paper", "It goes ×8"], answer: 0, tags: [null, "EXP-DOUBLE-SIDE-DOUBLE-AREA", null], concept: "l16-area",
+                hints: ["Area uses two lengths. Both got doubled."],
+                why: "8 × 10 = 80 sq in; 16 × 20 = 320 sq in. 320 ÷ 80 = 4 = 2²." },
+              { kind: "fade", title: "Miami-Dade vs the US",
+                q: "Miami-Dade has about 2,700,000 people; the US about 340,000,000. How many times bigger is the US? Fill in the missing line.",
+                lines: ["Write both: 2.7 × 10⁶ and 3.4 × 10⁸", "3.4 ÷ 2.7 ≈ 1.26 and 10⁸ ÷ 10⁶ = 10² → ≈ 1.26 × 10² ≈ 126", "The US has about 126 times Miami-Dade’s population"],
+                blank: 1, options: ["3.4 ÷ 2.7 ≈ 1.26 and 10⁸ ÷ 10⁶ = 10² → ≈ 1.26 × 10² ≈ 126", "3.4 ÷ 2.7 ≈ 1.26, and the 10s cancel → ≈ 1.26", "3.4 − 2.7 = 0.7 and 8 − 6 = 2 → ≈ 0.7 × 10² = 70"], answer: 0, tags: [null, null, null], concept: "l16-sci",
+                hints: ["Divide the front numbers, then divide the powers of 10: 10⁸ ÷ 10⁶ takes away 6 of the 8 tens."],
+                why: "3.4 ÷ 2.7 ≈ 1.26, and 10⁸ ÷ 10⁶ = 10² = 100. 1.26 × 100 ≈ 126." },
+              { kind: "quiz", title: "Quick check: ten doublings",
+                q: "2¹⁰ = ?",
+                options: ["1,024 (about a thousand)", "20", "512"], answer: 0, tags: [null, "EXP-TIMES-NOT-POWER", null], concept: "l16-power",
+                hints: ["Keep doubling: 2, 4, 8, 16…"],
+                why: "2, 4, 8, 16, 32, 64, 128, 256, 512, 1,024. 20 is 2 × 10; 512 is 2⁹, one doubling short." },
+              { kind: "quiz", title: "Quick check: same base",
+                q: "10³ × 10² = ?",
+                options: ["10⁵ = 100,000", "10⁶ = 1,000,000", "100⁵"], answer: 0, tags: [null, null, null], concept: "l16-rules",
+                hints: ["Same base: add the exponents."],
+                why: "3 + 2 = 5: 1,000 × 100 = 100,000 = 10⁵. 10⁶ multiplied the exponents." },
+              { kind: "quiz", title: "Quick check: a 5×7 print",
+                q: "A 5×7 print is scaled 3× on each side. How many times the paper does it use?",
+                options: ["9", "3", "6"], answer: 0, tags: [null, "EXP-DOUBLE-SIDE-DOUBLE-AREA", "EXP-DOUBLE-SIDE-DOUBLE-AREA"], concept: "l16-area",
+                hints: ["Both sides × 3, so 3 × 3."],
+                why: "5 × 7 = 35 sq in; 15 × 21 = 315 sq in. 315 ÷ 35 = 9 = 3²." },
+              { kind: "transfer", title: "New costume: a rumor on the unit",
+                q: "In a residential unit, a rumor spreads: each person who hears it tells 2 new people per hour. Starting from 1 person, how many new people hear it in hour 6 alone?",
+                options: ["64 = 2⁶", "12 = 6 × 2", "32"], answer: 0, tags: [null, "EXP-TIMES-NOT-POWER", null], concept: "l16-power",
+                hints: ["Hour 1: 2. Hour 2: 4. Keep doubling.", "Hour 6 is six 2s multiplied."],
+                why: "2, 4, 8, 16, 32, 64: hour 6 alone is 2⁶ = 64. 32 is hour 5. Address misinformation in the first hour, when it’s still 2 people, not 64." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Viral posts.</b> Each share multiplies, so reach jumps late.</li><li><b>Print and screen sizes.</b> Double the sides, ×4 the area.</li>" +
+                  "<li><b>Phone storage.</b> KB → MB → GB, each about ×1,000.</li><li><b>Big numbers in the news.</b> Millions vs billions is ×1,000.</li>" +
+                  "<li><b>Photo resolution.</b> Double the width and height of an image, ×4 the pixels.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>An exponent is repeated multiplying.</b> 3⁵ = 3 × 3 × 3 × 3 × 3 = 243.</li><li><b>Each step multiplies, so growth sneaks up.</b> Round 5 alone: 243; round 8: 6,561.</li>" +
+                  "<li><b>Doubling the sides = ×4 area.</b> 80 → 320 sq in, $5 → $20.</li><li><b>Scientific notation makes huge numbers comparable.</b> 3.4 × 10⁸ vs 2.7 × 10⁶: about 126×.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> An exponent counts how many times you multiply, and each step multiplies, so growth sneaks up.</p>' + LAB_DOUBLE }
             ]
           },
           22: {
