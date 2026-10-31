@@ -1558,6 +1558,8 @@
           "PROB-ADD-ANDS": "'Both' means multiply (it's rarer than either). Adding chances overcounts — keep doing it and you'd pass 100%.",
           "EV-MOST-LIKELY": "EV isn't the most common result — it averages ALL results by their chances. Rare big prizes still count.",
           "EV-IGNORE-RISK": "EV is the guide for small, repeatable bets. When one bad outcome would wreck you, paying a bit to avoid it is smart, even at negative EV.",
+          "AVG-MEAN-AS-TYPICAL": "The mean is pulled up by one hit. When data is lopsided, the median shows what usually happens.",
+          "AVG-OF-AVERAGES": "Bigger groups count more. Rebuild the totals first (20 × 8 and 5 × 16), then divide by everyone.",
           "FUNC-IN-OUT-SWAP": "f(11) means feed 11 in, not find what gives 11: with f(x) = 2x + 3, f(11) = 2 × 11 + 3 = 25. The 4 solves 2x + 3 = 11, which runs the machine backward.",
           "SYS-CROSS-MEANS-CHEAPER": "The crossing is where the plans are equal, not where one wins: at month 5 both gyms cost $200. Before it B is cheaper; after it A is.",
           "INEQ-EXACT-ONLY": "“At most $60” is a range, not one exact value, and you round in the safe direction: at $6.75 a pack, 18 + 6.75p ≤ 60 gives p ≤ 6.2, so at most 6 packs. 7 packs is $65.25, over the limit.",
@@ -6371,6 +6373,11 @@
             see: "Each row is one outcome, with a bar for its chance. 90% of cameras cost nothing; 10% cost $300. Multiply each outcome by its chance and add: $0 + $30 = $30 per camera.",
             why: "Expected value is the average result if you made the same choice many times. It isn’t what happens to you once: no camera costs exactly $30. But across 100 cameras the repairs come to about $3,000, which is $30 each.",
             use: "Warranties, insurance, raffles, scratch-offs, business bets, and talking with clients about gambling: compare the price with the expected payoff." },
+          avg: { term: "Mean = fair share, median = the middle person", svg: svgAvg, scene: "samemean3d", short: "Mean: total ÷ count, the balance point. Median: the middle value once sorted.",
+            alt: "Left: a seesaw with weights at 1, 2 and 6 balancing on a gold pivot at 3, the mean. Right: five people sorted by height, the tallest far taller, with the middle one highlighted in teal as the median",
+            see: "The seesaw balances at the mean: 1, 2 and 6 share out to 3 each. The line of people is sorted, and the median is simply the one in the middle. The giant at the end tips the seesaw, but the middle person stays the middle person.",
+            why: "The mean shares the total out evenly, so every value pulls on it, and one extreme value pulls hard. The median only cares about order, so an extreme value barely moves it. When data is lopsided, the median tells you what a typical person sees.",
+            use: "Salaries in job offers, views and followers, ticket prices, sports stats, program outcomes: ask which average it is, and whether anything is extreme." },
           number: { term: "Number", svg: svgNumber, short: "Keeps only how many.",
             alt: "A cookie, a music note and a calendar day become three identical dots, then the numeral 3",
             see: "Three unlike things (a cookie, a song, a day) turn into three identical dots, then one mark: 3. Each dot stands for one thing; the numeral stands for the whole group.",
@@ -8937,6 +8944,97 @@
           $(".x-go", card).addEventListener("click", check);
           [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
           $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "1.10"; check(); } if (st === 1) { b.value = "-3.90"; check(); } });
+          paint();
+        }
+        /* Day 27 averages. Nine friends at $50,000 plus one newcomer; the newcomer's income runs $50k → $10M on a log axis */
+        var LAB_SAMEMEAN = '<button type="button" class="start press x-3dbtn" data-scene="samemean3d">See Same Mean, Different Story in the Lab</button>';
+        var AVG_STEPS = [50000, 100000, 250000, 500000, 1000000, 2000000, 5000000, 10000000];
+        function avgM(v) { return "$" + ciFmt(Math.round(v)); }
+        function avgK(v) { return v >= 1e6 ? "$" + v / 1e6 + "M" : "$" + v / 1e3 + "k"; }
+        function avgX(v) { var lo = Math.log10(2e4); return +(30 + 240 * (Math.log10(v) - lo) / (Math.log10(2e7) - lo)).toFixed(1); }
+        function avgCl(x) { return Math.max(62, Math.min(238, x)); }
+        function avgSVG(v, ok) {
+          var mean = (450000 + v) / 10, xm = avgX(mean), xd = avgX(50000), s = SVG_OPEN(226), i;
+          s += LBL(150, 16, "10 people at the bar · newcomer earns " + avgK(v), "font-weight:600" + (ok ? ";fill:var(--ok)" : ""));
+          s += '<path d="M30 176H270" stroke-opacity=".5"/>';
+          [[1e5, "$100k"], [1e6, "$1M"], [1e7, "$10M"]].forEach(function (t) { var x = avgX(t[0]); s += '<path d="M' + x + ' 176v5" stroke-opacity=".5"/>' + LBL(x, 194, t[1], "font-size:12px"); });
+          for (i = 0; i < 9; i++) s += '<circle cx="' + xd + '" cy="' + (168 - i * 11) + '" r="5" stroke="none" style="fill:var(--text);fill-opacity:.45"/>';
+          s += '<circle cx="' + (v === 50000 ? xd : avgX(v)) + '" cy="' + (v === 50000 ? 69 : 167) + '" r="6" stroke="none" style="fill:var(--coral)"/>';
+          s += '<path d="M' + xd + ' 56V176" stroke-dasharray="4 3" stroke-width="2.5" style="stroke:var(--cyan)"/>';
+          s += '<path d="M' + xm + ' 42V176" stroke-width="2.5" style="stroke:var(--gold)"/>';
+          s += LBL(avgCl(xm), 36, "mean " + avgM(mean), "font-size:12px;font-weight:600;fill:var(--gold)");
+          return s + LBL(avgCl(xd), 214, "median $50,000", "font-size:12px;font-weight:600;fill:var(--cyan)") + "</svg>";
+        }
+        /* hook: nine friends at $50k, then an NBA player at $5M */
+        function avgHook() {
+          var s = SVG_OPEN(112), i;
+          for (i = 0; i < 9; i++) s += '<circle cx="' + (18 + i * 24) + '" cy="54" r="9" stroke="none" style="fill:var(--cyan);fill-opacity:.55"/>';
+          s += '<circle cx="268" cy="50" r="17" stroke="none" style="fill:var(--gold);fill-opacity:.8"/>' + LBL(268, 55, "$5M", "font-size:12px;font-weight:600");
+          return s + LBL(150, 18, "A Wynwood bar, 10 people", "font-weight:600") + LBL(114, 88, "9 friends · about $50,000 each", "font-size:12px") +
+            LBL(268, 88, "NBA player", "font-size:12px;fill:var(--gold)") + LBL(150, 106, "Average income now?", "font-size:12px") + "</svg>";
+        }
+        /* notice: mean and median before and after, on one $0–$600k scale */
+        function avgNotice() {
+          var s = SVG_OPEN(176), x0 = 112, w = 150, X = function (v) { return +(w * v / 600000).toFixed(1); };
+          [["Before", 50000, 50000], ["NBA player in", 545000, 50000]].forEach(function (r, i) {
+            var y = 34 + i * 60;
+            s += LBL(x0 - 8, y + 22, r[0], "text-anchor:end;font-size:12px;font-weight:600");
+            [["mean", r[1], "--gold"], ["median", r[2], "--cyan"]].forEach(function (b, j) {
+              var yy = y + j * 22;
+              s += '<rect x="' + x0 + '" y="' + yy + '" width="' + Math.max(3, X(b[1])) + '" height="16" rx="4" stroke="none" style="fill:var(' + b[2] + ');fill-opacity:.65"/>' +
+                LBL(Math.min(x0 + X(b[1]) + 4, 230), yy + 12, b[0] + " " + avgM(b[1]), "text-anchor:start;font-size:12px;font-weight:600");
+            });
+          });
+          return s + LBL(150, 18, "One extreme income walks in", "font-weight:600") + LBL(150, 166, "Mean ×11; median doesn’t move", "font-size:12px;fill:var(--ok)") + "</svg>";
+        }
+        /* the plate: a seesaw balancing at the mean, beside a sorted line of people with the middle one highlighted */
+        function svgAvg() {
+          var s = SVG_OPEN(172), P = function (v) { return 14 + v * 16.5; };
+          s += '<path d="M14 100H146" stroke-width="3"/>';
+          [1, 2, 6].forEach(function (v) { s += '<rect x="' + (P(v) - 7) + '" y="86" width="14" height="14" rx="2" stroke="none" style="fill:var(--cyan);fill-opacity:.6"/>' + LBL(P(v), 80, v, "font-size:12px"); });
+          s += '<path d="M' + P(3) + ' 101L' + (P(3) - 12) + " 124H" + (P(3) + 12) + 'Z" stroke="none" style="fill:var(--gold)"/>' + LBL(P(3), 142, "mean = 3", "font-size:12px;font-weight:600;fill:var(--gold)");
+          [26, 30, 34, 38, 82].forEach(function (h, i) {
+            var x = 176 + i * 24, c = i === 2 ? "fill:var(--cyan);fill-opacity:.85" : i === 4 ? "fill:var(--coral);fill-opacity:.7" : "fill:var(--text);fill-opacity:.3";
+            s += '<rect x="' + (x - 7) + '" y="' + (124 - h) + '" width="14" height="' + h + '" rx="4" stroke="none" style="' + c + '"/><circle cx="' + x + '" cy="' + (124 - h - 7) + '" r="5" stroke="none" style="' + c + '"/>';
+          });
+          s += '<path d="M168 124H284" stroke-opacity=".5"/>' + LBL(224, 142, "median", "font-size:12px;font-weight:600;fill:var(--cyan)");
+          return s + LBL(80, 18, "Mean: the balance point", "font-weight:600") + LBL(226, 18, "Median: the middle", "font-weight:600") +
+            LBL(150, 166, "A giant tips the seesaw; the middle stays put", "font-size:12px") + "</svg>";
+        }
+        /* Day 27 play: newcomer income on 8 steps, $50k → $10M. Solved at $5M: mean $545,000, median $50,000 */
+        function avgPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), rg = $('input[type="range"]', card), o = $(".x-ctl output", card), res = $(".x-res", card), done = !!api.solved;
+          function paint(stop) {
+            var v = AVG_STEPS[+rg.value], mean = (450000 + v) / 10, ok = v === 5000000;
+            if (stop && ok && !done) { done = true; api.solve(10); }
+            box.innerHTML = avgSVG(v, ok);
+            o.textContent = avgK(v); rg.setAttribute("aria-valuetext", avgM(v) + " a year");
+            out.textContent = "Mean: " + avgM(mean) + ". Median: $50,000." +
+              (ok ? " The mean jumped elevenfold; the middle person still earns $50,000." : done ? "" : " Slide the newcomer up to $5M.");
+            res.hidden = !done;
+          }
+          rg.addEventListener("input", function () { paint(false); }); rg.addEventListener("change", function () { paint(true); });
+          $(".x-do", card).addEventListener("click", function () { rg.value = 6; paint(true); });
+          if (done) rg.value = 6;
+          paint(false);
+        }
+        /* Day 27 build: likes 40, 52, 45, 38, 61, 47, 900 → mean 1,183 ÷ 7 = 169 → median (4th of 38, 40, 45, 47, 52, 61, 900) = 47 */
+        function avgBuild(card, api) {
+          var a = $(".x-a", card), b = $(".x-b", card), two = $(".x-st2", card), res = $(".x-res", card), h = $(".x-hint", card), st = api.solved ? 2 : 0;
+          function num(i) { return parseFloat(i.value.replace(/[,\s]|likes?/g, "")); }
+          function paint() { a.disabled = st > 0; b.disabled = st !== 1; two.hidden = st < 1; res.hidden = st < 2; if (st > 0) a.value = "169"; if (st > 1) b.value = "47"; }
+          function check() {
+            if (st === 0) {
+              if (num(a) === 169) { st = 1; h.hidden = true; }
+              else { h.innerHTML = "<b>Hint:</b> Mean = add all seven, then ÷ 7: 40 + 52 + 45 + 38 + 61 + 47 + 900 = 1,183."; h.hidden = false; }
+            } else if (st === 1) {
+              if (num(b) === 47) { st = 2; h.hidden = true; api.solve(10); } else { h.innerHTML = "<b>Hint:</b> Median = sort them, then take the 4th: 38, 40, 45, …"; h.hidden = false; }
+            }
+            paint();
+          }
+          $(".x-go", card).addEventListener("click", check);
+          [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
+          $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "169"; check(); } if (st === 1) { b.value = "47"; check(); } });
           paint();
         }
         var LESSON_CONTENT = {
@@ -14112,6 +14210,99 @@
                   '<p class="x-so"><b>So:</b> Before you buy a plan, a ticket or a bet, multiply each outcome by its chance, add, and compare with the price.</p>' + LAB_DICE }
             ]
           },
+          27: {
+            home: ["Averages & What They Hide", "an NBA player walks into a bar: mean vs median."],
+            flow: true,
+            steps: [
+              { kind: "predict", title: "An NBA player walks into a bar",
+                body: '<p class="x-q">Nine friends at a Wynwood bar each earn about $50,000 a year. An NBA player earning $5 million walks in. What’s the bar’s AVERAGE income now?</p>' +
+                  cpBox(avgHook(), "Nine incomes of $50,000, plus one of $5,000,000", "Nine friends at about $50,000 each and one NBA player at $5 million") +
+                  ["About $50,000", "About $95,000", "About $545,000"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden><p class="why"><b>About $545,000.</b> (9 × $50,000 + $5,000,000) ÷ 10 = $5,450,000 ÷ 10. Yet the middle person still earns $50,000.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l27bar", 2)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "Who walks in?",
+                body: '<p class="x-q">Ten people: nine at $50,000 and one newcomer. Slide the newcomer’s income and watch the gold mean and the teal median. Then make it the NBA player: $5M.</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">Dots: incomes, coral = the newcomer · gold: mean · teal dashed: median · log scale, each step ×10</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="x-ctl"><label>Newcomer <input type="range" min="0" max="7" step="1" value="0" aria-label="Newcomer’s income"><output>$50k</output></label></div>' +
+                  '<div class="links"><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<div class="x-res" hidden><p class="why"><b>Mean $545,000, median $50,000.</b> One $5M income made the mean eleven times bigger. The middle person didn’t move.</p></div>',
+                mount: avgPlay },
+              { kind: "notice", title: "One extreme, two averages", hl: ".x-nl",
+                viz: cpBox(avgNotice(), "Same nine friends, before and after the NBA player"),
+                q: "The NBA player walked in. The mean jumped from $50,000 to $545,000; the median stayed at $50,000. What happened?",
+                options: ["One extreme value dragged the mean; the middle person barely moved", "Everyone at the bar got richer", "The median is broken: it should have gone up too"],
+                say: "One extreme value drags the mean far away. The median, the middle person, barely moves. Nobody at the bar earns anything close to $545,000." },
+              { kind: "plate", plate: "avg", title: "Mean = fair share, median = the middle person" },
+              { kind: "play", title: "Build it: your Instagram likes",
+                body: '<p class="x-q">Your last 7 Instagram photo posts got 40, 52, 45, 38, 61, 47 and 900 likes (one went viral). What’s the mean?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-a" type="text" inputmode="decimal" autocomplete="off" placeholder="mean likes" aria-label="Mean likes"></div>' +
+                  '<div class="x-st2" hidden><p class="why"><b>169 likes.</b> 1,183 ÷ 7 = 169.</p>' +
+                  '<p class="x-q">What’s the median?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-b" type="text" inputmode="decimal" autocomplete="off" placeholder="median likes" aria-label="Median likes"></div></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden></p>' +
+                  '<div class="x-res" hidden><p class="why"><b>Median 47 likes.</b> Sorted: 38, 40, 45, <b>47</b>, 52, 61, 900. A typical post gets about 47, not 169: the viral one inflates the mean.</p></div>',
+                mount: avgBuild },
+              { kind: "formalize", title: "Name it: three averages",
+                body: '<ol class="x-wk"><li><span>Mean</span><span>total ÷ count</span><b>1,183 ÷ 7 = 169</b></li>' +
+                  "<li><span>Median</span><span>middle value when sorted; average the two middles if the count is even</span><b>4th of 7 = 47</b></li>" +
+                  "<li><span>Mode</span><span>the most common value</span><b>$50,000 at the bar</b></li>" +
+                  "<li><span>Lopsided data</span><span>incomes, views, followers, home prices</span><b>median</b></li>" +
+                  "<li><span>Balanced data</span><span>values spread evenly around the middle</span><b>mean is fine</b></li></ol>",
+                so: "Always ask: “average of what, and is anything extreme?”" },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“A YouTube channel averages 100,000 views a video, so a typical video gets about 100k.” Its 10 videos: one got 910,000, nine got 10,000. What went wrong?",
+                options: ["A typical video gets about 10,000: the median. One hit pulls the mean up", "Nothing: the average is the typical video, about 100k", "A typical video gets about 910,000: the hit is the real channel"], answer: 0, tags: [null, "AVG-MEAN-AS-TYPICAL", null], concept: "l27-median",
+                hints: ["How many of the 10 videos got anywhere near 100,000?", "Sort the views and take the middle."],
+                why: "Typical ≈ 10,000, the median. (910,000 + 9 × 10,000) ÷ 10 = 100,000, but nine of ten videos got 10,000. The mean is pulled up by one hit." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“Group A (20 clients) averaged 8 sessions; group B (5 clients) averaged 16. Overall average = (8 + 16) ÷ 2 = 12.” What went wrong?",
+                options: ["Overall is 9.6: (160 + 80) ÷ 25", "Nothing: (8 + 16) ÷ 2 = 12", "Overall is 24: 8 + 16"], answer: 0, tags: [null, "AVG-OF-AVERAGES", null], concept: "l27-weighted",
+                hints: ["Group A has four times as many clients. Should it count the same?", "Rebuild the totals: 20 × 8 and 5 × 16."],
+                why: "20 × 8 = 160 sessions and 5 × 16 = 80. (160 + 80) ÷ 25 clients = 9.6. Bigger groups count more." },
+              { kind: "fade", title: "Two players, both 20 a game",
+                q: "Two players both average 20 points. Player A: 20, 19, 21, 20, 20. Player B: 5, 40, 2, 45, 8. Fill in the missing line.",
+                lines: ["A’s total 100 ÷ 5 games = 20", "B’s total 100 ÷ 5 games = 20", "Same average, totally different player: A is reliable, B is boom or bust. The average hides consistency (tomorrow’s lesson: spread)"],
+                blank: 1, options: ["B’s total 100 ÷ 5 games = 20", "B’s middle game is 8, so B averages 8", "B’s best game ÷ 5 = 45 ÷ 5 = 9"], answer: 0, tags: [null, null, null], concept: "l27-mean",
+                hints: ["Add B’s five games.", "5 + 40 + 2 + 45 + 8 = 100. Now ÷ 5."],
+                why: "5 + 40 + 2 + 45 + 8 = 100, and 100 ÷ 5 = 20. 8 is B’s median, not the mean; 45 ÷ 5 uses only one game." },
+              { kind: "quiz", title: "Quick check: sleep tracker",
+                q: "Your sleep tracker, 7 nights: 7, 7, 6, 8, 7, 7 and 2 hours (one all-nighter). Which number best describes a typical night?",
+                options: ["Median: 7 h", "Mean: about 6.3 h", "2 h: the all-nighter"], answer: 0, tags: [null, "AVG-MEAN-AS-TYPICAL", null], concept: "l27-median",
+                hints: ["One night is extreme. Which average ignores it?", "Sort: 2, 6, 7, 7, 7, 7, 8. Take the 4th."],
+                why: "Median 7 h. The mean, 44 ÷ 7 ≈ 6.3 h, is dragged down by one all-nighter; six of seven nights were 6 to 8 h." },
+              { kind: "quiz", title: "Quick check: concert tickets",
+                q: "Four friends paid $80, $80, $90 and $350 (resale VIP) for concert tickets. What’s the mean price?",
+                options: ["$150", "$85", "$80"], answer: 0, tags: [null, null, null], concept: "l27-mean",
+                hints: ["Mean = total ÷ count.", "80 + 80 + 90 + 350 = 600."],
+                why: "$600 ÷ 4 = $150. $85 is the median and $80 the mode; the VIP ticket pulls the mean up." },
+              { kind: "quiz", title: "Quick check: your 5K",
+                q: "Your 5K times over 3 runs average 30 min. What must the 4th run be to bring the average to 29 min?",
+                options: ["26 min", "28 min", "29 min"], answer: 0, tags: [null, null, null], concept: "l27-weighted",
+                hints: ["Work in totals: 3 runs at 30 min = 90 min.", "4 runs at 29 min = 116 min total."],
+                why: "You need 4 × 29 = 116 min in total and you have 3 × 30 = 90. 116 − 90 = 26 min." },
+              { kind: "transfer", title: "New costume: a program’s results",
+                q: "A program says clients improve “10 points on average”. In a group of 10, 6 improved 0 points and 4 improved 25. What should you make of the headline?",
+                options: ["Mean 10, median 0: most clients didn’t improve, so ask for the median and the spread", "Every client improved about 10 points", "Most clients improved 25 points"], answer: 0, tags: [null, "AVG-MEAN-AS-TYPICAL", null], concept: "l27-median",
+                hints: ["Total improvement: 4 × 25 = 100. Divide by 10.", "Sort the 10 results. What’s in the middle?"],
+                why: "4 × 25 = 100 points ÷ 10 = a mean of 10. But the median is 0: six of ten didn’t improve. “On average” hid that — ask for the median and the spread before trusting a headline." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Job-offer salaries.</b> “Average pay” can be pulled up by a few top earners; ask for the median.</li><li><b>YouTube and Instagram.</b> One viral post inflates average views and likes.</li>" +
+                  "<li><b>NBA stats.</b> Same points per game can be steady or boom or bust.</li><li><b>Concert prices.</b> One resale VIP ticket drags the average up.</li>" +
+                  "<li><b>Sleep apps.</b> One all-nighter pulls your weekly mean down.</li><li><b>Race times.</b> Work in totals to hit a target average.</li>" +
+                  "<li><b>Program results.</b> “On average” can hide that most people didn’t change.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>Mean = fair share; median = the middle.</b> Total ÷ count, or the middle value once sorted.</li><li><b>One extreme drags the mean.</b> The NBA player: mean $545,000, median $50,000.</li>" +
+                  "<li><b>Average of averages needs the group sizes.</b> (160 + 80) ÷ 25 = 9.6, not 12.</li><li><b>The same average can hide very different stories.</b> 20 a game, steady or boom or bust.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> Always ask: “average of what, and is anything extreme?”</p>' + LAB_SAMEMEAN }
+            ]
+          },
           /* Foundations B4: exponent laws by counting factor chips. Each play keeps its own state; values and exponents appear only after the learner acts */
           "b4-laws": {
             home: ["Exponent laws, just counting", "join, cancel and copy rows of factor chips: the laws fall out of the count."],
@@ -16635,6 +16826,68 @@
                 }
               ];
             })(),
+            27: (function () {
+              var ri = function (r, lo, hi, st) { return rr(lo + st * Math.floor(r() * (Math.round((hi - lo) / st) + 1))); };
+              var V = function (x, u) { return u === "$" ? money(x) : nf(x); };
+              var MA = [
+                ["Instagram likes", "likes", 80, 450, 1, 4000, 30000, 100, function (n, l) { return "Likes on your last " + n + " Instagram posts, one of which went viral: " + l + "."; }],
+                ["YouTube views", "views", 300, 2000, 10, 40000, 250000, 1000, function (n, l) { return "Views on your last " + n + " YouTube videos, one of which blew up: " + l + "."; }],
+                ["NBA points", "points", 6, 24, 1, 45, 62, 1, function (n, l) { return "A bench guard’s points in his last " + n + " games, including one career night: " + l + "."; }],
+                ["Festival tickets", "$", 55, 140, 5, 800, 2500, 50, function (n, l) { return "Your crew paid these prices for festival tickets, one a resale VIP pass: " + l + "."; }],
+                ["Sleep tracker", "hours", 5.5, 8.5, 0.25, 0, 1, 0.5, function (n, l) { return "Your sleep tracker’s last " + n + " nights, including an all-nighter before a deadline: " + l + " hours."; }],
+                ["5K run", "min", 24, 31, 0.5, 48, 60, 1, function (n, l) { return "Your last " + n + " 5K times, one walked on a twisted ankle: " + l + " minutes."; }],
+                ["Group sizes at work", "people", 4, 11, 1, 35, 60, 1, function (n, l) { return "Headcounts at your last " + n + " groups at work, one a big open house: " + l + " people."; }]];
+              var WA = [
+                ["Instagram likes", "likes", 300, 900, 100, 400, 0.1, function (a, b, c, d) { return "Your " + a + " Reels averaged " + b + " likes; your " + c + " photo posts averaged " + d + " likes."; }],
+                ["YouTube views", "views", 1000, 9000, 200, 1500, 1, function (a, b, c, d) { return "Your " + a + " Shorts averaged " + b + " views; your " + c + " long videos averaged " + d + " views."; }],
+                ["NBA points", "points", 10, 22, 3, 9, 0.1, function (a, b, c, d) { return "On a summer-league roster, " + a + " guards average " + b + " points a game and " + c + " forwards and centers average " + d + "."; }],
+                ["Festival tickets", "$", 60, 120, 130, 250, 0.5, function (a, b, c, d) { return a + " friends grabbed early-bird festival tickets averaging " + b + "; " + c + " more bought later, averaging " + d + "."; }],
+                ["5K run", "min", 22, 28, 32, 42, 0.1, function (a, b, c, d) { return "At the Saturday 5K, " + a + " club runners averaged " + b + " minutes and " + c + " first-timers averaged " + d + " minutes."; }],
+                ["Sleep tracker", "hours", 5, 7, 7.5, 9.5, 0.1, function (a, b, c, d) { return "Your sleep tracker logged " + a + " weeknights averaging " + b + " hours and " + c + " weekend nights averaging " + d + " hours."; }],
+                ["Group sizes at work", "people", 4, 9, 8, 14, 0.1, function (a, b, c, d) { return "At work, " + a + " morning groups averaged " + b + " people and " + c + " evening groups averaged " + d + "."; }]];
+              var RA = [
+                ["5K run", "min", 22, 34, 0.5, -1, 4, 16, 40, function (k, A, G) { return "Your last " + k + " 5K times average " + A + " minutes. You want the average down to " + G + ". What time do you need on the next 5K, in minutes?"; }],
+                ["NBA points", "points", 12, 28, 1, 1, 4, 1, 60, function (k, A, G) { return "A rookie has averaged " + A + " points over his first " + k + " games. How many points does he need tonight to lift his average to exactly " + G + "?"; }],
+                ["Instagram likes", "likes", 150, 600, 10, 1, 8, 1, 3000, function (k, A, G) { return "Your last " + k + " Instagram posts average " + A + " likes. How many likes does the next post need to bring the average to " + G + "?"; }],
+                ["YouTube views", "views", 800, 5000, 100, 1, 6, 100, 30000, function (k, A, G) { return "Your last " + k + " YouTube videos average " + A + " views. How many views does the next one need to bring the average to " + G + "?"; }],
+                ["Sleep tracker", "hours", 5, 7, 0.25, 1, 4, 4, 11, function (k, A, G) { return "Your sleep tracker shows " + k + " nights averaging " + A + " hours. How many hours tonight would bring the average to " + G + "?"; }],
+                ["Festival tickets", "$", 60, 150, 5, 0, 6, 25, 400, function (k, A, G) { return "You’ve paid an average of " + A + " per ticket for your last " + k + " concerts. What can the next ticket cost so your average lands at exactly " + G + "?"; }],
+                ["Group sizes at work", "people", 5, 12, 1, 1, 3, 2, 30, function (k, A, G) { return "Your last " + k + " groups at work averaged " + A + " people. How many need to come to the next one to bring the average to " + G + "?"; }]];
+              return [
+                function (r) {
+                  var c = pk(r, MA), u = c[1], n = 5 + Math.floor(r() * 5), v = [], i, S = 0;
+                  for (i = 0; i < n - 1; i++) v.push(ri(r, c[2], c[3], c[4]));
+                  v.splice(Math.floor(r() * n), 0, ri(r, c[5], c[6], c[7]));
+                  var s = v.slice().sort(function (x, y) { return x - y; }); s.forEach(function (x) { S += x; });
+                  var mean = S / n, h = Math.floor(n / 2), med = n % 2 ? s[h] : (s[h - 1] + s[h]) / 2, am = r() < 0.5, L = function (a) { return a.map(function (x) { return V(x, u); }).join(", "); };
+                  var medW = n % 2 ? "the middle value (#" + (h + 1) + " of " + n + ") is " + F(med, u) : "average the two middles: (" + V(s[h - 1], u) + " + " + V(s[h], u) + ") ÷ 2 = " + F(med, u);
+                  var z = mk(c[8](n, L(v)) + (am ? " What is the mean (average)?" : " What is the median?"), am ? mean : med, u,
+                    "Sorted: " + L(s) + ". " + (am ? "Mean = sum ÷ count = " + V(S, u) + " ÷ " + n + " = " + F(mean, u) + ". The median is only " + F(med, u) + ": one outlier drags the mean, not the middle."
+                      : "Median: " + medW + ". The mean would be " + F(mean, u) + ", dragged by the one outlier; the median barely notices it."), c[0]);
+                  z.tol = Math.max(0.5, Math.abs(z.a) * 0.01); return z;
+                },
+                function (r) {
+                  var c = pk(r, WA), u = c[1], n1 = 3 + Math.floor(r() * 28), n2 = 3 + Math.floor(r() * 28); if (n2 === n1) n2 = n1 < 30 ? n1 + 1 : n1 - 1;
+                  var m1 = ri(r, c[2], c[3], c[6]), m2 = ri(r, c[4], c[5], c[6]), T1 = n1 * m1, T2 = n2 * m2, N = n1 + n2, a = (T1 + T2) / N;
+                  var z = mk(c[7](n1, V(m1, u), n2, V(m2, u)) + " What is the average across all " + N + "?", a, u,
+                    "Weight each average by its group size: (" + n1 + " × " + V(m1, u) + " + " + n2 + " × " + V(m2, u) + ") ÷ (" + n1 + " + " + n2 + ") = (" + V(T1, u) + " + " + V(T2, u) + ") ÷ " + N + " = " + F(a, u) +
+                    ". Averaging the two averages would give " + F((m1 + m2) / 2, u) + ", ignoring that the " + (n1 > n2 ? "first" : "second") + " group is bigger.", c[0]);
+                  z.tol = Math.max(0.05, Math.abs(z.a) * 0.01); return z;
+                },
+                function (r) {
+                  var c = pk(r, RA), u = c[1], k = 2 + Math.floor(r() * 4), A, G, x, ok = false;
+                  for (var i = 0; i < 300 && !ok; i++) {
+                    A = ri(r, c[2], c[3], c[4]); G = rr(A + (1 + Math.floor(r() * c[6])) * c[4] * (c[5] || (r() < 0.5 ? 1 : -1))); x = rr(G * (k + 1) - A * k);
+                    ok = x > 0 && x >= c[7] && x <= c[8];
+                  }
+                  if (!ok) { G = A; x = A; }
+                  var z = mk(c[9](k, V(A, u), V(G, u)), x, u,
+                    "Goal total = goal average × " + (k + 1) + " = " + V(G, u) + " × " + (k + 1) + " = " + V(G * (k + 1), u) + ". Total so far = " + V(A, u) + " × " + k + " = " + V(A * k, u) +
+                    ". Next = " + V(G * (k + 1), u) + " − " + V(A * k, u) + " = " + F(x, u) + ". Check: (" + V(A * k, u) + " + " + V(x, u) + ") ÷ " + (k + 1) + " = " + V(G, u) + ".", c[0]);
+                  z.tol = Math.max(0.5, Math.abs(z.a) * 0.01); return z;
+                }
+              ];
+            })(),
             18: (function () {
               var C = [["Nicaragua Christmas trip", "You park $P in savings for the Christmas trip to Nicaragua"], ["Miami rent", "You set aside $P as a rent cushion for your Miami apartment"],
                 ["Camera gear", "You put $P into a fund for a new camera body and lens"], ["Counseling paycheck", "You stash $P from your counseling paycheck in a CD"]];
@@ -16705,7 +16958,7 @@
                 z.tol = 0.01; return z;
               }
             ]
-            /* REMIX: generators cover Days 1–26; add new days here */
+            /* REMIX: generators cover Days 1–27; add new days here */
           };
           Remix = (function () {
             function days() { return Object.keys(REMIX).map(Number).filter(function (d) { return REMIX[d] && REMIX[d].length; }); }
