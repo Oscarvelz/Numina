@@ -1548,6 +1548,8 @@
           "LOAN-LOW-PAYMENT-CHEAPER": "A longer loan lowers the monthly payment but raises the total cost. Compare total interest, not just the monthly bill.",
           "LOG-AXIS-EVEN-ADD": "On a log axis, equal spacing means equal MULTIPLYING (×10 each gridline), not equal adding. A straight line there means steady percent growth.",
           "LOG-DB-LINEAR": "Decibels are a log scale: +10 dB is ×10 intensity, so +30 dB is ×1,000. Protect your hearing at concerts.",
+          "AREA-CONVERT-ONCE": "A square yard is 3 ft by 3 ft = 9 sq ft. Converting area means converting BOTH directions, so divide by 9, not 3.",
+          "VOL-DOUBLE-ALL-DOUBLE": "Volume uses three lengths, so doubling all three multiplies it by 2 × 2 × 2 = 8.",
           "FUNC-IN-OUT-SWAP": "f(11) means feed 11 in, not find what gives 11: with f(x) = 2x + 3, f(11) = 2 × 11 + 3 = 25. The 4 solves 2x + 3 = 11, which runs the machine backward.",
           "SYS-CROSS-MEANS-CHEAPER": "The crossing is where the plans are equal, not where one wins: at month 5 both gyms cost $200. Before it B is cheaper; after it A is.",
           "INEQ-EXACT-ONLY": "“At most $60” is a range, not one exact value, and you round in the safe direction: at $6.75 a pack, 18 + 6.75p ≤ 60 gives p ≤ 6.2, so at most 6 packs. 7 packs is $65.25, over the limit.",
@@ -6336,6 +6338,11 @@
             see: "Huge targets, few steps. log₃(10,000) ≈ 8.4 means 3 multiplied about 8.4 times gives 10,000. Each ×10 on the audience axis costs only about 2 more rounds.",
             why: "Each step multiplies, so the step count grows slowly while the total explodes. A log turns “how many times bigger” into “how many steps”.",
             use: "How long until money doubles, decibels, earthquake magnitudes, pH, any chart with a “log scale”." },
+          areavol: { term: "Area covers, volume fills", svg: svgAreaVol, scene: "mgarden", short: "Area counts 1-ft squares on a surface; volume counts 1-ft cubes in a space.",
+            alt: "Left: a 4 by 3 patch covered by 12 one-foot squares. Right: a 3 by 2 by 2 box filled by 12 one-foot cubes",
+            see: "Twelve 1-ft squares cover a 4 × 3 patch: 12 sq ft. Twelve 1-ft cubes fill a 3 × 2 × 2 box: 12 cu ft. Same count, different job.",
+            why: "Area is how many 1-ft squares cover a surface: paint, flooring, prints. Volume is how many 1-ft cubes fill a space: boxes, tanks, soil. Two lengths make squares; three make cubes.",
+            use: "Home projects, moving, shipping, cooking: square feet for what you cover, cubic feet for what you fill." },
           number: { term: "Number", svg: svgNumber, short: "Keeps only how many.",
             alt: "A cookie, a music note and a calendar day become three identical dots, then the numeral 3",
             see: "Three unlike things (a cookie, a song, a day) turn into three identical dots, then one mark: 3. Each dot stands for one thing; the numeral stands for the whole group.",
@@ -8430,6 +8437,100 @@
           s += '<circle cx="' + gdX(1) + '" cy="' + gdY(1) + '" r="7" stroke="none" style="fill:var(--gold)"/>' + LBL(+gdX(1) - 2, +gdY(1) + 20, "A(1, 1)", "font-weight:600") +
             '<circle cx="' + gdX(7) + '" cy="' + gdY(9) + '" r="7" stroke="none" style="fill:var(--gold)"/>' + LBL(+gdX(7) - 44, +gdY(9) + 5, "B(7, 9)", "font-weight:600");
           return s + "</svg>";
+        }
+        /* Day 21 area & volume: the room unfolded into a strip of 4 walls (l, w, l, w), 4.3px a foot, floor at y 104.
+           Door 3 × 7 on wall 1, window 3 × 4 (top at 7 ft) on wall 2: 21 + 12 = 33 sq ft off. 12 × 10 × 8 → 319 sq ft → 638 ÷ 350 ≈ 1.8 → 2 gallons */
+        function avCalc(l, w, h) { var A = 2 * (l + w) * h - 33, g = A * 2 / 350; return { P: 2 * (l + w), A: A, g: g, G: Math.ceil(g) }; }
+        function avWalls(l, w, h, head) {
+          var S = 4.3, x0 = 34, F = 104, top = +(F - h * S).toFixed(1), r = avCalc(l, w, h), s = SVG_OPEN(186), cum = 0, ok = l === 12 && w === 10 && h === 8;
+          [l, w, l, w].forEach(function (d, i) {
+            var x = +(x0 + cum * S).toFixed(1), wd = +(d * S).toFixed(1);
+            s += '<rect x="' + x + '" y="' + top + '" width="' + wd + '" height="' + (F - top).toFixed(1) + '" style="fill:var(--cyan);fill-opacity:.3;stroke:var(--cyan)"' + (i ? ' stroke-dasharray="4 3"' : "") + "/>" +
+              LBL(+(x + wd / 2).toFixed(1), top - 8, d + " ft", "font-size:12px");
+            cum += d;
+          });
+          var dx = +(x0 + 2 * S).toFixed(1), wx = +(x0 + (l + (w - 3) / 2) * S).toFixed(1), cut = 'style="fill:var(--bg);stroke:var(--gold)" stroke-dasharray="3 2"';
+          s += '<rect x="' + dx + '" y="' + (F - 7 * S).toFixed(1) + '" width="' + (3 * S).toFixed(1) + '" height="' + (7 * S).toFixed(1) + '" ' + cut + "/>" +
+            '<rect x="' + wx + '" y="' + (F - 7 * S).toFixed(1) + '" width="' + (3 * S).toFixed(1) + '" height="' + (4 * S).toFixed(1) + '" ' + cut + "/>";
+          s += LBL(x0 - 6, +((top + F) / 2 + 4).toFixed(1), h + " ft", "text-anchor:end;font-size:12px");
+          var xe = +(x0 + r.P * S).toFixed(1);
+          s += '<path d="M' + x0 + " 118H" + xe + "M" + x0 + " 113V123M" + xe + ' 113V123" stroke-opacity=".6"/>' + LBL(+((x0 + xe) / 2).toFixed(1), 136, r.P + " ft around", "font-size:12px;font-weight:600");
+          s += LBL(150, 158, "2 × (" + l + " + " + w + ") × " + h + " − 33 = " + exFmt(r.A) + " sq ft", "font-size:12px") +
+            LBL(150, 178, exFmt(r.A) + " × 2 ÷ 350 ≈ " + r.g.toFixed(1) + " → buy " + r.G + " gallon" + (r.G > 1 ? "s" : ""), "font-size:12px;font-weight:600" + (ok ? ";fill:var(--ok)" : ""));
+          return s + LBL(150, 16, head || "Wall area " + exFmt(r.A) + " sq ft · " + r.G + " gallons", "font-weight:600" + (head || ok ? ";fill:var(--ok)" : "")) + "</svg>";
+        }
+        /* build: the 12 × 10 floor in 1-ft squares, plus a 1.2 × 10 gold strip for the 10% cut allowance (12 sq ft) */
+        function avFloor() {
+          var s = SVG_OPEN(160), k;
+          s += '<rect x="60" y="30" width="120" height="100" style="fill:var(--cyan);fill-opacity:.25;stroke:var(--cyan)"/>';
+          for (k = 1; k < 12; k++) s += '<path d="M' + (60 + k * 10) + " 30V130" + '" stroke-opacity=".18" stroke-width="1"/>';
+          for (k = 1; k < 10; k++) s += '<path d="M60 ' + (30 + k * 10) + 'H180" stroke-opacity=".18" stroke-width="1"/>';
+          s += '<rect x="180" y="30" width="12" height="100" style="fill:var(--gold);fill-opacity:.4;stroke:var(--gold)"/>';
+          return s + LBL(120, 84, "120 sq ft", "font-weight:600") + LBL(120, 148, "12 ft", "font-size:12px") + LBL(52, 84, "10 ft", "text-anchor:end;font-size:12px") +
+            LBL(200, 84, "+10% for cuts", "text-anchor:start;font-size:12px;fill:var(--gold);font-weight:600") + LBL(150, 16, "Flooring: 12 × 10 ft", "font-weight:600") + "</svg>";
+        }
+        /* the plate: 12 one-foot squares cover a 4 × 3 patch; 12 one-foot cubes fill a 3 × 2 × 2 box */
+        function svgAreaVol() {
+          var s = SVG_OPEN(192), k, f = 'style="fill:var(--cyan);fill-opacity:.3;stroke:var(--cyan)"', g = 'style="fill:var(--gold);fill-opacity:.3;stroke:var(--gold)"';
+          s += '<rect x="40" y="56" width="80" height="60" ' + f + "/>";
+          for (k = 1; k < 4; k++) s += '<path d="M' + (40 + k * 20) + ' 56V116" stroke-opacity=".5" stroke-width="1"/>';
+          for (k = 1; k < 3; k++) s += '<path d="M40 ' + (56 + k * 20) + 'H120" stroke-opacity=".5" stroke-width="1"/>';
+          s += '<path d="M180 76H240V116H180Z" ' + g + '/><path d="M180 76L200 60H260L240 76Z" ' + g + '/><path d="M240 76L260 60V100L240 116Z" ' + g + "/>" +
+            '<path d="M200 76V116M220 76V116M180 96H240M190 68H250M200 76L220 60M220 76L240 60M250 68V108M240 96L260 80" stroke-opacity=".5" stroke-width="1"/>';
+          return s + LBL(80, 140, "Area covers", "font-weight:600") + LBL(80, 158, "4 × 3 = 12 squares", "font-size:12px") +
+            LBL(220, 140, "Volume fills", "font-weight:600") + LBL(220, 158, "3 × 2 × 2 = 12 cubes", "font-size:12px") +
+            LBL(80, 178, "paint, floors", "font-size:12px;fill:var(--ok)") + LBL(220, 178, "boxes, soil", "font-size:12px;fill:var(--ok)") + LBL(150, 20, "Area covers, volume fills", "font-weight:600") + "</svg>";
+        }
+        /* name it: five shapes, each with its formula */
+        function avShapes() {
+          var f = 'style="fill:var(--cyan);fill-opacity:.3;stroke:var(--cyan)"', s = SVG_OPEN(200);
+          s += '<rect x="22" y="28" width="56" height="38" rx="2" ' + f + "/>" +
+            '<path d="M115 66H175L150 28Z" ' + f + '/><path d="M150 28V66" stroke-dasharray="3 3" stroke-opacity=".6"/>' +
+            '<circle cx="245" cy="47" r="20" ' + f + '/><path d="M245 47H265" stroke-opacity=".7"/>' + LBL(255, 42, "r", "font-size:12px") +
+            '<path d="M70 128H114V158H70Z" ' + f + '/><path d="M70 128L84 118H128L114 128Z" ' + f + '/><path d="M114 128L128 118V148L114 158Z" ' + f + "/>" +
+            '<path d="M181 124V152A24 7 0 0 0 229 152V124" ' + f + '/><ellipse cx="205" cy="124" rx="24" ry="7" ' + f + "/>";
+          [[50, 86, "rectangle", "l × w"], [145, 86, "triangle", "½ × base × height"], [245, 86, "circle", "π r²"], [98, 176, "box", "l × w × h"], [205, 176, "cylinder", "π r² h"]].forEach(function (v) {
+            s += LBL(v[0], v[1], v[2], "font-size:12px") + LBL(v[0], v[1] + 16, v[3], "font-weight:600");
+          });
+          return s + "</svg>";
+        }
+        /* Day 21 play: length 8–16, width 8–14, height 8–10 ft. Solved when he stops on 12 × 10 × 8: 319 sq ft, 2 gallons */
+        function avPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), rs = card.querySelectorAll('input[type="range"]'), res = $(".x-res", card), done = !!api.solved;
+          function set(v) { v.forEach(function (n, i) { rs[i].value = n; }); }
+          function paint(stop) {
+            var l = +rs[0].value, w = +rs[1].value, h = +rs[2].value, r = avCalc(l, w, h), ok = l === 12 && w === 10 && h === 8;
+            if (stop && ok && !done) { done = true; api.solve(10); }
+            box.innerHTML = avWalls(l, w, h);
+            Array.prototype.forEach.call(rs, function (i) { i.setAttribute("aria-valuetext", i.value + " feet"); });
+            out.textContent = l + " × " + w + " ft, " + h + " ft high: " + exFmt(r.A) + " sq ft of wall. Two coats: buy " + r.G + " gallon" + (r.G > 1 ? "s" : "") + "." +
+              (ok ? " That’s your bedroom: 319 sq ft, 2 gallons." : done ? "" : " Set 12 × 10, 8 ft high.");
+            res.hidden = !done;
+          }
+          Array.prototype.forEach.call(rs, function (i) { i.addEventListener("input", function () { paint(false); }); i.addEventListener("change", function () { paint(true); }); });
+          $(".x-do", card).addEventListener("click", function () { set([12, 10, 8]); paint(true); });
+          if (done) set([12, 10, 8]);
+          paint(false);
+        }
+        /* Day 21 build: 120 sq ft + 10% = 132 → ÷ 20 = 6.6 → 7 boxes, then 7 × $45 = $315 */
+        function avBuild(card, api) {
+          var a = $(".x-a", card), b = $(".x-b", card), two = $(".x-st2", card), res = $(".x-res", card), h = $(".x-hint", card), st = api.solved ? 2 : 0;
+          function num(i) { return parseFloat(i.value.replace(/[$,\s]/g, "")); }
+          function paint() { a.disabled = st > 0; b.disabled = st !== 1; two.hidden = st < 1; res.hidden = st < 2; if (st > 0) a.value = "7"; if (st > 1) b.value = "315"; }
+          function check() {
+            if (st === 0) {
+              var v = num(a);
+              if (v === 7) { st = 1; h.hidden = true; }
+              else { h.innerHTML = v === 6.6 || v === 6 ? "<b>Hint:</b> 6.6 boxes means 6 won’t cover it. Always round boxes UP." : "<b>Hint:</b> 12 × 10 = 120 sq ft, plus 10% for cuts = 132 sq ft. 132 ÷ 20 per box = 6.6. Always round boxes UP."; h.hidden = false; }
+            } else if (st === 1) {
+              if (num(b) === 315) { st = 2; h.hidden = true; api.solve(10); } else { h.innerHTML = "<b>Hint:</b> You pay for whole boxes: 7 × $45."; h.hidden = false; }
+            }
+            paint();
+          }
+          $(".x-go", card).addEventListener("click", check);
+          [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
+          $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "7"; check(); } if (st === 1) { b.value = "315"; check(); } });
+          paint();
         }
         var LESSON_CONTENT = {
           1: {
@@ -13024,6 +13125,104 @@
                   '<p class="x-so"><b>So:</b> When something multiplies, a log counts the steps: huge targets, few steps.</p>' + LAB_DOUBLE }
             ]
           },
+          /* Day 21: area & volume in real life. Walls 44 ft around × 8 = 352 − 33 = 319 sq ft → × 2 coats = 638 ÷ 350 ≈ 1.8 → 2 gallons;
+             flooring 120 + 10% = 132 ÷ 20 = 6.6 → 7 boxes × $45 = $315; box 18 × 18 × 24 = 7,776 cu in ÷ 1,728 = 4.5 cu ft */
+          21: {
+            home: ["Area & Volume in Real Life", "paint, flooring, a box to Nicaragua: how much to buy."],
+            flow: true,
+            scene: "mgarden",
+            steps: [
+              { kind: "predict", title: "How much paint?",
+                body: '<p class="x-q">You’re repainting your 12 × 10 ft bedroom: 8 ft ceilings, one door (3 × 7 ft), one window (3 × 4 ft). A gallon covers about 350 sq ft per coat. How many gallons for 2 coats?</p>' +
+                  ["1", "2", "4"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden>' + cpBox(avWalls(12, 10, 8, "44 ft around × 8 ft − 33 = 319 sq ft"), "The four walls unfolded, door and window cut out", "Four walls in a strip, 12, 10, 12 and 10 ft wide and 8 ft high, with the door and window cut out: 319 sq ft, 2 gallons for 2 coats") +
+                  '<p class="why"><b>2 gallons.</b> Walls: 44 ft around × 8 ft = 352 sq ft, minus the door (21) and window (12) = 319 sq ft. Two coats: 638 sq ft ÷ 350 ≈ 1.8, so buy 2.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l21paint", 1)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "Unfold the room",
+                body: '<p class="x-q">The walls laid out flat, door and window cut out. Change the room and watch the paint. Then set your bedroom: 12 × 10, 8 ft high.</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">Blue: the 4 walls in a row · gold: door and window, 33 sq ft · × 2 coats ÷ 350 sq ft a gallon</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="x-ctl"><label>Length <input type="range" min="8" max="16" step="1" value="8" aria-label="Room length in feet"></label>' +
+                  '<label>Width <input type="range" min="8" max="14" step="1" value="8" aria-label="Room width in feet"></label>' +
+                  '<label>Height <input type="range" min="8" max="10" step="1" value="9" aria-label="Wall height in feet"></label></div>' +
+                  '<button type="button" class="prev press x-do">Do it for me</button>' +
+                  '<div class="x-res" hidden><p class="why"><b>12 × 10 × 8: 319 sq ft, 2 gallons.</b> Now try 16 × 14 with 10 ft ceilings: 567 sq ft, 4 gallons.</p></div>' +
+                  LAB_GARDEN,
+                mount: avPlay },
+              { kind: "notice", title: "The walls are one rectangle", hl: ".x-nl",
+                viz: cpBox(avWalls(12, 10, 8, "Unrolled: one rectangle, 44 ft × 8 ft"), "12 + 10 + 12 + 10 = 44 ft around"),
+                q: "Unrolled, what shape did the four walls make?",
+                options: ["One long rectangle: the distance around × the height", "Four shapes you have to add up one by one", "A 12 × 10 rectangle, like the floor"],
+                say: "Unroll the walls and they’re one long rectangle: perimeter × height. 44 ft × 8 ft = 352 sq ft, before the door and window come off." },
+              { kind: "plate", plate: "areavol", title: "Area covers, volume fills" },
+              { kind: "play", title: "Build it: new flooring",
+                body: cpBox(avFloor(), "12 × 10 ft floor · gold: the extra 10% for cuts", "The 12 by 10 ft floor in 1-ft squares, 120 sq ft, with a gold strip for the extra 10% for cuts") +
+                  '<p class="x-q">Flooring for the same bedroom: 120 sq ft, plus 10% for cuts. Each box covers 20 sq ft. How many boxes do you buy?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-a" type="text" inputmode="decimal" autocomplete="off" placeholder="boxes" aria-label="Boxes of flooring"></div>' +
+                  '<div class="x-st2" hidden><p class="why"><b>7 boxes.</b> 120 + 10% = 132 sq ft. 132 ÷ 20 = 6.6, rounded up to 7.</p>' +
+                  '<p class="x-q">At $45 a box, what’s the cost?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-b" type="text" inputmode="decimal" autocomplete="off" placeholder="$ total" aria-label="Total cost in dollars"></div></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden></p>' +
+                  '<div class="x-res" hidden><p class="why"><b>$315.</b> 7 × $45 = $315. You can’t buy 0.6 of a box: always round boxes UP.</p></div>',
+                mount: avBuild },
+              { kind: "formalize", title: "Name it: the shapes worth knowing",
+                body: cpBox(avShapes(), "Area: rectangle, triangle, circle · volume: box, cylinder", "Rectangle l times w; triangle one half times base times height; circle pi r squared; box l times w times h; cylinder pi r squared h") +
+                  '<ol class="x-wk"><li><span>1 sq yd</span><span>3 ft × 3 ft</span><b>9 sq ft</b></li>' +
+                  "<li><span>1 cu ft</span><span>12 × 12 × 12 in</span><b>1,728 cu in</b></li>" +
+                  "<li><span>1 gallon</span><span>For tanks and buckets</span><b>231 cu in</b></li></ol>",
+                so: "Area: rectangle l × w, triangle ½ × base × height, circle π r². Volume: box l × w × h, cylinder π r² h." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "A friend converts the bedroom floor: “120 sq ft ÷ 3 = 40 sq yd.” What went wrong?",
+                options: ["A square yard is 9 sq ft: 120 ÷ 9 ≈ 13.3 sq yd", "Nothing: 3 ft make a yard, so divide by 3", "It should be × 3: 360 sq yd"], answer: 0, tags: [null, "AREA-CONVERT-ONCE", "CONV-WRONG-DIRECTION"], concept: "l21-convert",
+                hints: ["Draw a square yard: 3 ft one way, 3 ft the other. How many 1-ft squares fit?"],
+                why: "A square yard is 3 ft by 3 ft = 9 sq ft, so 120 ÷ 9 ≈ 13.3 sq yd. Area converts both directions: ÷ 9, not ÷ 3." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“Double a box’s length, width and height and it holds twice as much.” What went wrong?",
+                options: ["It holds 8 times as much: 2 × 2 × 2", "Nothing: double the sides, double the space", "It holds 6 times as much: 2 + 2 + 2"], answer: 0, tags: [null, "VOL-DOUBLE-ALL-DOUBLE", "VOL-DOUBLE-ALL-DOUBLE"], concept: "l21-scale",
+                hints: ["Start with a 1 × 1 × 1 box. Double every side: 2 × 2 × 2 = ?"],
+                why: "Volume uses three lengths, and each one doubles: 2 × 2 × 2 = 8 times as much." },
+              { kind: "fade", title: "A box to Nicaragua",
+                q: "Shipping a box to family in Nicaragua: 18 × 18 × 24 in. Fill in the missing line.",
+                lines: ["18 × 18 × 24 = 7,776 cu in", "7,776 ÷ 1,728 = 4.5 cu ft", "Shippers often price by the cubic foot, so 4.5 cu ft is the number to quote"],
+                blank: 1, options: ["7,776 ÷ 1,728 = 4.5 cu ft", "7,776 ÷ 12 = 648 cu ft", "7,776 ÷ 144 = 54 cu ft"], answer: 0, tags: [null, null, null], concept: "l21-convert",
+                hints: ["1 cu ft = 12 × 12 × 12 = 1,728 cu in."],
+                why: "Volume converts by the cube: 7,776 ÷ 1,728 = 4.5 cu ft. ÷ 12 converts just one direction; ÷ 144 just two." },
+              { kind: "quiz", title: "Quick check: pizza",
+                q: "One 16-inch pizza or two 10-inch pizzas: which is more pizza?",
+                options: ["One 16-inch: about 201 sq in vs 157", "Two 10-inch: 20 inches beats 16", "They’re about the same"], answer: 0, tags: [null, "SCALE-AREA-LINEAR", null], concept: "l21-area",
+                hints: ["Area = π r². The 16-inch has radius 8; each 10-inch, radius 5."],
+                why: "π × 8² ≈ 201 sq in. Two 10-inch: 2 × π × 5² ≈ 157 sq in. The one big pizza wins." },
+              { kind: "quiz", title: "Quick check: aquarium",
+                q: "An aquarium is 24 × 12 × 16 in. About how many gallons does it hold?",
+                options: ["About 20 gallons", "About 4,608 gallons", "About 2.7 gallons"], answer: 0, tags: [null, null, null], concept: "l21-volume",
+                hints: ["Volume in cubic inches first, then 1 gallon = 231 cu in."],
+                why: "24 × 12 × 16 = 4,608 cu in. 4,608 ÷ 231 ≈ 19.9: about 20 gallons. 2.7 is cubic feet, not gallons." },
+              { kind: "quiz", title: "Quick check: garden soil",
+                q: "A garden bed is 8 × 4 ft, filled 0.5 ft deep. How much soil?",
+                options: ["16 cu ft", "32 cu ft", "4 cu ft"], answer: 0, tags: [null, null, null], concept: "l21-volume",
+                hints: ["Box volume: length × width × depth."],
+                why: "8 × 4 × 0.5 = 16 cu ft. 32 is the bed’s area: it forgets the depth." },
+              { kind: "transfer", title: "New costume: the group room",
+                q: "Planning a group session: the room is 20 × 15 ft. Allow about 30 sq ft per person for a chair circle (a made-up planning number for practice). How many people fit?",
+                options: ["10 people: 300 sq ft ÷ 30", "About 2 people: 70 ft around ÷ 30", "35 people: 20 + 15"], answer: 0, tags: [null, "GEO-AREA-PERIM", null], concept: "l21-area",
+                hints: ["Floor area first: 20 × 15.", "Then divide by the space each person needs."],
+                why: "20 × 15 = 300 sq ft, and 300 ÷ 30 = 10 people. Area turns “will it fit?” into a number before the session." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Paint.</b> Walls = perimeter × height, minus doors and windows.</li><li><b>Flooring.</b> Floor area plus about 10% for cuts, boxes rounded up.</li>" +
+                  "<li><b>Moving boxes and shipping.</b> Cubic feet decide what fits and what it costs.</li><li><b>Pizza value.</b> Compare areas, not diameters.</li>" +
+                  "<li><b>Photo print sizes.</b> An 8 × 10 print has 4 times the paper of a 4 × 5.</li><li><b>Mulch and soil.</b> Length × width × depth, in cubic feet.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>Area covers, volume fills.</b> Squares for paint and floors; cubes for boxes, tanks and soil.</li><li><b>Walls = perimeter × height.</b> 44 ft × 8 ft = 352 sq ft, minus 33 for the door and window = 319.</li>" +
+                  "<li><b>Round up when buying.</b> 1.8 gallons → 2; 6.6 boxes → 7.</li><li><b>Area converts by the square, volume by the cube.</b> sq ft → sq yd: ÷ 9. cu in → cu ft: ÷ 1,728.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> Measure, multiply, round up: then buy once.</p>' + LAB_GARDEN }
+            ]
+          },
           22: {
             home: ["Pythagoras: Squares on the Sides", "pour the squares on two sides into the third."],
             flow: true,
@@ -15470,8 +15669,126 @@
                 var p = pk(r, [4, 6, 8, 9, 12]), c = pk(r, [["Family in Nicaragua", "Your send-home fund"], ["Photo gear", "Your camera savings"], ["Miami rent", "Miami rent (if it kept rising"]]);
                 return mk(c[1] + (c[0] === "Miami rent" ? " " + p + "% a year)" : " grows " + p + "% a year") + ". Using the Rule of 72, about how many years until it doubles?", 72 / p, "years", "Rule of 72: 72 ÷ " + p + " = " + pl(72 / p, "years") + " to double.", c[0]);
               }
+            ],
+            21: [
+              function (r) {
+                var c = pk(r, [["Miami apartment", "your Miami living room"], ["Photo studio", "your home photo studio"], ["Group room", "the group room at work"], ["Gym", "your garage gym"]]), l = pk(r, [10, 12, 14, 15, 16]), w = pk(r, [9, 10, 11, 12]), h = pk(r, [8, 9, 10]), o = pk(r, [20, 35, 50]), W = 2 * (l + w) * h, A = W - o, x = A * 2 / 350, g = Math.ceil(x - 1e-9);
+                return mk("You’re painting " + c[1] + ": " + l + " ft by " + w + " ft, with " + h + " ft walls. The door and windows take " + o + " sq ft. You want 2 coats, and a gallon covers 350 sq ft. How many gallons do you buy?", g, "gallons",
+                  "Walls: 2(" + l + " + " + w + ") × " + h + " = " + nf(W) + " sq ft, minus " + o + " = " + nf(A) + " sq ft. Two coats: " + nf(A) + " × 2 = " + nf(A * 2) + " sq ft; " + nf(A * 2) + " ÷ 350 = " + nf(x) + " → " + pl(g, "gallons") + (g === x ? " exactly." : " (round up: the store sells whole gallons)."), c[0]);
+              },
+              function (r) {
+                var c = pk(r, [["Miami apartment", "vinyl plank for your Miami bedroom"], ["Photo studio", "new flooring for your photo studio"], ["Group room", "carpet tile for the group room at work"], ["Gym", "rubber flooring for your home gym"]]), l = pk(r, [10, 11, 12, 14, 15, 16]), w = pk(r, [8, 9, 10, 12]), b = pk(r, [20, 22, 24, 25]), A = l * w, Aw = rr(A * 1.1), x = Aw / b, n = Math.ceil(x - 1e-9);
+                return mk("You’re buying " + c[1] + ". The room is " + l + " ft by " + w + " ft. Add 10% for cuts and waste; one box covers " + b + " sq ft. How many boxes?", n, "boxes",
+                  "Floor: " + l + " × " + w + " = " + nf(A) + " sq ft; plus 10%: " + nf(A) + " × 1.1 = " + nf(Aw) + " sq ft; " + nf(Aw) + " ÷ " + b + " = " + nf(x) + " → " + pl(n, "boxes") + (n === x ? " exactly." : " (round up: you can’t buy part of a box)."), c[0]);
+              },
+              function (r) {
+                var c = pk(r, [["Family in Nicaragua", "You’re packing a box of gifts for family in Nicaragua. It measures "], ["Photo prints", "A shipping box for framed prints from your studio measures "], ["Miami apartment", "A storage bin for your Miami apartment closet measures "], ["Gym", "A crate for your gym gear measures "]]), l = 18, w = 12, h = 12;
+                for (var i = 0; i < 200; i++) { var L = pk(r, [12, 14, 16, 18, 20, 24]), Wd = pk(r, [10, 12, 14, 15, 16, 18]), H = pk(r, [8, 9, 10, 12, 14, 16]); if ((L * Wd * H) % 432 === 0) { l = Math.max(L, Wd); w = Math.min(L, Wd); h = H; break; } }
+                var V = l * w * h, a = V / 1728;
+                return mk(c[1] + l + " × " + w + " × " + h + " inches. What is its volume in cubic feet?", a, "cu ft",
+                  l + " × " + w + " × " + h + " = " + nf(V) + " cu in. A cubic foot is 12 × 12 × 12 = 1,728 cu in, so " + nf(V) + " ÷ 1,728 = " + nf(a) + " cu ft.", c[0]);
+              }
+            ],
+            22: (function () {
+              var T = [[3, 4, 5], [5, 12, 13], [8, 15, 17]], C = [
+                ["Miami apartment", "in", [[0, [8, 10, 12, 13]]],
+                  function (s, L) { return "The TV for your Miami apartment has a screen " + L + " in wide and " + s + " in tall. TVs are sold by the diagonal. What size is it, in inches?"; },
+                  function (c, s, L) { return ["A " + c + " in TV (measured on the diagonal) is " + L + " in wide. How tall is the screen?", L, s]; }],
+                ["Photo studio", "ft", [[0, [2, 3]], [1, [1]], [2, [1]]],
+                  function (s, L) { return "In your photo studio, a ladder’s foot sits " + s + " ft from the wall and its top touches the wall " + L + " ft up. How long is the ladder?"; },
+                  function (c, s, L) { return ["A " + c + " ft ladder in your photo studio leans with its foot " + s + " ft from the wall. How high up the wall does it reach?", s, L]; }],
+                ["Gym", "m", [[0, [20, 30, 40]], [1, [10, 20]], [2, [10, 20]]],
+                  function (s, L) { return "On the way to the gym you cut corner to corner across a rectangular park, " + L + " m long and " + s + " m wide. How long is the shortcut?"; },
+                  function (c, s, L) { return ["The corner-to-corner path across the park by your gym is " + c + " m, and the park is " + L + " m long. How wide is it?", L, s]; }],
+                ["Group room", "ft", [[0, [3, 4, 5]], [1, [2]], [2, [1]]],
+                  function (s, L) { return "The group room at work is " + L + " ft by " + s + " ft. How long is a cable run corner to corner across the floor?"; },
+                  function (c, s, L) { return ["A cable run corner to corner across the group room at work is " + c + " ft, and the room is " + L + " ft long. How wide is it?", L, s]; }],
+                ["Family in Nicaragua", "in", [[0, [4, 5, 6]], [1, [1, 2]], [2, [1]]],
+                  function (s, L) { return "A box going to family in Nicaragua has a base " + L + " in by " + s + " in. How long is the longest rod that lies flat along the diagonal?"; },
+                  function (c, s, L) { return ["A " + c + " in curtain rod for family in Nicaragua lies flat exactly along the diagonal of a box base " + L + " in long. How wide is the base?", L, s]; }]];
+              var S = function (r) { var c = pk(r, C), t = pk(r, c[2]), k = pk(r, t[1]), b = T[t[0]]; return { c: c, u: c[1], s: b[0] * k, L: b[1] * k, h: b[2] * k, tag: "(" + b.join("-") + " triangle" + (k > 1 ? " × " + k : "") + ")" }; };
+              return [
+                function (r) {
+                  var o = S(r), q = o.s * o.s + o.L * o.L;
+                  return mk(o.c[3](o.s, o.L), o.h, o.u, "a² + b² = c²: " + o.s + "² + " + o.L + "² = " + nf(o.s * o.s) + " + " + nf(o.L * o.L) + " = " + nf(q) + "; c = √" + nf(q) + " = " + o.h + " " + o.u + ". " + o.tag, o.c[0]);
+                },
+                function (r) {
+                  var o = S(r), z = o.c[4](o.h, o.s, o.L), a = z[2], g = z[1];
+                  return mk(z[0], a, o.u, "b² = c² − a² = " + o.h + "² − " + g + "² = " + nf(o.h * o.h) + " − " + nf(g * g) + " = " + nf(a * a) + "; b = √" + nf(a * a) + " = " + a + " " + o.u + ". " + o.tag, o.c[0]);
+                }
+              ];
+            })(),
+            18: (function () {
+              var C = [["Nicaragua Christmas trip", "You park $P in savings for the Christmas trip to Nicaragua"], ["Miami rent", "You set aside $P as a rent cushion for your Miami apartment"],
+                ["Camera gear", "You put $P into a fund for a new camera body and lens"], ["Counseling paycheck", "You stash $P from your counseling paycheck in a CD"]];
+              var S = function (r) {
+                var c = pk(r, C), P = 500 + 100 * Math.floor(r() * 96), p = pk(r, [2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 7, 8]), n = pk(r, [[1, "yearly"], [4, "quarterly"], [12, "monthly"]]), t = 2 + Math.floor(r() * 19),
+                  b = 1 + p / 100 / n[0], g = Math.pow(b, n[0] * t), A = P * g;
+                return { c: c, P: P, A: A, q: c[1].replace("$P", money(P)) + " at " + p + "% a year, compounded " + n[1] + ", for " + pl(t, "years") + ".",
+                  w: "A = P(1 + r/n)^(nt) = " + money(P) + " × (1 + " + p / 100 + "/" + n[0] + ")^(" + n[0] + " × " + t + ") = " + money(P) + " × " + +b.toFixed(6) + "^" + n[0] * t + " = " + money(P) + " × " + g.toFixed(4) + "… = " + money(A) + "." };
+              };
+              return [
+                function (r) {
+                  var o = S(r), z = mk(o.q + " What will the account hold at the end?", o.A, "$", o.w + " Interest earns interest every period.", o.c[0]);
+                  z.tol = Math.max(1, z.a * 0.01); return z;
+                },
+                function (r) {
+                  var o = S(r), I = o.A - o.P, z = mk(o.q + " How much of the final balance is interest earned?", I, "$", o.w + " Interest = " + money(o.A) + " − " + money(o.P) + " = " + money(I) + ".", o.c[0]);
+                  z.tol = Math.max(1, z.a * 0.01); return z;
+                },
+                function (r) {
+                  var p = pk(r, [3, 4, 6, 8, 9, 12]), c = pk(r, [["Nicaragua Christmas trip", "Your Nicaragua Christmas-trip fund earns " + p + "% a year"], ["Miami rent", "Say Miami rent keeps rising " + p + "% a year"],
+                    ["Camera gear", "Your camera-gear savings earn " + p + "% a year"], ["Counseling paycheck", "The retirement account from your counseling job grows " + p + "% a year"]]);
+                  var z = mk(c[1] + ". By the Rule of 72, about how many years until it doubles?", 72 / p, "years", "Rule of 72: years to double ≈ 72 ÷ rate = 72 ÷ " + p + " = " + pl(72 / p, "years") + ".", c[0]);
+                  z.tol = 0.1; return z;
+                }
+              ];
+            })(),
+            19: (function () {
+              var S = function (r) {
+                var c = pk(r, [["Car loan", "You finance a used car: "], ["Car loan", "The dealer offers a car loan of "], ["Camera gear", "A store loan for a camera body and lenses is "], ["Counseling license", "A loan for your counseling license courses is "]]),
+                  P = 3000 + 500 * Math.floor(r() * 45), A = pk(r, [3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 9, 9.5, 10, 11, 12]), N = pk(r, [24, 36, 48, 60, 72]), i = A / 1200, d = Math.pow(1 + i, -N), M = P * i / (1 - d);
+                return { c: c, P: P, N: N, M: M, q: c[1] + money(P) + " at " + A + "% APR for " + N + " months.",
+                  w: "i = " + A + "% ÷ 12 = " + +i.toFixed(6) + "; M = P·i ÷ (1 − (1 + i)^−N) = " + money(P) + " × " + +i.toFixed(6) + " ÷ (1 − " + +(1 + i).toFixed(6) + "^−" + N + ") = " + money(P * i) + " ÷ (1 − " + d.toFixed(4) + ") = " + money(P * i) + " ÷ " + (1 - d).toFixed(4) + " = " + money(M) + "." };
+              };
+              return [
+                function (r) { var o = S(r); return mk(o.q + " What is the monthly payment?", o.M, "$", o.w, o.c[0]); },
+                function (r) {
+                  var o = S(r), m = rr(o.M), I = m * o.N - o.P;
+                  return mk(o.q + " How much interest do you pay over the whole loan?", I, "$", o.w + " Total paid: " + money(m) + " × " + o.N + " = " + money(m * o.N) + "; interest = " + money(m * o.N) + " − " + money(o.P) + " = " + money(I) + ".", o.c[0]);
+                },
+                function (r) {
+                  var B = 500 + 10 * Math.floor(r() * 251), A = pk(r, [18, 19.99, 21, 22.99, 24, 24.99, 26, 27.99, 29]), m = +(A / 12).toFixed(4), I = B * A / 1200, c = pk(r, [
+                    ["Camera gear", "You put a new lens on your credit card and carry a " + money(B) + " balance"], ["Nicaragua Christmas trip", "The Christmas flights to Nicaragua left " + money(B) + " on your card"],
+                    ["Miami apartment", "Furniture for your Miami apartment left a " + money(B) + " card balance"]]);
+                  return mk(c[1] + " at " + A + "% APR. About how much interest does one month add?", I, "$", "Monthly rate = " + A + "% ÷ 12 = " + m + "%; " + money(B) + " × " + +(A / 1200).toFixed(6) + " = " + money(I) + " in one month. Unpaid, next month’s interest is charged on that too.", c[0]);
+                }
+              ];
+            })(),
+            20: [
+              function (r) {
+                var p = pk(r, [3, 4, 5, 6, 7, 8, 9, 10]), k = pk(r, [2, 2.5, 3, 4, 5]), P = pk(r, [1000, 2000, 2500, 4000, 5000]), T = P * k, t = Math.log(k) / Math.log(1 + p / 100), c = pk(r, [
+                  ["Nicaragua Christmas trip", "Your Nicaragua trip fund holds "], ["Camera gear", "Your camera-gear savings hold "], ["Counseling paycheck", "The retirement account from your counseling job holds "]]);
+                var z = mk(c[1] + money(P) + " and grows " + p + "% a year. How many years until it reaches " + money(T) + "?", t, "years",
+                  "Solve " + money(P) + " × " + (1 + p / 100) + "^t = " + money(T) + ": " + (1 + p / 100) + "^t = " + k + ", so t = log " + k + " ÷ log " + (1 + p / 100) + " = " + Math.log10(k).toFixed(4) + " ÷ " + Math.log10(1 + p / 100).toFixed(4) + " = " + pl(t, "years") + ".", c[0]);
+                z.tol = 0.15; return z;
+              },
+              function (r) {
+                var k = 3 + Math.floor(r() * 8), q = Math.pow(2, k), c = pk(r, [["Photography", [50, 100, 200, 250], function (N, M) { return "Your photo account grew from " + nf(N) + " to " + nf(M) + " followers. How many doublings is that?"; }],
+                  ["Phone storage", [25, 40, 125, 150], function (N, M) { return "Your phone’s camera roll went from " + nf(N) + " to " + nf(M) + " files. How many times did it double?"; }],
+                  ["Counseling caseload", [3, 5, 6, 10], function (N, M) { return "Referrals to your counseling program went from " + nf(N) + " to " + nf(M) + " a year. How many doublings is that?"; }]]), N = pk(r, c[1]), M = N * q;
+                var z = mk(c[2](N, M), k, "doublings", nf(M) + " ÷ " + nf(N) + " = " + nf(q) + " = 2^" + k + ", so log₂ " + nf(q) + " = " + pl(k, "doublings") + ".", c[0]);
+                z.tol = 0.01; return z;
+              },
+              function (r) {
+                var c = pk(r, [["Phone storage", [3, 6, 9, 12], function (V) { return "A file on your phone is " + nf(V) + " bytes. What is log₁₀ of that (how many zeros)?"; }, " bytes"],
+                  ["Gym", [2, 3, 4, 5, 6, 7, 8, 9], function (V) { return "The music in your gym is " + nf(V) + " times as intense as a quiet room. Bels = log₁₀ of that ratio. How many bels?"; }, " (×10 = decibels)"],
+                  ["Miami rent", [5, 6, 7], function (V) { return "A Miami condo sells for $" + nf(V) + ". What is log₁₀ of the price (how many zeros)?"; }, ""]]), k = pk(r, c[1]), V = Math.pow(10, k);
+                var z = mk(c[2](V), k, "", nf(V) + " = 10^" + k + ", so log₁₀ = " + k + ": count the zeros" + (c[0] === "Gym" ? ". That’s " + k + " bels = " + k * 10 + " dB louder." : "."), c[0]);
+                z.tol = 0.01; return z;
+              }
             ]
-            /* REMIX: add Days 18–20 generators here */
+            /* REMIX: generators cover Days 1–22; add new days here */
           };
           Remix = (function () {
             function days() { return Object.keys(REMIX).map(Number).filter(function (d) { return REMIX[d] && REMIX[d].length; }); }
