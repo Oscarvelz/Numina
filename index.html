@@ -1556,6 +1556,8 @@
           "CIRC-CONFUSE-C-A": "A fence goes AROUND, so it's a length: π × diameter. π r² is the area inside, in square feet.",
           "PROB-GAMBLER-DUE": "The sky doesn't keep score. Each day's chance is set by today's weather, not by a streak.",
           "PROB-ADD-ANDS": "'Both' means multiply (it's rarer than either). Adding chances overcounts — keep doing it and you'd pass 100%.",
+          "EV-MOST-LIKELY": "EV isn't the most common result — it averages ALL results by their chances. Rare big prizes still count.",
+          "EV-IGNORE-RISK": "EV is the guide for small, repeatable bets. When one bad outcome would wreck you, paying a bit to avoid it is smart, even at negative EV.",
           "FUNC-IN-OUT-SWAP": "f(11) means feed 11 in, not find what gives 11: with f(x) = 2x + 3, f(11) = 2 × 11 + 3 = 25. The 4 solves 2x + 3 = 11, which runs the machine backward.",
           "SYS-CROSS-MEANS-CHEAPER": "The crossing is where the plans are equal, not where one wins: at month 5 both gyms cost $200. Before it B is cheaper; after it A is.",
           "INEQ-EXACT-ONLY": "“At most $60” is a range, not one exact value, and you round in the safe direction: at $6.75 a pack, 18 + 6.75p ≤ 60 gives p ≤ 6.2, so at most 6 packs. 7 packs is $65.25, over the limit.",
@@ -6364,6 +6366,11 @@
             see: "Each day the gold line updates the share of rainy days so far. Early on, one rainy day swings it a lot. After hundreds of days it barely moves, and it sits on the dashed 40% line.",
             why: "A chance doesn’t say what happens on one day; it says how often it happens across many days like it. Short runs swing; long runs settle near the stated chance. So expect about n × chance, and expect small groups to wobble around it.",
             use: "Weather forecasts, flight delays, appointment no-shows, sharp photos per burst, insurance and warranties: read the chance as a long-run rate." },
+          ev: { term: "Expected value = the long-run average payoff", svg: svgEV, scene: "dice", short: "Each outcome × its chance, added up: 90% × $0 + 10% × $300 = $30.",
+            alt: "Two outcomes for a camera: no repair, 90% times $0 equals $0; repair, 10% times $300 equals $30; added up, an expected value of $30",
+            see: "Each row is one outcome, with a bar for its chance. 90% of cameras cost nothing; 10% cost $300. Multiply each outcome by its chance and add: $0 + $30 = $30 per camera.",
+            why: "Expected value is the average result if you made the same choice many times. It isn’t what happens to you once: no camera costs exactly $30. But across 100 cameras the repairs come to about $3,000, which is $30 each.",
+            use: "Warranties, insurance, raffles, scratch-offs, business bets, and talking with clients about gambling: compare the price with the expected payoff." },
           number: { term: "Number", svg: svgNumber, short: "Keeps only how many.",
             alt: "A cookie, a music note and a calendar day become three identical dots, then the numeral 3",
             see: "Three unlike things (a cookie, a song, a day) turn into three identical dots, then one mark: 3. Each dot stands for one thing; the numeral stands for the whole group.",
@@ -8830,6 +8837,106 @@
           $(".x-go", card).addEventListener("click", check);
           [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
           $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "3"; check(); } if (st === 1) { b.value = "12"; check(); } });
+          paint();
+        }
+        /* Day 26 expected value. Money reads as $30, or $2.50 when it has cents */
+        function evM(v) { var a = Math.abs(v), s = Math.abs(a - Math.round(a)) < 1e-9 ? ciFmt(Math.round(a)) : a.toFixed(2); return (v < 0 ? "−$" : "$") + s; }
+        /* a fixed scatter of 100 cameras: the first k in this order are the broken ones */
+        var EV_ORDER = (function () { var r = pfRng(26), a = [], i; for (i = 0; i < 100; i++) a.push(i); for (i = 99; i > 0; i--) { var j = Math.floor(r() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; })();
+        function evGrid(k, y) {
+          var on = {}, s = "", i;
+          for (i = 0; i < k; i++) on[EV_ORDER[i]] = 1;
+          for (i = 0; i < 100; i++) {
+            var x = 21 + (i % 20) * 13, yy = y + Math.floor(i / 20) * 13;
+            s += '<rect x="' + x + '" y="' + yy + '" width="11" height="11" rx="2" ' + (on[i] ? 'stroke="none" style="fill:var(--coral)"' : 'stroke-opacity=".35" stroke-width="1"') + "/>";
+          }
+          return s;
+        }
+        /* two bars on one $0–$300 scale: what the plan costs against the expected repair bill */
+        function evBars(plan, exp, y, ok) {
+          var x0 = 112, w = 170, X = function (v) { return +(w * Math.min(v, 300) / 300).toFixed(1); }, s = "";
+          [["Pay for plan", plan, "--gold"], ["Expected repair", exp, "--cyan"]].forEach(function (r, i) {
+            var yy = y + i * 28;
+            s += LBL(x0 - 8, yy + 14, r[0], "text-anchor:end;font-size:12px;font-weight:600") +
+              '<rect x="' + x0 + '" y="' + yy + '" width="' + w + '" height="20" rx="4" stroke-opacity=".2"/>' +
+              '<rect x="' + x0 + '" y="' + yy + '" width="' + X(r[1]) + '" height="20" rx="4" stroke="none" style="fill:var(' + (ok ? "--ok" : r[2]) + ');fill-opacity:.6"/>' +
+              LBL(Math.min(x0 + X(r[1]) + 4, 250), yy + 14, evM(r[1]), "text-anchor:start;font-size:12px;font-weight:600");
+          });
+          return s;
+        }
+        function evSVG(p, rep, plan, ok) {
+          var exp = p / 100 * rep, s = SVG_OPEN(214);
+          s += LBL(150, 16, "Plan " + evM(plan) + " vs expected repair " + evM(exp), "font-weight:600" + (ok ? ";fill:var(--ok)" : ""));
+          s += evBars(plan, exp, 28, ok) + evGrid(p, 98);
+          return s + LBL(150, 182, "100 cameras: " + p + " need a " + evM(rep) + " repair", "font-size:12px") +
+            LBL(150, 200, evM(p * rep) + " ÷ 100 = " + evM(exp) + " per camera", "font-size:12px;fill:var(--cyan)") + "</svg>";
+        }
+        /* hook: the $600 camera, the $80 plan, a 10% chance of a $300 repair */
+        function evHook() {
+          var s = SVG_OPEN(120);
+          [["Camera", "$600", "--cyan"], ["Plan, 2 yrs", "$80", "--gold"], ["10% chance", "$300 repair", "--coral"]].forEach(function (r, i) {
+            var x = 12 + i * 96;
+            s += '<rect x="' + x + '" y="34" width="84" height="56" rx="8" stroke-opacity=".4"/>' + LBL(x + 42, 56, r[0], "font-size:12px") + LBL(x + 42, 76, r[1], "font-weight:600;fill:var(" + r[2] + ")");
+          });
+          return s + LBL(150, 18, "Buy the protection plan?", "font-weight:600") + LBL(150, 110, "Worth it on average?", "font-size:12px") + "</svg>";
+        }
+        /* notice: 100 cameras, about 10 repairs, $3,000 shared out = $30 each */
+        function evNotice() {
+          var s = SVG_OPEN(150);
+          s += LBL(150, 18, "100 cameras, 10% chance each", "font-weight:600") + evGrid(10, 30);
+          return s + LBL(150, 112, "About 10 repairs × $300 = $3,000", "font-size:12px") + LBL(150, 132, "$3,000 ÷ 100 cameras = $30 each", "font-weight:600;fill:var(--ok)") + "</svg>";
+        }
+        /* the plate: each outcome × its chance, added up */
+        function svgEV() {
+          var s = SVG_OPEN(176), x0 = 112, w = 120;
+          [["No repair", 90, "$0", "$0"], ["Repair", 10, "$300", "$30"]].forEach(function (r, i) {
+            var y = 40 + i * 40;
+            s += LBL(x0 - 8, y + 14, r[0], "text-anchor:end;font-size:12px;font-weight:600") +
+              '<rect x="' + x0 + '" y="' + y + '" width="' + w + '" height="20" rx="4" stroke-opacity=".25"/>' +
+              '<rect x="' + x0 + '" y="' + y + '" width="' + (w * r[1] / 100) + '" height="20" rx="4" stroke="none" style="fill:var(' + (i ? "--coral" : "--cyan") + ');fill-opacity:.55"/>' +
+              LBL(x0 + w / 2, y + 14, r[1] + "% × " + r[2], "font-size:12px") + LBL(x0 + w + 8, y + 14, "= " + r[3], "text-anchor:start;font-size:12px;font-weight:600");
+          });
+          s += '<path d="M' + x0 + ' 116H' + (x0 + w + 48) + '" stroke-opacity=".5"/>';
+          return s + LBL(150, 18, "Each outcome × its chance", "font-weight:600") + LBL(x0 + w + 8, 138, "$30", "text-anchor:start;font-weight:600;fill:var(--ok)") +
+            LBL(x0 + w - 4, 138, "Expected value", "text-anchor:end;font-size:12px") + LBL(150, 166, "Long-run average per camera", "font-size:12px") + "</svg>";
+        }
+        /* Day 26 play: chance 0–50% (step 5), repair $100–$600 (step 50), plan $20–$200 (step 10). Starts at 25% / $200 / $40; solved at 10% / $300 / $80 */
+        function evPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), rs = card.querySelectorAll('input[type="range"]'), os = card.querySelectorAll(".x-ctl output"),
+            res = $(".x-res", card), done = !!api.solved;
+          function paint(stop) {
+            var p = +rs[0].value, rep = +rs[1].value, plan = +rs[2].value, exp = p / 100 * rep, d = plan - exp, ok = p === 10 && rep === 300 && plan === 80;
+            if (stop && ok && !done) { done = true; api.solve(10); }
+            box.innerHTML = evSVG(p, rep, plan, ok);
+            os[0].textContent = p + "%"; os[1].textContent = evM(rep); os[2].textContent = evM(plan);
+            rs[0].setAttribute("aria-valuetext", p + " percent chance of repair"); rs[1].setAttribute("aria-valuetext", rep + " dollar repair"); rs[2].setAttribute("aria-valuetext", plan + " dollar plan");
+            out.textContent = "Expected cost without the plan: " + p + "% × " + evM(rep) + " = " + evM(exp) + ". Plan: " + evM(plan) + ". " +
+              (Math.abs(d) < 1e-9 ? "Breaks even on average." : d > 0 ? "The plan costs " + evM(d) + " more on average: skip it, unless a repair would wreck you." : "The plan saves " + evM(-d) + " on average.") +
+              (ok || done ? "" : " Set the store’s numbers: 10%, $300, $80.");
+            res.hidden = !done;
+          }
+          Array.prototype.forEach.call(rs, function (i) { i.addEventListener("input", function () { paint(false); }); i.addEventListener("change", function () { paint(true); }); });
+          $(".x-do", card).addEventListener("click", function () { rs[0].value = 10; rs[1].value = 300; rs[2].value = 80; paint(true); });
+          if (done) { rs[0].value = 10; rs[1].value = 300; rs[2].value = 80; }
+          paint(false);
+        }
+        /* Day 26 build: invented $5 scratch-off → EV 0.50 + 0.50 + 0.10 = $1.10 → net 1.10 − 5 = −$3.90 */
+        function evBuild(card, api) {
+          var a = $(".x-a", card), b = $(".x-b", card), two = $(".x-st2", card), res = $(".x-res", card), h = $(".x-hint", card), st = api.solved ? 2 : 0;
+          function num(i) { return parseFloat(i.value.replace(/[−–—]/g, "-").replace(/[$,\s]|dollars?/g, "")); }
+          function paint() { a.disabled = st > 0; b.disabled = st !== 1; two.hidden = st < 1; res.hidden = st < 2; if (st > 0) a.value = "1.10"; if (st > 1) b.value = "−3.90"; }
+          function check() {
+            if (st === 0) {
+              if (Math.abs(num(a) - 1.1) < 0.001) { st = 1; h.hidden = true; }
+              else { h.innerHTML = "<b>Hint:</b> Multiply each prize by its chance, then add: $5 × 1/10 + $50 × 1/100 + $1,000 × 1/10,000."; h.hidden = false; }
+            } else if (st === 1) {
+              if (Math.abs(num(b) + 3.9) < 0.001) { st = 2; h.hidden = true; api.solve(10); } else { h.innerHTML = "<b>Hint:</b> Net = expected winnings minus the $5 price: 1.10 − 5."; h.hidden = false; }
+            }
+            paint();
+          }
+          $(".x-go", card).addEventListener("click", check);
+          [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
+          $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "1.10"; check(); } if (st === 1) { b.value = "-3.90"; check(); } });
           paint();
         }
         var LESSON_CONTENT = {
@@ -13911,6 +14018,100 @@
                   '<p class="x-so"><b>So:</b> Read a chance as how often over many tries, multiply to expect, and judge by the long run, not one day.</p>' + LAB_DICE }
             ]
           },
+          26: {
+            home: ["Expected Value", "warranties, insurance, raffles: is it worth it on average?"],
+            flow: true,
+            steps: [
+              { kind: "predict", title: "The $80 protection plan",
+                body: '<p class="x-q">The camera store offers 2-year protection for $80 on your $600 camera. Say there’s a 10% chance it needs a $300 repair in that time. On average, is the plan worth it?</p>' +
+                  cpBox(evHook(), "$600 camera, $80 plan, 10% chance of a $300 repair", "A $600 camera, an $80 two-year plan, and a 10% chance of a $300 repair") +
+                  ["Yes, it saves money", "No, it costs about $50 more on average", "It breaks even"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden><p class="why"><b>About $50 worse on average.</b> Expected repair cost = 0.10 × $300 = $30. You pay $80 for the plan.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l26plan", 1)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "Plan or no plan",
+                body: '<p class="x-q">Set the chance of a repair, the repair cost and the plan price. Watch what the plan costs against the repair bill you’d expect. Then set the store’s numbers: 10%, $300, $80.</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">Bars: plan price vs expected repair cost · grid: 100 cameras, coral = needs a repair</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="x-ctl"><label>Chance <input type="range" min="0" max="50" step="5" value="25" aria-label="Chance of repair in percent"><output>25%</output></label>' +
+                  '<label>Repair <input type="range" min="100" max="600" step="50" value="200" aria-label="Repair cost in dollars"><output>$200</output></label>' +
+                  '<label>Plan <input type="range" min="20" max="200" step="10" value="40" aria-label="Plan price in dollars"><output>$40</output></label></div>' +
+                  '<div class="links"><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<div class="x-res" hidden><p class="why"><b>$30 expected vs $80 paid.</b> 10% × $300 = $30, so the plan costs about $50 more on average. Try a pricier repair or a higher chance: the plan only wins when chance × repair passes its price.</p></div>',
+                mount: evPlay },
+              { kind: "notice", title: "The average over many cameras", hl: ".x-nl",
+                viz: cpBox(evNotice(), "Same plan, 100 cameras"),
+                q: "Across 100 cameras, about 10 need a $300 repair: $3,000 in all. What does the $30 expected cost describe?",
+                options: ["The average per camera if the same choice were made many times", "What your camera will cost to repair", "The most likely repair bill"],
+                say: "Expected value is the average result if you made the same choice many times. 100 cameras, about 10 repairs, $3,000 total = $30 each. No single camera costs $30; most cost $0, a few cost $300." },
+              { kind: "plate", plate: "ev", title: "Expected value = the long-run average payoff" },
+              { kind: "play", title: "Build it: a scratch-off",
+                body: '<p class="x-q">An invented $5 scratch-off (made up for practice, not a real game’s odds) wins $5 with chance 1 in 10, $50 with chance 1 in 100, and $1,000 with chance 1 in 10,000. Otherwise it pays $0. What are the expected winnings per ticket?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-a" type="text" inputmode="decimal" autocomplete="off" placeholder="$ expected winnings" aria-label="Expected winnings per ticket in dollars"></div>' +
+                  '<div class="x-st2" hidden><p class="why"><b>$1.10.</b> $0.50 + $0.50 + $0.10.</p>' +
+                  '<p class="x-q">What’s the net per ticket, after the $5 price?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-b" type="text" inputmode="text" autocomplete="off" placeholder="$ net" aria-label="Net per ticket in dollars"></div></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden></p>' +
+                  '<div class="x-res" hidden><p class="why"><b>−$3.90 per ticket.</b> $1.10 − $5 = −$3.90. On average you get back $1.10 of every $5.</p></div>',
+                mount: evBuild },
+              { kind: "formalize", title: "Name it: expected value",
+                body: '<ol class="x-wk"><li><span>EV</span><span>(outcome × chance) + (outcome × chance) + …</span><b>0.10 × 300 = $30</b></li>' +
+                  "<li><span>Net EV</span><span>EV − cost</span><b>1.10 − 5 = −$3.90</b></li>" +
+                  "<li><span>Positive</span><span>good on average</span><b>+</b></li>" +
+                  "<li><span>Negative</span><span>you pay on average</span><b>−</b></li></ol>",
+                so: "Warranties, insurance and lotteries are negative EV for the buyer — that gap is the seller’s profit." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“The most likely result of the scratch-off is $0, so its expected value is $0.” What went wrong?",
+                options: ["EV is $1.10: it averages every result by its chance", "Nothing: $0 is the most likely result, so EV is $0", "EV is $1,000: the top prize"], answer: 0, tags: [null, "EV-MOST-LIKELY", null], concept: "l26-ev",
+                hints: ["Do the $5, $50 and $1,000 prizes count, even though they’re rare?", "EV = 0.50 + 0.50 + 0.10."],
+                why: "EV is $1.10. It isn’t the most common result — it averages ALL results by their chances. Rare big prizes still count." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“Renter’s insurance has negative EV, so never buy it.” What went wrong?",
+                options: ["Insure losses you couldn’t absorb, like losing everything in a fire or hurricane; skip coverage for small losses you can pay yourself", "Nothing: negative EV means never buy", "Nothing: insure everything, even small losses"], answer: 0, tags: [null, "EV-IGNORE-RISK", null], concept: "l26-risk",
+                hints: ["Could you replace everything you own out of pocket?", "EV guides small, repeatable bets. What about one loss that would wreck you?"],
+                why: "Insure losses you couldn’t absorb, like losing everything in a fire or hurricane; skip coverage for small losses you can pay yourself. Paying a bit to avoid ruin is smart, even at negative EV." },
+              { kind: "fade", title: "The outdoor shoot",
+                q: "An outdoor Miami photo shoot pays $150 if it runs. There’s a 30% chance rain cancels it and you’re out $20 in gas. Fill in the missing line.",
+                lines: ["Outcomes: +$150 (70%) and −$20 (30%)", "0.7 × 150 + 0.3 × (−20) = 105 − 6 = $99", "An indoor studio shoot pays a sure $90. Outdoor wins on average ($99), but if you need guaranteed money this week, the sure $90 is reasonable"],
+                blank: 1, options: ["0.7 × 150 + 0.3 × (−20) = 105 − 6 = $99", "0.7 × 150 = $105", "150 − 20 = $130"], answer: 0, tags: [null, null, null], concept: "l26-ev",
+                hints: ["Multiply each outcome by its chance.", "Don’t forget the −$20: 0.3 × (−20) = −6."],
+                why: "0.7 × 150 = 105 and 0.3 × (−20) = −6, so EV = $99. $105 leaves out the rainy-day loss; $130 ignores the chances." },
+              { kind: "quiz", title: "Quick check: a coin flip",
+                q: "Flip a coin: heads you win $10, tails you lose $6. What’s the expected value per flip?",
+                options: ["+$2", "+$4", "+$16"], answer: 0, tags: [null, null, null], concept: "l26-ev",
+                hints: ["Each side has chance 0.5.", "0.5 × 10 + 0.5 × (−6) = ?"],
+                why: "0.5 × $10 + 0.5 × (−$6) = $5 − $3 = +$2 per flip." },
+              { kind: "quiz", title: "Quick check: phone protection",
+                q: "Phone protection is $8/month ($96/year). There’s a 15% chance per year of a $250 screen repair. Compared with paying for repairs yourself, the plan costs on average…",
+                options: ["About $58.50 more ($96 − $37.50)", "About $37.50 more", "About $154 less ($250 − $96)"], answer: 0, tags: [null, null, null], concept: "l26-net",
+                hints: ["Expected repair cost = 0.15 × $250.", "Compare that with the $96 a year."],
+                why: "0.15 × $250 = $37.50 expected a year. $96 − $37.50 = about $58.50 more for the plan." },
+              { kind: "quiz", title: "Quick check: the work raffle",
+                q: "A work raffle sells 200 tickets at $5 for one $400 prize. What’s the EV per ticket, and the net?",
+                options: ["$2 back, net −$3", "$400 back, net +$395", "$5 back, net $0"], answer: 0, tags: [null, null, null], concept: "l26-net",
+                hints: ["Your chance of winning is 1 in 200.", "$400 × 1/200, then subtract the $5."],
+                why: "$400 × 1/200 = $2 back per ticket. $2 − $5 = net −$3." },
+              { kind: "transfer", title: "New costume: a client who gambles",
+                q: "A client plays a slot machine that pays back 90¢ per $1 on average. In a night he puts $1,000 of spins through it, re-betting winnings. What concrete picture can you offer?",
+                options: ["About $100 lost on average: 10¢ per $1, about $10 per $100 played", "Break even: re-betting the winnings cancels the losses", "About $900 lost: 90¢ of every $1"], answer: 0, tags: [null, null, null], concept: "l26-net",
+                hints: ["Each $1 played returns 90¢ on average. What’s lost per $1?", "10¢ × 1,000 = ?"],
+                why: "Each $1 loses about 10¢ on average, so about $10 per $100 played. $1,000 of spins in a night is about $100 lost on average. The math isn’t a lecture; it’s a concrete picture of “the house always wins”." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Extended warranties.</b> Chance × repair, against the price.</li><li><b>Phone protection.</b> Monthly fees add up past the expected repair.</li>" +
+                  "<li><b>Insurance.</b> Negative EV, but worth it for losses you couldn’t absorb.</li><li><b>Raffles and scratch-offs.</b> Prize × chance, minus the ticket.</li>" +
+                  "<li><b>Casinos.</b> Every game pays back less than you put in, on average.</li><li><b>A sure thing or a gamble.</b> Compare the EV, then ask what you can afford to lose.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>EV = outcomes × chances, added.</b> 10% × $300 = $30 per camera.</li><li><b>Net = EV − cost.</b> $1.10 − $5 = −$3.90 per ticket.</li>" +
+                  "<li><b>Most likely ≠ expected.</b> A $0 usual result still has a $1.10 EV.</li><li><b>Protection plans usually lose on average.</b> That gap is the seller’s profit.</li>" +
+                  "<li><b>Insure what would ruin you;</b> self-cover the small stuff.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> Before you buy a plan, a ticket or a bet, multiply each outcome by its chance, add, and compare with the price.</p>' + LAB_DICE }
+            ]
+          },
           /* Foundations B4: exponent laws by counting factor chips. Each play keeps its own state; values and exponents appear only after the learner acts */
           "b4-laws": {
             home: ["Exponent laws, just counting", "join, cancel and copy rows of factor chips: the laws fall out of the count."],
@@ -16394,6 +16595,46 @@
                 z.tol = 0.5; return z;
               }
             ],
+            26: (function () {
+              var sg = function (x) { x = rr(x); return x < 0 ? "−" + money(-x) : money(x); };
+              return [
+                function (r) {
+                  var ch = 5 + 5 * Math.floor(r() * 8), R = 100 + 50 * Math.floor(r() * 11), P = 30 + 10 * Math.floor(r() * 18), E = ch / 100 * R, a = P - E, c = pk(r, [
+                    ["Camera gear", "A protection plan for your new camera lens costs " + money(P) + ". There’s a " + ch + "% chance you’ll need a " + money(R) + " repair while it’s covered."],
+                    ["Camera gear", "The store offers a " + money(P) + " protection plan on your camera body. You figure a " + ch + "% chance of a " + money(R) + " repair in the plan’s term."],
+                    ["Phone protection", "Phone protection costs " + money(P) + " for two years. About " + ch + "% of phones like yours need a " + money(R) + " screen or board repair in that time."]]);
+                  var z = mk(c[1] + " On average, how much more does the plan cost than just paying for repairs yourself? (Negative means the plan saves.)", a, "$",
+                    "Expected repair cost = chance × repair = " + ch / 100 + " × " + money(R) + " = " + money(E) + ". Plan − expected = " + money(P) + " − " + money(E) + " = " + sg(a) +
+                    (a > 0 ? ": on average you pay " + money(a) + " extra for peace of mind." : a < 0 ? ": negative, so on average the plan saves " + money(-a) + "." : ": a break-even plan."), c[0]);
+                  z.tol = Math.max(1, Math.abs(z.a) * 0.01); return z;
+                },
+                function (r) {
+                  var W = 20 + 10 * Math.floor(r() * 29), p = 10 + 10 * Math.floor(r() * 9), L = -5 * Math.floor(r() * 11), q = 1 - p / 100, a = p / 100 * W + q * L,
+                    els = L === 0 ? "otherwise you get nothing" : "otherwise you’re out " + money(-L), c = pk(r, [
+                    ["Scratch-off", "An invented scratch-off game: " + p + "% of cards win " + money(W) + "; " + els + "."],
+                    ["Photo shoot", "An outdoor Miami photo shoot pays a " + money(W) + " bonus if the weather holds (" + p + "% chance); " + (L === 0 ? "if it storms you move to the indoor studio and earn nothing extra" : "if it storms, moving to the indoor studio costs you " + money(-L)) + "."],
+                    ["Photo shoot", "Booking the beach instead of the indoor studio: a " + p + "% chance the light is great and the client tips " + money(W) + "; " + els + " on rebooking."]]);
+                  var z = mk(c[1] + " What is the expected value, in dollars?", a, "$",
+                    "EV = p·W + (1 − p)·L = " + p / 100 + " × " + money(W) + " + " + +q.toFixed(2) + " × " + sg(L) + " = " + money(p / 100 * W) + (q * L < 0 ? " − " + money(-q * L) : " + $0") + " = " + sg(a) + ". That’s the average per try over many tries.", c[0]);
+                  z.tol = Math.max(1, Math.abs(z.a) * 0.01); return z;
+                },
+                function (r) {
+                  var z;
+                  if (r() < 0.5) {
+                    var N = 50 + 10 * Math.floor(r() * 46), T = 1 + Math.floor(r() * 10), P = 10 * Math.max(1, Math.floor(N * T * (0.3 + 0.6 * r()) / 10)), a = P / N - T;
+                    z = mk("The work raffle sells " + N + " tickets at " + money(T) + " each for one " + money(P) + " prize. What is your expected net per ticket, in dollars?", a, "$",
+                      "Each ticket’s share of the prize = " + money(P) + " ÷ " + N + " = " + money(P / N) + ". Net = " + money(P / N) + " − " + money(T) + " = " + sg(a) + " per ticket. The other " + money(N * T - P) + " goes to the raffle, not the players.", "Work raffle");
+                    z.tol = 0.05;
+                  } else {
+                    var pb = 85 + Math.floor(r() * 11), X = 50 + 50 * Math.floor(r() * 20), L = X * (1 - pb / 100);
+                    z = mk("Talking with a client: they put " + money(X) + " through a slot machine that pays back " + pb + "% on average. What is their expected loss, in dollars?", L, "$",
+                      "Payback " + pb + "% means the house keeps " + (100 - pb) + "%. Expected loss = " + money(X) + " × (1 − " + pb / 100 + ") = " + money(X) + " × " + +(1 - pb / 100).toFixed(2) + " = " + money(L) + ". Replaying winnings keeps feeding that cut.", "Client session");
+                    z.tol = Math.max(1, Math.abs(z.a) * 0.01);
+                  }
+                  return z;
+                }
+              ];
+            })(),
             18: (function () {
               var C = [["Nicaragua Christmas trip", "You park $P in savings for the Christmas trip to Nicaragua"], ["Miami rent", "You set aside $P as a rent cushion for your Miami apartment"],
                 ["Camera gear", "You put $P into a fund for a new camera body and lens"], ["Counseling paycheck", "You stash $P from your counseling paycheck in a CD"]];
@@ -16464,7 +16705,7 @@
                 z.tol = 0.01; return z;
               }
             ]
-            /* REMIX: generators cover Days 1–25; add new days here */
+            /* REMIX: generators cover Days 1–26; add new days here */
           };
           Remix = (function () {
             function days() { return Object.keys(REMIX).map(Number).filter(function (d) { return REMIX[d] && REMIX[d].length; }); }
