@@ -14051,6 +14051,23 @@
                 return '<button type="button" class="qopt press' + cls + '" data-opt="' + k + '"' + (a != null ? " disabled" : "") + ">" + esc(o) + "</button>";
               }).join("");
             }
+            /* REMIX A) predict choices are written per lesson: reorder each run of sibling .qopt buttons by the same seeded optOrder.
+               Runs after mount, so handlers keep their original NodeList order and data-* indexes; only the display order moves. */
+            function shufflePredict(card, s) {
+              if (!card || s.keepOrder) return;
+              var runs = [], cur = [];
+              Array.prototype.forEach.call(card.querySelectorAll(".qopt"), function (b) {
+                if (cur.length && cur[cur.length - 1].nextElementSibling !== b) { runs.push(cur); cur = []; }
+                cur.push(b);
+              });
+              if (cur.length) runs.push(cur);
+              runs.forEach(function (run) {
+                if (run.length < 2) return;
+                var idx = optOrder({ options: run.map(function (b) { return (b.textContent || "").trim(); }), keepOrder: s.keepOrder });
+                var anchor = run[run.length - 1].nextSibling, par = run[0].parentNode;
+                idx.forEach(function (k) { par.insertBefore(run[k], anchor); });
+              });
+            }
             /* "Show me in the model": the step named by s.back, else the nearest visual step before this one */
             function backOf(s) {
               if (typeof s.back === "number" && L.steps[s.back]) return s.back;
@@ -14145,6 +14162,7 @@
               var at = P.i, api = { solved: !!P.solved[P.i], solve: solve, pred: P.pred[at], predict: function (v, p) { P.pred[at] = p; nmPredict(day, at, v); } };
               if (s.ask) askMount($("#pl-stage .scard", el), s, api);
               else if (s.mount) s.mount($("#pl-stage .scard", el), api);
+              try { if (s.kind === "predict") shufflePredict($("#pl-stage .scard", el), s); } catch (e) {}
               if (CHECKS[s.kind]) ladder($("#pl-stage .scard", el), s);
               $("#pl-count", el).textContent = P.i + 1 + " / " + L.steps.length;
               if (anat) Array.prototype.forEach.call(el.querySelectorAll(".x-anat li"), function (li, k) {
@@ -14463,7 +14481,7 @@
         try {
           SRS = (function () {
             var NEW_PER_DAY = 8, CAP = 12;
-            var KIND_T = { explain: "Explain", prod: "Recall", cloze: "Fill the blank", trap: "Spot the trap" };
+            var KIND_T = { explain: "Explain", prod: "Recall", cloze: "Fill the blank", trap: "Spot the trap", remix: "Remix" };
             var CONF = ["Guessing", "Unsure", "Fairly sure", "Certain"];
             var GR = [{ g: 0, t: "Again" }, { g: 3, t: "Hard" }, { g: 4, t: "Good" }, { g: 5, t: "Easy" }];
             function bag() {
@@ -14595,8 +14613,11 @@
                   return $("[data-sr=close]", box).focus();
                 }
                 st = { conf: null, ok: null };
+                var rmx = c.kind === "remix";
+                try { if (rmx && Remix) Remix.fresh(c); } catch (e) {}
                 box.innerHTML = '<button type="button" class="x-srs__x press" data-sr="close" aria-label="End session">×</button>' +
-                  '<p class="eyebrow">' + (i + 1) + " of " + queue.length + " · " + esc(KIND_T[c.kind] || "Card") + " · " + esc(dayLabel(c.day)) + "</p>" +
+                  '<p class="eyebrow">' + (i + 1) + " of " + queue.length + " · " + esc(KIND_T[c.kind] || "Card") + (rmx && mode === "mix" ? "" : " · " + esc(dayLabel(c.day))) + "</p>" +
+                  (rmx ? '<p class="x-tags"><span class="chip">Fresh numbers — same idea</span></p>' : "") +
                   '<p class="x-srs__q">' + esc(c.front) + "</p>" +
                   (c.num != null ? '<input class="x-srs__in" inputmode="decimal" autocomplete="off" aria-label="Your answer" placeholder="Type your answer">'
                     : '<textarea class="x-srs__in" rows="3" aria-label="Your answer" placeholder="Type or think your answer first"></textarea>') +
@@ -14610,13 +14631,14 @@
               function reveal() {
                 var c = queue[i], inp = $(".x-srs__in", box), typed = inp.value.trim(), back = $(".x-srs__back", box);
                 try { if (Mem && Mem.gate(c, typed, st, box)) return; } catch (e) {}
-                if (c.num != null) { var v = numOf(typed); st.ok = !!typed && isFinite(v) && Math.abs(v - c.num) <= Math.max(0.01, Math.abs(c.num) * 0.01); }
+                if (c.num != null) { var v = numOf(typed); st.ok = !!typed && isFinite(v) && Math.abs(v - c.num) <= (c.kind === "remix" && c.tol ? c.tol : Math.max(0.01, Math.abs(c.num) * 0.01)); }
                 inp.readOnly = true;
                 box.querySelectorAll("[data-sc]").forEach(function (b) { b.disabled = true; });
                 $("[data-sr=show]", box).hidden = true;
                 back.innerHTML = (st.ok === true ? '<p class="x-srs__v x-srs__v--ok">✓ Correct</p>'
                     : st.ok === false ? '<p class="x-srs__v x-srs__v--bad">' + (typed ? "Not quite: you typed " + esc(typed) + "." : "No answer typed.") + " Here’s the answer and why.</p>"
                     : typed ? '<p class="x-srs__why">You wrote: ' + esc(typed) + "</p>" : "") +
+                  (c.kind === "remix" ? '<p class="eyebrow">' + esc(dayLabel(c.day)) + (lessonOf(c.day) ? " · " + esc(lessonOf(c.day).title) : "") + (c.ctx ? " · " + esc(c.ctx) : "") + "</p>" : "") +
                   '<p class="x-srs__a">' + esc(c.back) + "</p>" + (c.why ? '<p class="x-srs__why">' + esc(c.why) + "</p>" : "") +
                   /* PARTS 2–3 HOOK: elaboration notes / mnemonics (part 2) and calibration feedback (part 3) render here, before grading */
                   (function () { try { return Meta ? Meta.after(c, st, mode) : ""; } catch (e) { return ""; } })() +
@@ -14635,6 +14657,8 @@
                 try { if (Mem && Mem.why(c, g, st, $(".x-srs__back", box), function () { rate(g); })) return; } catch (e) {}
                 try { if (Meta) g = Meta.honest(c, g, st); } catch (e) {}
                 var ok = c.num != null ? st.ok : g > 0;
+                /* REMIX: a remix card joins the schedule the first time it is graded (the skill, not the numbers) */
+                try { if (c.kind === "remix") bag().cards[c.id] = c; } catch (e) {}
                 grade(c, g, st.conf, ok); done++; if (ok) right++;
                 try { if (Meta) Meta.post(c, g, st, ok); } catch (e) {}
                 if (g === 0 && (again[c.id] = (again[c.id] || 0) + 1) <= 3) queue.splice(Math.min(queue.length, i + 4), 0, c);
@@ -14666,11 +14690,13 @@
               });
               paint();
             }
-            function start() { var cap = 1e9; try { if (Meta) cap = Meta.left(); } catch (e) {} run(mix(due().slice(0, cap).concat(fresh())), "due"); }
-            function practice() { run(mix(shuffle(cards()).slice(0, 10)), "mix"); }
+            function remixed(q) { try { return Remix ? Remix.inject(q) : q; } catch (e) { return q; } }
+            function start() { var cap = 1e9; try { if (Meta) cap = Meta.left(); } catch (e) {} try { if (Remix) Remix.fill(); } catch (e) {} run(remixed(mix(due().slice(0, cap).concat(fresh()))), "due"); }
+            function practice() { run(remixed(mix(shuffle(cards()).slice(0, 10))), "mix"); }
 
             /* E) the Review tab's home */
             function home() {
+              try { if (Remix) Remix.fill(); } catch (e) {}
               var t = stats(), n = (function () { try { return Meta ? Math.min(t.due, Meta.left()) : t.due; } catch (e) { return t.due; } })() + t.fresh, ring = '<div class="empty__ring">' + I.review.replace(/width="20" height="20"/, 'width="32" height="32"') + "</div>";
               if (!t.total) return "";
               var when = t.next ? new Date(t.next).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" }) : "";
@@ -14682,14 +14708,16 @@
                 '<button type="button" class="start press" data-srs="start"' + (n ? "" : " disabled") + ">" + (n ? "Start review · " + n + " card" + (n === 1 ? "" : "s") : "All caught up for today") + "</button>" +
                 (n ? "" : "<p>" + esc(idle) + "</p>") +
                 '<button type="button" class="start press x-srs-alt" data-srs="mix">Mixed practice · 10 cards</button>' +
-                "<p>Mixed practice pulls random cards from lessons you’ve mastered. Your schedule only changes if you grade a card.</p></section>" +
+                "<p>Mixed practice pulls random cards from lessons you’ve mastered. Your schedule only changes if you grade a card.</p>" +
+                (function () { try { return Remix && Remix.avail().length ? '<button type="button" class="start press x-srs-alt" data-srs="drill">Remix drill · 10 fresh problems</button><p>Same ideas, new numbers and settings each time. Ungraded unless you tap a grade.</p>' : ""; } catch (e) { return ""; } })() +
+                "</section>" +
                 (function () { try { return Meta ? Meta.dash() : ""; } catch (e) { return ""; } })() +
                 (function () { try { return Mem ? Mem.list() : ""; } catch (e) { return ""; } })();
             }
             doc.addEventListener("click", function (e) {
               var b = e.target.closest && e.target.closest("[data-srs]");
               if (!b || b.disabled) return;
-              try { if (b.dataset.srs === "start") start(); else practice(); } catch (err) { UI.toast("Review couldn’t open"); }
+              try { if (b.dataset.srs === "start") start(); else if (b.dataset.srs === "drill" && Remix) Remix.drill(); else practice(); } catch (err) { UI.toast("Review couldn’t open"); }
             });
 
             /* sync helpers: compact cloud copy (schedule only, text is re-seeded), per-card newest-wins merge */
@@ -14698,7 +14726,7 @@
               var o = { cards: {}, log: (Array.isArray(s.log) ? s.log : []).filter(function (e) { return e && isFinite(+e.t); }).slice(-1000) };
               Object.keys(s.cards).forEach(function (k) {
                 var c = s.cards[k];
-                if (!c || typeof c !== "object" || !/^d[\w-]+-(explain|prod|cloze|trap)-\d+$/.test(k)) return;
+                if (!c || typeof c !== "object" || !/^d[\w-]+-(explain|prod|cloze|trap|remix)-\d+$/.test(k)) return;
                 c.id = k; c.ease = Math.min(5, Math.max(1.3, +c.ease || 2.5)); c.interval = Math.max(0, +c.interval || 0); c.reps = Math.max(0, +c.reps || 0); c.lapses = Math.max(0, +c.lapses || 0);
                 c.due = isFinite(+c.due) && c.due ? +c.due : null; c.last = isFinite(+c.last) && c.last ? +c.last : null;
                 if (!Array.isArray(c.conf)) c.conf = []; if (!Array.isArray(c.hist)) c.hist = [];
@@ -15158,6 +15186,197 @@
           })();
           if (window.NuminaSRS) window.NuminaSRS.meta = Meta;
         } catch (e) { Meta = null; }
+
+        /* ============ REMIX: same idea, fresh frame (part 1 of 3) ============
+           REMIX[day] = [generator(rng) → { q, a, unit, tol, why, ctx }]. Numbers and the life context change every time;
+           the skill is scheduled as card "d<day>-remix-<genIndex>". Rates and dose guidelines are made up for practice. */
+        var REMIX = {}, Remix = null;
+        try {
+          var mulberry32 = function (a) { return function () { a |= 0; a = (a + 0x6d2b79f5) | 0; var t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+          var rr = function (x) { return Math.round(x * 100) / 100; };
+          var pk = function (r, a) { return a[Math.floor(r() * a.length)]; };
+          var nf = function (x) { return rr(x).toLocaleString("en-US", { maximumFractionDigits: 2 }); };
+          var money = function (x) { x = rr(x); return "$" + (x % 1 ? x.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : x.toLocaleString("en-US")); };
+          var F = function (x, u) { return u === "$" ? money(x) : /^\$\//.test(u) ? "$" + rr(x).toFixed(2) + " per " + u.slice(2) : u === "%" ? nf(x) + "%" : nf(x) + (u ? " " + u : ""); };
+          var mk = function (q, a, unit, why, ctx) { a = rr(a); return { q: q, a: a, unit: unit, tol: Math.max(0.01, Math.abs(a) * 0.01), why: why, ctx: ctx }; };
+          REMIX = {
+            1: [
+              function (r) {
+                var p = pk(r, [5, 10, 15, 20, 25, 30, 40]), c = pk(r, [
+                  ["Miami rent", [1800, 2000, 2200, 2400, 2600], "$", function (N) { return "Your Miami rent is $" + nf(N) + " a month. Renter’s insurance runs " + p + "% of that. How many dollars a month?"; }],
+                  ["Counseling caseload", [20, 40, 60, 80], "clients", function (N) { return "Your caseload is " + N + " clients and " + p + "% come to the Thursday group. How many clients is that?"; }],
+                  ["Photo prints", [60, 80, 120, 140, 200], "$", function (N) { return "A print order costs $" + N + ". The lab takes " + p + "% off for returning customers. How many dollars off?"; }],
+                  ["Phone storage", [64, 128, 256, 512], "GB", function (N) { return "Your phone has " + N + " GB. Photos take " + p + "% of it. How many GB is that?"; }]]), N = pk(r, c[1]), a = N * p / 100;
+                return mk(c[3](N), a, c[2], p + "% of " + nf(N) + " = " + p / 100 + " × " + nf(N) + " = " + F(a, c[2]) + ".", c[0]);
+              },
+              function (r) {
+                var p = pk(r, [5, 10, 15, 20, 25, 30, 40, 60]), c = pk(r, [
+                  ["Coffee budget", [200, 300, 400, 500], function (M, N) { return "You spent $" + N + " on coffee out of a $" + M + " monthly food budget. What percent went to coffee?"; }],
+                  ["Family in Nicaragua", [1500, 2000, 2500, 3000], function (M, N) { return "You send $" + nf(N) + " to family in Nicaragua from a $" + nf(M) + " paycheck. What percent of the paycheck is that?"; }],
+                  ["Gym", [40, 60, 80, 100], function (M, N) { return "You went to the gym " + M + " times this year; " + N + " were leg days. What percent were leg days?"; }]]), M = pk(r, c[1]), N = M * p / 100;
+                return mk(c[2](M, N), p, "%", nf(N) + " ÷ " + nf(M) + " = " + p / 100 + ", which is " + p + "%.", c[0]);
+              },
+              function (r) {
+                var c = pk(r, [
+                  ["Coffee", [6, 8, 12, 14], [15, 18, 20], "tip", "Coffee and a pastry come to $"],
+                  ["Photo gear", [240, 380, 600, 900], [7], "Miami-Dade sales tax", "A camera lens costs $"],
+                  ["Miami groceries", [80, 120, 150], [7], "sales tax", "Taxable groceries and household items come to $"]]), P = pk(r, c[1]), p = pk(r, c[2]), a = P * (1 + p / 100);
+                return mk(c[4] + P + ". Add " + p + "% " + c[3] + ". What is the total?", a, "$", money(P) + " × " + (1 + p / 100) + " = " + money(a) + " (the price plus " + p + "% in one step).", c[0]);
+              }
+            ],
+            2: [
+              function (r) {
+                var p = pk(r, [-25, -20, -10, 5, 10, 15, 20, 25, 50]), c = pk(r, [
+                  ["Miami rent", [1600, 2000, 2400], "$", "Your rent went from "], ["Gas", [3.2, 3.6, 4], "$", "A gallon of gas in Miami went from "],
+                  ["Group attendance", [20, 40, 60], "", "Your Tuesday group went from "]]), A = pk(r, c[1]), B = rr(A * (1 + p / 100)), u = c[2];
+                var f = function (x) { return u ? money(x) : nf(x) + " clients"; };
+                return mk(c[3] + f(A) + " to " + f(B) + ". What is the percent change? (Use a minus sign for a drop.)", p, "%", "(" + f(B) + " − " + f(A) + ") ÷ " + f(A) + " = " + p / 100 + " → " + p + "%.", c[0]);
+              },
+              function (r) {
+                var p = pk(r, [10, 20, 25, 50]), q = pk(r, [p, 10, 20, 25]), c = pk(r, [["Gym", [40, 60, 80], "Your gym fee is $"], ["Photo prints", [50, 100, 200], "A canvas print costs $"], ["Phone plan", [40, 60, 80], "Your phone plan is $"]]), A = pk(r, c[1]), a = A * (1 + p / 100) * (1 - q / 100);
+                return mk(c[2] + A + ". It goes up " + p + "%, then you get " + q + "% off the new price. What do you pay now?", a, "$", money(A) + " × " + (1 + p / 100) + " × " + (1 - q / 100) + " = " + money(a) + ". " + (rr(a) === A ? "Back to the start this time." : "Not back to " + money(A) + ": the " + q + "% comes off a different base."), c[0]);
+              },
+              function (r) {
+                var p = pk(r, [10, 20, 25, 30, 40]), c = pk(r, [["Photo gear", [500, 800, 1200], "A camera body"], ["Gym", [80, 120, 150], "Training shoes"], ["Coffee", [100, 150, 200], "A coffee grinder"]]), O = pk(r, c[1]), S = O * (1 - p / 100);
+                return mk(c[2] + " is on sale for " + money(S) + " after " + p + "% off. What was the original price?", O, "$", "Sale = original × " + (1 - p / 100) + ", so original = " + money(S) + " ÷ " + (1 - p / 100) + " = " + money(O) + ".", c[0]);
+              }
+            ],
+            3: [
+              function (r) {
+                var c = pk(r, [["Coffee beans", "oz", [12, 16], [32, 40]], ["Photo paper", "sheet", [25, 50], [100, 200]], ["Miami groceries", "lb", [2, 5], [10, 20]]]), u1 = pk(r, [0.5, 0.6, 0.75, 0.8, 0.9]), u2 = pk(r, [0.4, 0.45, 0.55, 0.65, 0.7]);
+                var s1 = pk(r, c[2]), s2 = pk(r, c[3]), P1 = rr(s1 * u1), P2 = rr(s2 * u2), lo = Math.min(P1 / s1, P2 / s2);
+                return mk(c[0] + ": " + s1 + " " + c[1] + "s for " + money(P1) + ", or " + s2 + " " + c[1] + "s for " + money(P2) + ". What is the cheaper price per " + c[1] + "?", lo, "$/" + c[1],
+                  money(P1) + " ÷ " + s1 + " = $" + (P1 / s1).toFixed(2) + "; " + money(P2) + " ÷ " + s2 + " = $" + (P2 / s2).toFixed(2) + ". Cheaper: $" + lo.toFixed(2) + " per " + c[1] + ".", c[0]);
+              },
+              function (r) {
+                var c = pk(r, [["Driving", "miles", "mph", [40, 50, 60], "You drive "], ["Photo editing", "photos", "photos per hour", [20, 30, 45], "You edit "], ["Counseling notes", "notes", "notes per hour", [3, 4, 5], "You finish "]]), v = pk(r, c[3]), t = pk(r, [1.5, 2, 2.5, 3, 4]), d = v * t;
+                return mk(c[4] + nf(d) + " " + c[1] + " in " + t + " hours. What is your rate in " + c[2] + "?", v, c[2], "Rate = amount ÷ time = " + nf(d) + " ÷ " + t + " = " + v + " " + c[2] + ".", c[0]);
+              },
+              function (r) {
+                var a = pk(r, [2, 3, 3, 5]), b = pk(r, [1, 2, 4]), u = pk(r, [20, 40, 50, 100]), T = (a + b) * u, c = pk(r, [
+                  ["Family in Nicaragua", "$", "You send $" + nf(T) + " home, split between your mom and your sister in the ratio " + a + ":" + b + ". How much is the larger share?"],
+                  ["Photo prints", "$", "A $" + nf(T) + " shoot is split with your second shooter " + a + ":" + b + ". How much is the larger share?"],
+                  ["Counseling groups", "clients", T / 10 + " clients split into two groups " + a + ":" + b + ". How many in the larger group?"]]);
+                if (c[1] !== "$") T = T / 10;
+                var big = T * Math.max(a, b) / (a + b);
+                return mk(c[2], big, c[1], a + " + " + b + " = " + (a + b) + " parts; one part = " + nf(T) + " ÷ " + (a + b) + " = " + nf(T / (a + b)) + "; larger share = " + Math.max(a, b) + " × " + nf(T / (a + b)) + " = " + F(big, c[1]) + ".", c[0]);
+              }
+            ],
+            4: [
+              function (r) {
+                var a = pk(r, [2, 3, 4]), b = pk(r, [5, 7, 9]), k = pk(r, [3, 4, 6, 8]), c = pk(r, [
+                  ["Photography", "photos", "You keep " + a + " of every " + b + " photos you shoot. You shot " + b * k + ". How many do you keep?"],
+                  ["Coffee", "scoops", "Your cold brew uses " + a + " scoops for every " + b + " cups of water. How many scoops for " + b * k + " cups?"],
+                  ["Counseling caseload", "group slots", "Your program offers " + a + " group slots for every " + b + " clients. How many slots for " + b * k + " clients?"]]);
+                return mk(c[2], a * k, c[1], a + "/" + b + " = x/" + b * k + " → x = " + a + " × " + b * k + " ÷ " + b + " = " + a * k + ".", c[0]);
+              },
+              function (r) {
+                var toKm = r() < 0.5, c = toKm ? pk(r, [["Driving", "The drive from Miami to Key West is about ", [160, 100, 50]], ["Gym", "You ran on the treadmill for ", [3, 5, 6]]]) : pk(r, [["Nicaragua trip", "Managua to Granada is about ", [45, 60, 120]], ["Gym", "Your race is ", [5, 10, 21]]]), d = pk(r, c[2]), a = toKm ? d * 1.609 : d / 1.609;
+                return mk(c[1] + d + (toKm ? " miles. How many km is that?" : " km. How many miles is that?") + " (1 mi = 1.609 km)", a, toKm ? "km" : "miles", d + (toKm ? " × 1.609 = " : " ÷ 1.609 = ") + nf(a) + (toKm ? " km." : " miles."), c[0]);
+              },
+              function (r) {
+                var rate = pk(r, [36.5, 36.6, 36.8, 37]), toC = r() < 0.6, amt = toC ? pk(r, [50, 100, 150, 200, 300]) : rr(pk(r, [40, 50, 80, 100, 120]) * rate), a = toC ? amt * rate : amt / rate;
+                return mk((toC ? "You send $" + amt + " to family in Nicaragua. At a practice rate of " + rate + " córdobas per dollar, how many córdobas arrive?" : "Your aunt needs " + nf(amt) + " córdobas. At a practice rate of " + rate + " córdobas per dollar, how many dollars is that?") + " (Made-up rate, not today’s.)", a, toC ? "córdobas" : "$",
+                  (toC ? amt + " × " + rate + " = " + nf(a) + " córdobas." : nf(amt) + " ÷ " + rate + " = " + money(a) + "."), "Family in Nicaragua");
+              }
+            ],
+            5: [
+              function (r) {
+                var c = pk(r, [["Gallo pinto for family", "cups of rice", [4, 6], [10, 12, 15]], ["Gym meal prep", "cups of oats", [2, 4], [6, 10, 14]], ["Coffee", "cups of grounds", [4, 8], [6, 12, 20]]]), s = pk(r, c[2]), n = pk(r, c[3]), q = pk(r, [1, 1.5, 2, 3]), a = q * n / s;
+                return mk(c[0] + ": the recipe serves " + s + " and uses " + q + " " + c[1] + ". How many " + c[1] + " for " + n + " servings?", a, c[1], "Scale factor " + n + " ÷ " + s + " = " + nf(n / s) + "; " + q + " × " + nf(n / s) + " = " + nf(a) + ".", c[0]);
+              },
+              function (r) {
+                var k = pk(r, [5, 10, 20, 25]), d = pk(r, [1.5, 2, 2.5, 3.5, 4]), c = pk(r, [["Miami map", "On a South Florida road map"], ["Nicaragua map", "On a map of Nicaragua"], ["Photo trip", "On the map for your next photo trip"]]);
+                return mk(c[1] + ", 1 inch = " + k + " miles. Two towns are " + d + " inches apart. How many miles?", d * k, "miles", d + " in × " + k + " mi per in = " + nf(d * k) + " miles.", c[0]);
+              },
+              function (r) {
+                var k = pk(r, [2, 5, 10, 15]), lb = r() < 0.5, w = lb ? pk(r, [110, 132, 154, 176]) : pk(r, [50, 60, 70, 80]), kg = lb ? w / 2.2 : w, a = kg * k;
+                return mk("Practice only, not medical guidance: a made-up guideline says " + k + " mg per kg of body weight. How many mg for someone who weighs " + w + (lb ? " lb (1 kg = 2.2 lb)?" : " kg?"), a, "mg",
+                  (lb ? w + " ÷ 2.2 = " + nf(kg) + " kg; " : "") + nf(kg) + " × " + k + " = " + nf(a) + " mg.", "Dose practice");
+              }
+            ],
+            6: [
+              function (r) {
+                var c = pk(r, [["Car rental", 25, 0.12, "m", "miles", "A rental car costs 25 + 0.12·m dollars for m miles. What does it cost for "], ["Photo prints", 8, 0.35, "p", "prints", "A print lab charges 8 + 0.35·p dollars for p prints. What do "],
+                  ["Gym", 30, 12, "c", "classes", "Your gym charges 30 + 12·c dollars a month for c classes. What does a month with "]]), x = c[2] < 1 ? pk(r, [40, 80, 120, 150, 200]) : pk(r, [2, 4, 6, 8]), a = c[1] + c[2] * x;
+                return mk(c[5] + x + " " + c[4] + (c[0] === "Gym" ? " cost?" : c[0] === "Photo prints" ? " cost?" : "?"), a, "$", c[1] + " + " + c[2] + " × " + x + " = " + c[1] + " + " + nf(c[2] * x) + " = " + money(a) + ".", c[0]);
+              },
+              function (r) {
+                var c = pk(r, [
+                  function () { var s = pk(r, [100, 150, 200]), f = pk(r, [4, 5, 8]), n = pk(r, [2, 3, 4]); return ["Family in Nicaragua", "Each send to family is $" + s + " plus a $" + f + " fee. Write the cost of n sends, then find it for n = " + n + ".", (s + f) * n, "(" + s + " + " + f + ")·n; n = " + n + ": " + (s + f) + " × " + n + " = " + money((s + f) * n) + "."]; },
+                  function () { var p = pk(r, [4.5, 5, 5.75]), d = pk(r, [3, 5]), n = pk(r, [8, 10, 12]); return ["Coffee", "Lattes cost $" + p + " each and the app takes $" + d + " off the total. Write the cost of n lattes, then find it for n = " + n + ".", p * n - d, p + "·n − " + d + "; n = " + n + ": " + nf(p * n) + " − " + d + " = " + money(p * n - d) + "."]; },
+                  function () { var g = pk(r, [256, 512]), v = pk(r, [2, 3, 4]), n = pk(r, [10, 20, 30]); return ["Phone storage", "Your phone has " + g + " GB and each 4K clip takes " + v + " GB. Write the space left after n clips, then find it for n = " + n + ".", g - v * n, g + " − " + v + "·n; n = " + n + ": " + g + " − " + v * n + " = " + (g - v * n) + " GB."]; }])();
+                return mk(c[1], c[2], c[0] === "Phone storage" ? "GB" : "$", c[3], c[0]);
+              }
+            ],
+            7: [
+              function (r) {
+                var c = pk(r, [["Gym", "a $", " sign-up fee plus $", " per class", "classes", [25, 40, 50], [10, 12, 15]], ["Photo prints", "a $", " setup fee plus $", " per print", "prints", [10, 15, 20], [2, 3, 4]], ["Car rental", "$", " a day plus $", " per mile (one day)", "miles", [30, 40, 45], [0.25, 0.5]]]), b = pk(r, c[5]), a = pk(r, c[6]), x = c[4] === "miles" ? pk(r, [40, 60, 80, 120]) : pk(r, [4, 6, 8, 10, 12]), t = rr(b + a * x);
+                return mk(c[0] + ": you pay " + c[1] + b + c[2] + a + c[3] + ". The total was " + money(t) + ". How many " + c[4] + "?", x, c[4], a + "x + " + b + " = " + nf(t) + " → " + a + "x = " + nf(t - b) + " → x = " + nf(t - b) + " ÷ " + a + " = " + x + ".", c[0]);
+              },
+              function (r) {
+                var c = pk(r, [["Miami groceries", "Your grocery budget starts at $", " and you spend $", " a week. $", " is left. How many weeks have passed?", [900, 1000, 1200], [50, 75, 100], "weeks", "$"], ["Phone storage", "You have ", " GB free and each video takes ", " GB. After filming you have ", " GB left. How many videos?", [120, 200], [3, 4, 5], "videos", ""]]);
+                var b = pk(r, c[5]), a = pk(r, c[6]), x = pk(r, [3, 4, 5, 6, 8]), left = b - a * x;
+                return mk(c[1] + b + c[2] + a + c[3] + left + c[4], x, c[7], b + " − " + a + "x = " + left + " → " + a + "x = " + b + " − " + left + " = " + (b - left) + " → x = " + x + ".", c[0]);
+              }
+            ]
+            /* REMIX: add Days 8–14 / 15–20 generators here */
+          };
+          Remix = (function () {
+            function days() { return Object.keys(REMIX).map(Number).filter(function (d) { return REMIX[d] && REMIX[d].length; }); }
+            function gen(day, k, seed) {
+              var g = REMIX[day]; if (!g || !g.length) return null;
+              if (k == null || !g[k]) k = Math.floor(Math.random() * g.length);
+              var p = g[k](mulberry32(seed == null ? (Math.random() * 4294967296) >>> 0 : seed));
+              p.day = +day; p.k = k; p.id = "d" + day + "-remix-" + k; p.answer = F(p.a, p.unit);
+              return p;
+            }
+            function avail() { var m = (prefs.mastered || []).map(String); return days().filter(function (d) { return m.indexOf(String(d)) > -1; }); }
+            function fresh(c) {
+              var p = gen(c.day, +String(c.id).split("-").pop());
+              if (!p) return c;
+              c.kind = "remix"; c.front = p.q; c.num = p.a; c.tol = p.tol; c.back = "Answer: " + p.answer; c.why = p.why; c.ctx = p.ctx;
+              return c;
+            }
+            function card(day, k) {
+              var id = "d" + day + "-remix-" + k, s = prefs.srs, c = s && s.cards && s.cards[id];
+              if (!c || typeof c !== "object") c = { id: id, day: +day, kind: "remix", ease: 2.5, interval: 0, reps: 0, lapses: 0, due: null, last: null, conf: [], hist: [] };
+              return fresh(c);
+            }
+            function fill() {
+              var s = prefs.srs; if (!s || !s.cards) return;
+              Object.keys(s.cards).forEach(function (k) { var c = s.cards[k]; if (c && /-remix-\d+$/.test(k) && !c.front) { c.id = k; c.day = +String(k).slice(1).split("-")[0]; fresh(c); } });
+            }
+            /* C) about 1 in 3 cards from a lesson with generators becomes a fresh problem; no remix id twice in a session */
+            function inject(q) {
+              fill();
+              var av = avail(), used = {};
+              if (!av.length) return q;
+              q.forEach(function (c) { used[c.id] = 1; });
+              return q.map(function (c) {
+                if (!c || c.kind === "remix" || av.indexOf(+c.day) < 0 || Math.random() >= 1 / 3) return c;
+                var ks = REMIX[+c.day].map(function (_, k) { return k; }).filter(function (k) { return !used["d" + c.day + "-remix-" + k]; });
+                if (!ks.length) return c;
+                var k = ks[Math.floor(Math.random() * ks.length)];
+                used["d" + c.day + "-remix-" + k] = 1;
+                return card(c.day, k);
+              });
+            }
+            /* D) 10 fresh problems across mastered lessons, interleaved, graded only if he taps a grade */
+            function drill() {
+              var av = avail();
+              if (!av.length) return UI.toast("Master Days 1–7 to unlock Remix drills");
+              var pool = [];
+              av.forEach(function (d) { REMIX[d].forEach(function (_, k) { pool.push([d, k]); }); });
+              for (var i = pool.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = pool[i]; pool[i] = pool[j]; pool[j] = t; }
+              var q = [];
+              for (var n = 0; n < 10; n++) { var x = pool[n % pool.length]; q.push(card(x[0], x[1])); }
+              SRS.run(SRS.mix(q), "mix");
+            }
+            return { days: days, gen: gen, avail: avail, fresh: fresh, card: card, fill: fill, inject: inject, drill: drill };
+          })();
+          window.NuminaRemix = { gen: function (day) { try { return Remix.gen(day); } catch (e) { return null; } }, days: function () { try { return Remix.days(); } catch (e) { return []; } } };
+        } catch (e) { Remix = null; }
 
         /* a centered card on the back/Esc layer stack */
         function dialog(title, html) {
