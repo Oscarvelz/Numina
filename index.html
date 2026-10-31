@@ -1434,6 +1434,8 @@
           "FUNC-NOTATION-MULTIPLY": "f(3) is not f × 3: f is the machine’s name, and the number in brackets is what you feed in. With the tip machine, f(45) means feed $45 in: f(45) = 54.",
           "SLOPE-RUN-OVER-RISE": "Slope is change in y ÷ change in x, output on top: savings rose $750 over 5 months, so 750 ÷ 5 = $150 per month. 5 ÷ 750 flips it into months per dollar, which answers a different question.",
           "SLOPE-ONE-POINT": "Slope uses the change between two points, not one point’s y ÷ x: 1,150 ÷ 6 ≈ $191.67 ignores the $400 already saved by month 1. (1,150 − 400) ÷ (6 − 1) = 750 ÷ 5 = $150 per month.",
+          "QUAD-HIGHER-ALWAYS-MORE": "A higher price doesn’t always earn more: every $1 up loses a sale. At $45 only 5 prints sell: $45 × 5 = $225. At $25, 25 sell: $625. Revenue rises, peaks, then falls.",
+          "QUAD-PICK-AN-END": "The best point is usually the peak in the middle, not an extreme: a 1 × 19 pen uses all 40 ft of fencing but holds only 19 sq ft. A 10 × 10 pen holds 100 sq ft.",
           "FUNC-IN-OUT-SWAP": "f(11) means feed 11 in, not find what gives 11: with f(x) = 2x + 3, f(11) = 2 × 11 + 3 = 25. The 4 solves 2x + 3 = 11, which runs the machine backward.",
           "SYS-CROSS-MEANS-CHEAPER": "The crossing is where the plans are equal, not where one wins: at month 5 both gyms cost $200. Before it B is cheaper; after it A is.",
           "INEQ-EXACT-ONLY": "“At most $60” is a range, not one exact value, and you round in the safe direction: at $6.75 a pack, 18 + 6.75p ≤ 60 gives p ≤ 6.2, so at most 6 packs. 7 packs is $65.25, over the limit.",
@@ -6186,6 +6188,11 @@
             see: "Rent climbs from $1,300 in 2022 to $1,500 in 2026. The triangle under the line shows the run, 4 years across, and the rise, $200 up. 200 ÷ 4 = $50 for each 1 year.",
             why: "A rate says how fast, not just how much, so you can compare two trends on one scale. A straight line has the same slope between any two of its points; a curve’s rate keeps changing, so one slope only describes a stretch of it.",
             use: "Rent and price trends, your savings pace, fuel economy, a client’s weekly scores, any chart in the news: ask how much it changes per step, and say the units." },
+          quad: { term: "A quadratic shows up when one thing grows while another shrinks; it draws an arc with a best point", svg: svgQuad, scene: "skater", short: "Grow × shrink = an arc; the vertex is the best point.",
+            alt: "Revenue arc for photo prints from $0 to $50, peaking at $25 with $625; beside it a 25 by 25 square for price × sales",
+            see: "Price grows from $0 to $50 while sales shrink from 50 to 0. Revenue = price × sales climbs, peaks at $25 × 25 = $625, then falls back to $0. The rectangle’s sides trade off: one gets longer as the other gets shorter.",
+            why: "When two factors pull against each other, their product can’t grow forever: it rises, tops out and falls. The arc is symmetric, so the best point sits halfway between the two places where it hits zero. Too little and too much both lose.",
+            use: "Pricing prints or sessions, a layout with a fixed amount of material, a shot’s highest point, stress and performance with clients: find the vertex instead of guessing at an extreme." },
           number: { term: "Number", svg: svgNumber, short: "Keeps only how many.",
             alt: "A cookie, a music note and a calendar day become three identical dots, then the numeral 3",
             see: "Three unlike things (a cookie, a song, a day) turn into three identical dots, then one mark: 3. Each dot stands for one thing; the numeral stands for the whole group.",
@@ -7780,6 +7787,52 @@
           $(".x-do", card).addEventListener("click", function () { ra.value = 2022; rb.value = 2026; paint(true); });
           if (done) { ra.value = 2022; rb.value = 2026; }
           seen[Math.min(+ra.value, +rb.value) + "-" + Math.max(+ra.value, +rb.value)] = 1;
+          paint(false);
+        }
+        /* Day 14 quadratics: prints at price p sell 50 − p, revenue p(50 − p). Arc drawn from lo to hi (the prices visited); the rectangle beside it is price × sales at one scale */
+        function qdR(p) { return p * (50 - p); }
+        function qdX(p) { return 36 + p * 3.2; }
+        function qdY(r) { return +(170 - r * 0.224).toFixed(1); }
+        function qdSVG(p, lo, hi, marks) {
+          var s = SVG_OPEN(196), d = "", q, n = 50 - p, w = p * 1.6, h = n * 1.6, top = p === 25;
+          s += '<path d="M36 170H196M36 170V24" stroke-opacity=".5"/>';
+          [300, 600].forEach(function (v) { s += '<path d="M36 ' + qdY(v) + 'H196" stroke-opacity=".15"/>' + LBL(32, qdY(v) + 4, "$" + v, "text-anchor:end;font-size:12px"); });
+          [0, 25, 50].forEach(function (v) { s += LBL(qdX(v), 186, "$" + v, "font-size:12px"); });
+          for (q = lo; q <= hi; q++) d += (q === lo ? "M" : "L") + qdX(q) + " " + qdY(qdR(q));
+          if (hi > lo) s += '<path d="' + d + '" stroke-width="3" style="stroke:var(--cyan)"/>';
+          (marks || []).forEach(function (m) { s += '<circle cx="' + qdX(m) + '" cy="' + qdY(qdR(m)) + '" r="6" stroke="none" style="fill:var(--gold)"/>' + LBL(qdX(m), qdY(qdR(m)) + 20, "$" + m, "font-size:12px;font-weight:600;fill:var(--gold)"); });
+          s += '<path d="M' + qdX(p) + " 170V" + qdY(qdR(p)) + '" stroke-dasharray="4 3" stroke-opacity=".5"/>' +
+            '<circle cx="' + qdX(p) + '" cy="' + qdY(qdR(p)) + '" r="8" stroke="none" style="fill:var(--coral)' + (top ? ";filter:drop-shadow(0 0 5px var(--coral))" : "") + '"/>';
+          s += '<rect x="210" y="' + (170 - h) + '" width="' + w + '" height="' + h + '" style="fill:var(--gold);fill-opacity:.25;stroke:var(--gold)"/>' +
+            LBL(250, 186, "price", "font-size:12px") + LBL(250, 164 - h, n + " sold", "font-size:12px");
+          return s + LBL(150, 14, "$" + p + " × " + n + " sold = $" + qdR(p), "font-weight:600" + (top ? ";fill:var(--ok)" : "")) + "</svg>";
+        }
+        function svgQuad() { return qdSVG(25, 0, 50); }
+        function qdName() {
+          return SVG_OPEN(130) + LBL(150, 22, "y = ax² + bx + c", "font-weight:600") + LBL(150, 48, "revenue = p(50 − p) = −p² + 50p") +
+            LBL(150, 74, "a = −1 is negative: opens down, has a max") + LBL(150, 100, "zeros at 0 and 50 → vertex at (0 + 50) ÷ 2 = 25") +
+            LBL(150, 124, "$25 → $625", "font-weight:600;fill:var(--ok)") + "</svg>";
+        }
+        /* Day 14 play: drag the marker (or the slider) along price; the arc fills in where he has been. Solved when he stops on the peak, $25 */
+        function qdPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), rng = $("input", card), res = $(".x-res", card), done = !!api.solved, drag = false, lo, hi;
+          function paint(stop) {
+            var p = +rng.value; lo = Math.min(lo, p); hi = Math.max(hi, p);
+            if (stop && p === 25 && !done) { done = true; api.solve(10); }
+            box.innerHTML = qdSVG(p, lo, hi);
+            out.textContent = "$" + p + " × " + (50 - p) + " sold = $" + qdR(p) + "." + (done ? " $25 is the peak: $625." : " Find the price that earns the most.");
+            res.hidden = !done;
+          }
+          function at(e) { var r = box.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * 300; rng.value = Math.max(0, Math.min(50, Math.round((x - 36) / 3.2))); paint(false); }
+          box.style.touchAction = "none"; box.style.cursor = "ew-resize";
+          box.addEventListener("pointerdown", function (e) { box.setPointerCapture(e.pointerId); drag = true; at(e); });
+          box.addEventListener("pointermove", function (e) { if (drag) at(e); });
+          box.addEventListener("pointerup", function () { if (drag) { drag = false; paint(true); } });
+          box.addEventListener("pointercancel", function () { drag = false; });
+          rng.addEventListener("input", function () { paint(false); });
+          rng.addEventListener("change", function () { paint(true); });
+          $(".x-do", card).addEventListener("click", function () { rng.value = 25; lo = 0; hi = 50; paint(true); });
+          if (done) { rng.value = 25; lo = 0; hi = 50; } else lo = hi = +rng.value;
           paint(false);
         }
         /* Day 22 proof puzzle: a 7 × 7 square (a = 3, b = 4), 26px a unit; four legs-3-4 triangles, each [x1, y1, x2, y2, turn]: corners (st 0) → two rectangles (st 1), translation only */
@@ -11734,6 +11787,98 @@
                 body: "<ul><li><b>Fixed + rate × use.</b> Every bill splits into a fee and a price per use.</li><li><b>Break-even = where the lines cross.</b> Fee gap ÷ rate gap.</li>" +
                   "<li><b>Use more than break-even → the fixed plan wins.</b> Use less and pay as you go.</li></ul>" +
                   '<p class="x-so"><b>So:</b> cost = rate × use + fixed is y = m·x + b: m is the rate, b is the fixed fee.</p>' }
+            ]
+          },
+          /* Day 14: quadratics as optimizing. One thing grows while another shrinks; the product draws an arc, and the vertex is the best point */
+          14: {
+            home: ["Quadratics: Arcs and Optimizing", "price your prints, fence a patio: find the best point on the arc."],
+            flow: true,
+            scene: "skater",
+            steps: [
+              { kind: "predict", title: "Price your prints",
+                body: '<p class="x-q">You sell photo prints at $20 and sell 30 a month. Every $1 you raise the price, you sell 1 fewer. Which price earns the most?</p>' +
+                  ["$20", "$25", "$30"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden>' + cpBox(qdSVG(25, 20, 30, [20, 30]), "$20 → $600 · $25 → $625 · $30 → $600", "Revenue arc from $20 to $30: $600 at both ends, $625 at $25") +
+                  '<p class="why"><b>$25.</b> 25 sold × $25 = $625. At $20: 30 × $20 = $600. At $30: 20 × $30 = $600.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l14price", 1)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "Find the peak",
+                body: '<p class="x-q">Drag the marker along the price line. Sales = 50 − price. Find the price that earns the most.</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">Left: revenue by price, drawn where you’ve been · right: price × sales = revenue</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="x-ctl"><label>Price <input type="range" min="0" max="50" step="1" value="20" aria-label="Print price in dollars"></label></div>' +
+                  '<button type="button" class="prev press x-do">Do it for me</button>' +
+                  '<div class="x-res" hidden><p class="why"><b>$25 × 25 = $625, the peak.</b> Go higher and you lose more sales than the price adds.</p></div>' +
+                  LAB_SKATER,
+                mount: qdPlay },
+              { kind: "notice", title: "Up, peak, down", hl: ".x-nl",
+                viz: cpBox(qdSVG(25, 0, 50, [20, 30]), "$20 and $30 both earn $600"),
+                q: "Look at the whole arc. What did revenue do as the price rose?",
+                options: ["It rose, peaked at $25, then fell, and $20 and $30 earn the same", "It kept rising with the price", "It fell from the start"],
+                say: "Revenue rises, peaks, then falls, and the arc is symmetric: $20 and $30 both earn $600." },
+              { kind: "plate", plate: "quad", title: "A quadratic: grow × shrink = an arc" },
+              { kind: "play", title: "Build it: the patio pen",
+                body: '<p class="x-q">40 ft of fencing for a rectangular patio pen. Width w, length 20 − w, area = w(20 − w). Which width gives the most area?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input type="text" inputmode="decimal" autocomplete="off" placeholder="w in feet" aria-label="Best width in feet"></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden><b>Hint:</b> The peak sits halfway between the two widths that give zero area (0 and 20).</p>' +
+                  '<div class="x-res" hidden><p class="why"><b>w = 10 ft: 10 × 10 = 100 sq ft.</b> A 5 × 15 pen uses the same fencing but holds only 75.</p></div>',
+                mount: blFill(10) },
+              { kind: "formalize", title: "Name it: the vertex",
+                body: cpBox(qdName(), "The vertex is the best point", "y = ax² + bx + c; revenue = −p² + 50p opens down because a = −1; the vertex is halfway between the zeros 0 and 50, at $25 for $625") +
+                  '<ol class="x-wk"><li><span>y = ax² + bx + c</span><span>A squared term: the shape of an arc</span><b>−p² + 50p</b></li>' +
+                  "<li><span>Vertex</span><span>The top (or bottom) point: the best one</span><b>$25 → $625</b></li>" +
+                  "<li><span>a &lt; 0</span><span>Opens down, so it has a max</span><b>a = −1</b></li>" +
+                  "<li><span>Trick</span><span>The peak is halfway between the two zeros</span><b>(0 + 50) ÷ 2</b></li></ol>",
+                so: "y = ax² + bx + c draws an arc. Negative a opens down and has a max; the vertex sits halfway between the zeros." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "A friend says: “Raise prints to $45. Higher price, more money.” What went wrong?",
+                options: ["At $45 only 5 sell: $45 × 5 = $225, far below $625 at $25", "Nothing: a higher price always earns more", "Nothing: $45 × 30 = $1,350"], answer: 0, tags: [null, "QUAD-HIGHER-ALWAYS-MORE", "QUAD-HIGHER-ALWAYS-MORE"], concept: "l14-peak",
+                hints: ["How many prints sell at $45?"],
+                why: "Sales = 50 − 45 = 5, so $45 × 5 = $225. Past $25, each $1 up loses more than it adds." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“A 1 × 19 pen uses all 40 ft of fencing, so it’s best.” What went wrong?",
+                options: ["Using all the fencing isn’t enough: 1 × 19 holds only 19 sq ft; 10 × 10 holds 100", "Nothing: all the fencing means the most area", "It should be 0 × 20, even longer"], answer: 0, tags: [null, "QUAD-PICK-AN-END", "QUAD-PICK-AN-END"], concept: "l14-vertex",
+                hints: ["Every rectangle here uses all 40 ft. Which holds the most?"],
+                why: "1 × 19 = 19 sq ft, near the zero end of the arc. The peak is the middle: 10 × 10 = 100 sq ft." },
+              { kind: "fade", title: "The basketball shot",
+                q: "Shot height h = −16t² + 32t + 6 (feet, seconds). When is it highest, and how high? Fill in the missing line.",
+                lines: ["h(0) = 6 and h(2) = −64 + 64 + 6 = 6: same height", "The peak is halfway: t = (0 + 2) ÷ 2 = 1 s", "h(1) = −16 + 32 + 6 = 22 ft"],
+                blank: 2, options: ["h(1) = −16 + 32 + 6 = 22 ft", "h(1) = 16 + 32 + 6 = 54 ft", "h(2) = 6 ft, the highest"], answer: 0, tags: [null, null, "QUAD-PICK-AN-END"], concept: "l14-vertex",
+                hints: ["Put t = 1 in; −16 × 1² is −16."],
+                why: "At t = 1 s: −16 + 32 + 6 = 22 ft. The ball rises for 1 second, tops out at 22 ft, then falls." },
+              { kind: "quiz", title: "Quick check: price it at $40",
+                q: "Prints at $40, with sales = 50 − price. What’s the revenue?",
+                options: ["$400", "$2,000", "$1,600"], answer: 0, tags: [null, "QUAD-HIGHER-ALWAYS-MORE", null], concept: "l14-peak",
+                hints: ["Sales at $40: 50 − 40."],
+                why: "10 sold × $40 = $400. $2,000 assumes 50 still sell at the higher price." },
+              { kind: "quiz", title: "Quick check: halfway",
+                q: "Revenue is $0 at a price of $0 and at $50. Where’s the peak?",
+                options: ["$25", "$50", "$0"], answer: 0, tags: [null, "QUAD-PICK-AN-END", "QUAD-PICK-AN-END"], concept: "l14-vertex",
+                hints: ["The peak sits halfway between the zeros."],
+                why: "(0 + 50) ÷ 2 = $25. Both ends earn $0: that’s where the arc touches the floor." },
+              { kind: "quiz", title: "Quick check: opens up",
+                q: "A cost-per-item curve opens UP as the batch size grows. What does its vertex tell you?",
+                options: ["The lowest point: the cheapest batch size", "The highest cost", "Nothing: it has no special point"], answer: 0, tags: [null, null, null], concept: "l14-open",
+                hints: ["An arc that opens up is a valley, not a hill."],
+                why: "Opening up means a is positive: the vertex is the bottom, so it marks the cheapest batch size, not a highest point." },
+              { kind: "transfer", title: "New costume: stress and performance",
+                q: "A simplified Yerkes–Dodson model: performance = 25 − (s − 5)² for stress level s from 0 to 10. Which stress level gives the best performance?",
+                options: ["s = 5: performance 25", "s = 10: the most pressure drives the most effort", "s = 0: no stress at all"], answer: 0, tags: [null, "QUAD-HIGHER-ALWAYS-MORE", "QUAD-PICK-AN-END"], concept: "l14-vertex",
+                hints: ["(s − 5)² is smallest when s = 5.", "Try s = 1 and s = 9."],
+                why: "At s = 5, (s − 5)² = 0, so performance is 25. At s = 1 or 9 it’s 25 − 16 = 9. Some pressure helps; too much hurts — useful when coaching clients." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Pricing.</b> Prints or a service: too cheap or too pricey both earn less.</li><li><b>Layouts.</b> A fixed amount of fencing, trim or frame: the squarest shape holds the most.</li>" +
+                  "<li><b>Sports and fountains.</b> A shot or a jet of water peaks halfway through its flight.</li><li><b>Stress and performance.</b> Some pressure helps a client; too much hurts.</li>" +
+                  "<li><b>Too little vs too much.</b> Effort, caffeine: the best dose sits in the middle.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>Grow × shrink = an arc.</b> Price up, sales down: revenue rises, peaks, then falls.</li><li><b>The best point is the vertex.</b> $25 → $625; 10 × 10 → 100 sq ft.</li>" +
+                  "<li><b>Halfway between the zeros.</b> (0 + 50) ÷ 2 = $25; (0 + 20) ÷ 2 = 10 ft.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> When one thing grows while another shrinks, look for the peak in the middle, not an extreme.</p>' }
             ]
           },
           22: {
