@@ -199,6 +199,8 @@
       [data-theme="day"] .alert { color: #c02b3f; }
       .auth__foot { margin-top: 14px; text-align: center; font-size: 12px; color: var(--dim); }
       .alert.is-info, [data-theme="day"] .alert.is-info { color: var(--text); }
+      .x-keep { display: flex; align-items: center; gap: 10px; margin: 2px 0 12px; font-size: 15px; cursor: pointer; user-select: none; }
+      .x-keep input { width: 20px; height: 20px; accent-color: var(--gold, #d8b45a); margin: 0; }
       .x-authalt { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px; margin-top: 4px; }
       .x-link { min-height: var(--tap); padding: 0 4px; font-size: 13px; color: var(--primary); text-decoration: underline; text-underline-offset: 3px; }
       .chip[data-state="live"] { color: var(--text); }
@@ -936,6 +938,7 @@
             <button type="button" class="eye press" id="eye" aria-pressed="false" aria-label="Show password" aria-controls="i-pw"></button>
           </div>
         </div>
+        <label class="x-keep"><input type="checkbox" id="i-keep" checked /> <span>Keep me signed in</span></label>
         <button type="button" class="cta press" id="submit">Sign in</button>
         <p class="alert" id="alert" role="alert"></p>
         <div class="x-authalt">
@@ -999,10 +1002,28 @@
 
         /* ============ STORE ============ */
         var mem = {};
+        /* Keep me signed in (default ON): session keys live in localStorage when kept, sessionStorage when not */
+        var KEEP_KEY = "nm.keep", SESS_KEYS = { "nm.session": 1, "nm.cloud": 1, "nm.last": 1 };
+        var Keep = {
+          on: function () { try { return localStorage.getItem(KEEP_KEY) !== "0"; } catch (e) { return true; } },
+          set: function (v) {
+            var was = Keep.on();
+            try { localStorage.setItem(KEEP_KEY, v ? "1" : "0"); } catch (e) {}
+            if (was === !!v) return;
+            Object.keys(SESS_KEYS).forEach(function (k) {
+              var from = was ? Keep.ls() : Keep.ss(), to = v ? Keep.ls() : Keep.ss(), raw = null;
+              try { raw = from && from.getItem(k); } catch (e) {}
+              try { if (raw != null && to) to.setItem(k, raw); if (from) from.removeItem(k); } catch (e) {}
+            });
+          },
+          ls: function () { try { return window.localStorage; } catch (e) { return null; } },
+          ss: function () { try { return window.sessionStorage; } catch (e) { return null; } },
+          area: function (k) { return SESS_KEYS[k] && !Keep.on() ? Keep.ss() : Keep.ls(); }
+        };
         var Store = {
           get: function (k, fallback) {
             var raw = null;
-            try { raw = localStorage.getItem(k); } catch (e) { raw = null; }
+            try { raw = Keep.area(k).getItem(k); } catch (e) { raw = null; }
             if (raw == null && k in mem) raw = mem[k];
             if (raw == null) return fallback;
             try { return JSON.parse(raw); } catch (e) { return fallback; }
@@ -1010,12 +1031,13 @@
           set: function (k, v) {
             var raw = JSON.stringify(v);
             mem[k] = raw;
-            try { localStorage.setItem(k, raw); } catch (e) { /* sandboxed: memory only */ }
+            try { Keep.area(k).setItem(k, raw); } catch (e) { /* sandboxed: memory only */ }
             return v;
           },
           del: function (k) {
             delete mem[k];
             try { localStorage.removeItem(k); } catch (e) {}
+            if (SESS_KEYS[k]) try { sessionStorage.removeItem(k); } catch (e) {}
           }
         };
         var K = { accounts: "nm.accounts", session: "nm.session", prefs: "nm.prefs", meta: "nm.meta", cloud: "nm.cloud" };
@@ -1133,6 +1155,7 @@
           start: function (user) {
             Auth.user = user;
             Store.set(K.session, user);
+            if (user && user.email) Store.set("nm.last", user.email);
             return user;
           },
           signOut: function () {
@@ -1221,7 +1244,9 @@
             });
             var note = $("#sync-note");
             if (note) note.hidden = Sync.state !== "expired";
-            if (note) note.textContent = "Your session ended. Sign out and sign in again to resume syncing; progress here is kept.";
+            if (note) note.textContent = "Your cloud session ended. Everything here is kept; sign in again to resume syncing.";
+            var again = $("#sync-again");
+            if (again) again.hidden = Sync.state !== "expired";
           },
           touch: function () {
             if (Sync.quiet) return;
@@ -5999,6 +6024,7 @@
                   ? '<div class="rows">' + row("Signed in as", u.email) + "</div>" +
                     '<div class="x-acts"><span class="chip" id="sync-chip" aria-live="polite"></span></div>' +
                     '<p class="dim" id="sync-note" hidden></p>' +
+                    '<div class="x-acts"><button type="button" class="start press" id="sync-again" hidden>Sign in again</button></div>' +
                     '<div class="x-acts"><button type="button" class="start press" id="sync-now">Sync now</button><button type="button" class="danger press" id="signout">Sign out</button></div>'
                   : '<div class="rows">' + (u.name ? row("Name", u.name) : "") + (u.email ? row("Email", u.email) : "") + row("Account", "On this device only") + "</div>" +
                     '<p class="dim">Sign in or create an account to sync progress across devices. Everything on this device is merged into your account.</p>' +
@@ -17407,6 +17433,14 @@
           if (t.id === "bk-export") return exportProgress();
           if (t.id === "bk-import") return importProgress();
           if (t.id === "sync-now") { Sync.dirty = true; return Sync.pull(); }
+          if (t.id === "sync-again") {
+            /* soft re-login: local progress stays; the new session merges with it */
+            while (Layers.length) Layers.pop();
+            var em = Auth.user && Auth.user.email;
+            showLogin();
+            if (em) $("#i-email").value = em;
+            return;
+          }
           if (t.id === "signout" || t.id === "go-signin") {
             t.disabled = true;
             return Auth.signOut().then(function () {
@@ -17512,6 +17546,7 @@
             btn.setAttribute("aria-busy", "true");
             btn.textContent = "Working…";
             var p;
+            Keep.set(!!($("#i-keep") && $("#i-keep").checked));
             try { p = mode === "up" ? Auth.signUp(name, email, pw) : Auth.signIn(email, pw); }
             catch (x) { p = Promise.reject(x); }
             Promise.resolve(p)
@@ -17553,6 +17588,9 @@
           $("#app").hidden = true;
           $("#login").hidden = false;
           $("#i-pw").value = "";
+          if ($("#i-keep")) $("#i-keep").checked = Keep.on();
+          var last = Store.get("nm.last", "");
+          if (last && !$("#i-email").value) $("#i-email").value = last;
           Sync.set("off");
           setMode("in");
         }
