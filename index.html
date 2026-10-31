@@ -1427,6 +1427,8 @@
           "EQ-ONE-SIDE-ONLY": "Whatever you do to one side, do to the other: from 6p + 3 = 12, take 3 off both sides to get 6p = 9, not 6p = 12.",
           "FORM-SWAP-NOT-INVERT": "Moving a letter across the = means undoing it on both sides: from d = r · t, ÷ r on both sides gives t = d ÷ r, not t = d · r.",
           "INEQ-FLIP-FORGOT": "Multiplying or dividing both sides by a negative flips the fence: from −2x ≤ 10, ÷ −2 gives x ≥ −5, not x ≤ −5. Check: x = 0 works (0 ≤ 10), and 0 is not ≤ −5.",
+          "SYS-ONE-EQUATION": "One equation with two unknowns has many answers: 12a + 8c = 72 fits a = 6, c = 0 and a = 4, c = 3. The second rule, a + c = 7 tickets, picks the one pair that fits both.",
+          "SYS-CROSS-MEANS-CHEAPER": "The crossing is where the plans are equal, not where one wins: at month 5 both gyms cost $200. Before it B is cheaper; after it A is.",
           "INEQ-EXACT-ONLY": "“At most $60” is a range, not one exact value, and you round in the safe direction: at $6.75 a pack, 18 + 6.75p ≤ 60 gives p ≤ 6.2, so at most 6 packs. 7 packs is $65.25, over the limit.",
           "FORM-PARTIAL-DIVIDE": "Divide the whole side, not one term: from cost = 6c + 10, take 10 off both sides first, then ÷ 6: c = (cost − 10) ÷ 6, not cost/6 + 10.",
           "EQ-WRONG-UNDO-ORDER": "Undo in reverse order: 6p + 3 was built × 6 first, then + 3, so take off the 3 first, then ÷ 6: p = 9 ÷ 6 = 1.5, not 12/6 − 3.",
@@ -6161,6 +6163,11 @@
             see: "18 + 7p ≤ 60 solves to p ≤ 6. The shaded zone runs 0 to 6, with a closed dot at 6: 6 packs is allowed, 7 is past the fence.",
             why: "Real limits rarely ask for one exact number; they ask what stays under a cap or clears a goal. Day 7’s balance moves still work, except × or ÷ by a negative flips the fence. Whole things round in the safe direction: down under a cap, up past a goal.",
             use: "Grocery and monthly budgets, months to save for a trip, weeks before a caseload cap, minimum hours to clear a bill: solve, then read the fence." },
+          system: { term: "A system = two rules that must both be true. The answer is where their lines cross", svg: svgSc, scene: "billbuilder3d", short: "Two rules, both true: the answer is the crossing.",
+            alt: "Two lines over 12 months: Gym A starts at $50 and climbs $30 a month, Gym B starts at $0 and climbs $40 a month; they cross at month 5, $200",
+            see: "Gym A is 50 + 30m, Gym B is 40m. Every point on a line fits that gym’s rule. Only one point sits on both lines: month 5, $200.",
+            why: "One rule with two unknowns has endless answers; a second rule cuts them down to the one pair that fits both. Setting the totals equal finds it. Parallel lines (same rate) never cross, so there’s no such point.",
+            use: "Gyms and phone plans, job offers with commission, rentals, buying vs leasing, mixed ticket prices: find the crossing, then pick by which side of it you’re on." },
           number: { term: "Number", svg: svgNumber, short: "Keeps only how many.",
             alt: "A cookie, a music note and a calendar day become three identical dots, then the numeral 3",
             see: "Three unlike things (a cookie, a song, a day) turn into three identical dots, then one mark: 3. Each dot stands for one thing; the numeral stands for the whole group.",
@@ -7598,6 +7605,57 @@
           $(".x-do", card).addEventListener("click", function () { rng.value = 6; paint(); });
           if (done) rng.value = 6;
           paint();
+        }
+        /* Day 10 two plans: Gym A 50 + 30m, Gym B 40m over months 0–12 ($0–480); m: the marker month, sides: shade who is cheaper */
+        function scX(m) { return 44 + m * 20; }
+        function scY(v) { return (166 - v * 0.29).toFixed(1); }
+        function scSVG(m, sides) {
+          var s = SVG_OPEN(196);
+          if (sides) s += '<rect x="' + scX(0) + '" y="20" width="' + (scX(5) - scX(0)) + '" height="146" stroke="none" style="fill:var(--coral);fill-opacity:.08"/>' +
+            '<rect x="' + scX(5) + '" y="20" width="' + (scX(12) - scX(5)) + '" height="146" stroke="none" style="fill:var(--cyan);fill-opacity:.08"/>' +
+            LBL(scX(2.5), 32, "B cheaper", "fill:var(--coral)") + LBL(scX(9.5), 32, "A cheaper", "fill:var(--cyan)");
+          s += '<path d="M' + scX(0) + " 166H" + scX(12) + "M" + scX(0) + ' 166V18" stroke-opacity=".5"/>';
+          [0, 200, 400].forEach(function (v) { s += LBL(24, +scY(v) + 4, "$" + v); });
+          for (var k = 0; k <= 12; k += 2) s += LBL(scX(k), 182, k);
+          s += LBL(150, 195, "months") +
+            '<path d="M' + scX(0) + " " + scY(50) + "L" + scX(12) + " " + scY(410) + '" stroke-width="3" style="stroke:var(--cyan)"/>' + LBL(scX(12) - 8, +scY(410) - 10, "A", "font-weight:600;fill:var(--cyan)") +
+            '<path d="M' + scX(0) + " " + scY(0) + "L" + scX(12) + " " + scY(480) + '" stroke-width="3" style="stroke:var(--coral)"/>' + LBL(scX(12) - 22, +scY(480) + 4, "B", "font-weight:600;fill:var(--coral)");
+          var a = 50 + 30 * m, b = 40 * m, hit = m === 5;
+          s += '<path d="M' + scX(m) + " 18V166" + '" stroke-dasharray="4 3" stroke-width="2"/>' +
+            '<circle cx="' + scX(m) + '" cy="' + scY(a) + '" r="6" stroke="none" style="fill:var(--cyan)"/><circle cx="' + scX(m) + '" cy="' + scY(b) + '" r="6" stroke="none" style="fill:var(--coral)"/>';
+          if (hit) s += '<circle cx="' + scX(5) + '" cy="' + scY(200) + '" r="10" stroke-width="2.5" style="stroke:var(--gold)"/>' + LBL(scX(5) + 40, +scY(200) + 22, "(5, $200)", "font-weight:600");
+          return s + '<rect x="' + (scX(m) - 16) + '" y="10" width="32" height="12" rx="6" stroke="none" style="fill:currentColor;fill-opacity:.35"/></svg>';
+        }
+        function svgSc() { return scSVG(5, true); }
+        /* Day 10 name-it: two ticket rules, then substitution */
+        function scSub() {
+          return SVG_OPEN(120) + LBL(150, 24, "a + c = 7   →   a = 7 − c", "font-weight:600") + LBL(150, 54, "12a + 8c = 72") +
+            LBL(150, 80, "12(7 − c) + 8c = 72  →  84 − 4c = 72") + LBL(150, 108, "c = 3, a = 4", "font-weight:600;fill:var(--ok)") + "</svg>";
+        }
+        /* Day 10 play: drag the marker (or the slider) over months 0–12; solved when it stops on month 5 */
+        function scPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), rng = $("input", card), res = $(".x-res", card), done = !!api.solved, drag = false;
+          function paint(stop) {
+            var m = +rng.value, a = 50 + 30 * m, b = 40 * m;
+            if (stop && m === 5 && !done) { done = true; api.solve(10); }
+            box.innerHTML = scSVG(m, done);
+            out.textContent = "Month " + m + ": A $" + a + " · B $" + b + (m === 5 ? " · equal" : done ? (m < 5 ? " · B cheaper" : " · A cheaper") : "");
+            res.hidden = !done;
+          }
+          function at(e) {
+            var r = box.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * 300;
+            rng.value = Math.max(0, Math.min(12, Math.round((x - 44) / 20))); paint(false);
+          }
+          box.style.touchAction = "none"; box.style.cursor = "ew-resize";
+          box.addEventListener("pointerdown", function (e) { drag = true; box.setPointerCapture(e.pointerId); at(e); });
+          box.addEventListener("pointermove", function (e) { if (drag) at(e); });
+          box.addEventListener("pointerup", function () { if (drag) { drag = false; paint(true); } });
+          box.addEventListener("pointercancel", function () { drag = false; });
+          rng.addEventListener("input", function () { paint(false); });
+          rng.addEventListener("change", function () { paint(true); });
+          $(".x-do", card).addEventListener("click", function () { rng.value = 5; paint(true); });
+          if (done) rng.value = 5;
+          paint(false);
         }
         /* Day 22 proof puzzle: a 7 × 7 square (a = 3, b = 4), 26px a unit; four legs-3-4 triangles, each [x1, y1, x2, y2, turn]: corners (st 0) → two rectangles (st 1), translation only */
         var PZ_T = [[0, 0, 3, 0, 0], [7, 0, 3, 3, 90], [7, 7, 7, 3, 180], [0, 7, 0, 7, 270]], PZ_TR = EX_RM ? "none" : "transform 1s var(--ease),opacity .6s var(--ease)";
@@ -11179,6 +11237,98 @@
                 body: "<ul><li><b>At most ≤, at least ≥.</b> 18 + 7p ≤ 60 → p ≤ 6.</li><li><b>Solve like an equation, read the fence.</b> 300 + 120m ≥ 900 → m ≥ 5; flip it for a negative.</li>" +
                   "<li><b>Round in the safe direction.</b> Down under a cap (8 classes), up past a goal (32 hours).</li></ul>" +
                   '<p class="x-so"><b>So:</b> Real life rarely asks “exactly”. It asks “at most” or “at least”: solve, then read the fence.</p>' }
+            ]
+          },
+          /* Day 10: systems. Two plans, two rules: the answer is where both are true, the crossing */
+          10: {
+            home: ["Systems: Comparing Two Plans", "which gym, job offer or rental wins, and after how long."],
+            flow: true,
+            scene: "billbuilder3d",
+            steps: [
+              { kind: "predict", title: "Two gyms",
+                body: '<p class="x-q">Gym A: $50 sign-up + $30 a month. Gym B: no sign-up, $40 a month. After how many months do they cost the same?</p>' +
+                  ["3", "5", "10"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden>' + cpBox(scSVG(5, false), "Both lines meet at month 5", "Gym A and Gym B lines meeting at month 5, $200") +
+                  '<p class="why"><b>5 months.</b> A: 50 + 30 × 5 = $200. B: 40 × 5 = $200. Same total.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l10gym", 1)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "Find the crossing",
+                body: '<p class="x-q">Drag the marker across the months. Stop where the two gyms cost the same.</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">Line A: 50 + 30m · line B: 40m · dashed: your month</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="x-ctl"><label>Month <input type="range" min="0" max="12" step="1" value="0" aria-label="Month"></label></div>' +
+                  '<button type="button" class="prev press x-do">Do it for me</button>' +
+                  '<div class="x-res" hidden><p class="why"><b>Month 5: both $200.</b> Before 5, B is cheaper; after 5, A is cheaper.</p></div>' +
+                  '<button type="button" class="start press x-3dbtn" data-scene="billbuilder3d">Build bills in the Lab</button>',
+                mount: scPlay },
+              { kind: "notice", title: "Both true at once", hl: ".x-nl",
+                viz: cpBox(svgSc(), "Month 5, $200: on both lines"),
+                q: "Every point on A’s line fits A’s rule. What’s special about the crossing?",
+                options: ["It’s the only point where both rules are true at once", "It’s where A becomes the cheaper plan", "It’s where both plans are cheapest"],
+                say: "The crossing is the one point on both lines: both rules true at once, so both totals are equal." },
+              { kind: "plate", plate: "system", title: "A system: two rules, one crossing" },
+              { kind: "play", title: "Build it: two job offers",
+                body: '<p class="x-q">Offer A: $3,600 a month flat. Offer B: $2,400 a month + $40 per session. How many sessions s a month make them equal?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input type="text" inputmode="decimal" autocomplete="off" placeholder="sessions" aria-label="Sessions where the offers are equal"></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden><b>Hint:</b> When they’re equal, set the two totals equal: 2,400 + 40s = 3,600.</p>' +
+                  '<div class="x-res" hidden><p class="why"><b>s = 30 sessions.</b> 3,600 − 2,400 = 1,200, and 1,200 ÷ 40 = 30. More than 30 a month, B pays more.</p></div>',
+                mount: blFill(30) },
+              { kind: "formalize", title: "Name it: two unknowns, two rules",
+                body: cpBox(scSub(), "Swap a for 7 − c, and one unknown is left", "a + c = 7 gives a = 7 − c; put it into 12a + 8c = 72 to get 84 − 4c = 72, so c = 3 and a = 4") +
+                  '<ol class="x-wk"><li><span>Two unknowns</span><span>Adult tickets $12, child $8: a and c</span><b>a, c</b></li>' +
+                  "<li><span>Two rules</span><span>7 tickets, $72 in all</span><b>a + c = 7 · 12a + 8c = 72</b></li>" +
+                  "<li><span>Substitute</span><span>Get one letter alone, put it in the other rule</span><b>a = 7 − c</b></li>" +
+                  "<li><span>Solve, then back</span><span>84 − 4c = 72 → c = 3, then a = 7 − 3</span><b>a = 4, c = 3</b></li></ol>",
+                so: "Two unknowns need two equations. Get one letter alone, swap it into the other rule, and Day 7’s moves finish the job." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "A friend writes: 12a + 8c = 72, so a = 6 and c = 0 — done. What went wrong?",
+                options: ["Many pairs fit one equation; a + c = 7 is needed too, which gives a = 4, c = 3", "Nothing: 12 × 6 = 72", "c can’t be 0, so a = 5"], answer: 0, tags: [null, "SYS-ONE-EQUATION", "SYS-ONE-EQUATION"], concept: "l10-two",
+                hints: ["Does a = 6, c = 0 make 7 tickets?"],
+                why: "6 + 0 is 6 tickets, not 7. One equation fits many pairs; both rules together leave only a = 4, c = 3: 48 + 24 = 72." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“The lines cross at month 5, so Gym A is cheaper at month 5.” What went wrong?",
+                options: ["At the crossing they’re equal: both $200", "Nothing: A is cheaper there", "B is cheaper at month 5"], answer: 0, tags: [null, "SYS-CROSS-MEANS-CHEAPER", "SYS-CROSS-MEANS-CHEAPER"], concept: "l10-cross",
+                hints: ["Work out both at month 5."],
+                why: "A: 50 + 150 = $200. B: 40 × 5 = $200. The crossing is where they’re equal; A only wins after month 5." },
+              { kind: "fade", title: "Car rental in Managua",
+                q: "Rental A: $35 a day. Rental B: $20 a day + a $90 fee. Fill in the missing line.",
+                lines: ["35d = 20d + 90", "15d = 90", "d = 6 days", "10-day trip: A $350 · B $290 → pick B"],
+                blank: 1, options: ["15d = 90", "55d = 90", "35d = 110"], answer: 0, tags: [null, "ALG-SIGN-MAGIC", "EQ-ONE-SIDE-ONLY"], concept: "l10-equal",
+                hints: ["− 20d on both sides."],
+                why: "− 20d on both sides: 15d = 90, so d = 6. Past 6 days B wins: 10 days is 200 + 90 = $290 against $350." },
+              { kind: "quiz", title: "Quick check: the bakery",
+                q: "3 cafés + 2 pastelitos = $11.50. 1 café + 2 pastelitos = $6.50. What does each cost?",
+                options: ["Café $2.50, pastelito $2.00", "Café $2.00, pastelito $2.50", "Café $3.83, pastelito $3.25"], answer: 0, tags: [null, "SYS-ONE-EQUATION", "SYS-ONE-EQUATION"], concept: "l10-two",
+                hints: ["Subtract the second order from the first: the pastelitos cancel."],
+                why: "Subtract: 2 cafés = $5.00, so a café is $2.50. Then 2.50 + 2p = 6.50, so 2p = 4.00 and a pastelito is $2.00." },
+              { kind: "quiz", title: "Quick check: 8 months at the gym",
+                q: "You’ll stay 8 months. Gym A ($50 + $30/month) or Gym B ($40/month)?",
+                options: ["A: $290 vs $320", "B: $320 vs $290", "Same: they cross at 5"], answer: 0, tags: [null, "SYS-CROSS-MEANS-CHEAPER", "SYS-CROSS-MEANS-CHEAPER"], concept: "l10-cross",
+                hints: ["8 is past the crossing at 5."],
+                why: "A: 50 + 240 = $290. B: 40 × 8 = $320. Past month 5 you’re on A’s cheap side." },
+              { kind: "quiz", title: "Quick check: same monthly price",
+                q: "Two plans both cost $35 a month; one has a $20 sign-up fee, the other $60. Where do they cross?",
+                options: ["Never: the lines are parallel, and the $20 one always wins", "At month 2", "Where the fees even out, after a year"], answer: 0, tags: [null, "SYS-CROSS-MEANS-CHEAPER", null], concept: "l10-cross",
+                hints: ["Same rate means the gap never closes."],
+                why: "Same $35 rate, so the lines are parallel and stay $40 apart forever. No crossing: the smaller fee always wins." },
+              { kind: "transfer", title: "New costume: clinic billing",
+                q: "Group sessions bill $40, individual $90. You ran 10 sessions and billed $650. How many of each?",
+                options: ["5 group, 5 individual", "7 group, 3 individual", "10 group, 0 individual"], answer: 0, tags: [null, "SYS-ONE-EQUATION", "SYS-ONE-EQUATION"], concept: "l10-two",
+                hints: ["g + i = 10 and 40g + 90i = 650.", "Swap g = 10 − i into the second rule."],
+                why: "400 − 40i + 90i = 650, so 50i = 250: i = 5, g = 5. Check: 200 + 450 = $650. 7 and 3 bills $550; 10 group bills $400." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Memberships.</b> Gyms and phone plans: sign-up fee vs monthly price.</li><li><b>Job offers.</b> Flat salary vs base plus commission per session.</li>" +
+                  "<li><b>Rentals.</b> A car in Managua, camera gear for a shoot: per day vs fee plus a lower rate.</li><li><b>Buying vs leasing.</b> Up-front cost vs monthly payments.</li>" +
+                  "<li><b>Mixing two prices.</b> Tickets, bulk orders, a bakery receipt.</li><li><b>Any “which deal, and when?”</b> Find the crossing, then see which side you’re on.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>Two unknowns need two rules.</b> a + c = 7 and 12a + 8c = 72 → a = 4, c = 3.</li><li><b>The crossing = where they’re equal.</b> Gyms at month 5: both $200.</li>" +
+                  "<li><b>Pick by which side of the crossing you’re on.</b> Before 5, B; after 5, A.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> Set the two totals equal to find the crossing, then choose by how long or how much you’ll use it.</p>' }
             ]
           },
           /* Day 13: linear models as bills. Fixed fee + rate × use, built from bills before y = mx + b gets a name */
