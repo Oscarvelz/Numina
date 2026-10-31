@@ -1554,6 +1554,8 @@
           "TRIG-WRONG-SIDE": "The height is opposite the angle and the ladder is the slanted side, so use sin. Sanity check: a steep ladder reaches high, not 4 ft.",
           "CIRC-AREA-USE-DIAMETER": "Area uses the radius, half the diameter. Squaring the full diameter gives 4 times too much.",
           "CIRC-CONFUSE-C-A": "A fence goes AROUND, so it's a length: π × diameter. π r² is the area inside, in square feet.",
+          "PROB-GAMBLER-DUE": "The sky doesn't keep score. Each day's chance is set by today's weather, not by a streak.",
+          "PROB-ADD-ANDS": "'Both' means multiply (it's rarer than either). Adding chances overcounts — keep doing it and you'd pass 100%.",
           "FUNC-IN-OUT-SWAP": "f(11) means feed 11 in, not find what gives 11: with f(x) = 2x + 3, f(11) = 2 × 11 + 3 = 25. The 4 solves 2x + 3 = 11, which runs the machine backward.",
           "SYS-CROSS-MEANS-CHEAPER": "The crossing is where the plans are equal, not where one wins: at month 5 both gyms cost $200. Before it B is cheaper; after it A is.",
           "INEQ-EXACT-ONLY": "“At most $60” is a range, not one exact value, and you round in the safe direction: at $6.75 a pack, 18 + 6.75p ≤ 60 gives p ≤ 6.2, so at most 6 packs. 7 packs is $65.25, over the limit.",
@@ -6357,6 +6359,11 @@
             see: "The diameter, laid along the rim three times, almost gets all the way around. A small gap is left, about 0.14 of a diameter. So the rim is about 3.14 diameters: that number is π.",
             why: "Every circle is the same shape, just bigger or smaller, so the rim is always the same number of diameters. One multiplier, π, turns any distance across into the distance around. 3.14 is close enough for buying and building.",
             use: "Wheels and distance, fences and edging, pizza and round tables, lenses and round prints: measure across, then multiply by π." },
+          problr: { term: "Chance = how often, in the long run", svg: svgProbLR, scene: "dice", short: "A 40% chance means about 4 in every 10 such days, over many days.",
+            alt: "The running share of rainy days over 1,000 days at a 40% forecast: it jumps around in the first days, then flattens onto a dashed 40% line",
+            see: "Each day the gold line updates the share of rainy days so far. Early on, one rainy day swings it a lot. After hundreds of days it barely moves, and it sits on the dashed 40% line.",
+            why: "A chance doesn’t say what happens on one day; it says how often it happens across many days like it. Short runs swing; long runs settle near the stated chance. So expect about n × chance, and expect small groups to wobble around it.",
+            use: "Weather forecasts, flight delays, appointment no-shows, sharp photos per burst, insurance and warranties: read the chance as a long-run rate." },
           number: { term: "Number", svg: svgNumber, short: "Keeps only how many.",
             alt: "A cookie, a music note and a calendar day become three identical dots, then the numeral 3",
             see: "Three unlike things (a cookie, a song, a day) turn into three identical dots, then one mark: 3. Each dot stands for one thing; the numeral stands for the whole group.",
@@ -8713,6 +8720,116 @@
           $(".x-go", card).addEventListener("click", check);
           [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
           $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "25.1"; check(); } if (st === 1) { b.value = "2"; check(); } });
+          paint();
+        }
+        /* Day 25 probability as long-run frequency. Seeded days: a run is the same for the same seed, so changing the day count extends one
+           stretch of weather and the running share drifts toward the chance. Each "Run" moves to the next seed */
+        function pfRng(a) {
+          return function () { a = (a + 0x6D2B79F5) | 0; var t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+        }
+        function pfRun(seed, n, p) {
+          var r = pfRng(seed * 7919 + 25), days = [], sh = [], c = 0;
+          for (var i = 0; i < n; i++) { var w = r() < p / 100; days.push(w); c += w ? 1 : 0; sh.push(c / (i + 1)); }
+          return { days: days, sh: sh, rain: c, share: n ? c / n * 100 : 0 };
+        }
+        function pfPct(v) { return Math.round(v * 10) / 10; }
+        /* first seed whose 1,000 days at 40% pass a test: kept for the plate, the notice and "Do it for me" */
+        function pfSeed(test) { for (var s = 1; s < 2000; s++) if (test(pfRun(s, 1000, 40))) return s; return 1; }
+        var PF_SEED = pfSeed(function (r) { return Math.abs(r.share - 40) <= 0.6 && Math.abs(r.sh[9] - 0.4) >= 0.2 && Math.abs(r.sh[49] - 0.4) >= 0.06; });
+        function pfTiles(days, y, max) {
+          var k = Math.min(days.length, max), cols = Math.min(k, 20), x0 = (300 - (cols * 13 - 2)) / 2, s = "";
+          for (var i = 0; i < k; i++) {
+            var x = x0 + (i % 20) * 13, yy = y + Math.floor(i / 20) * 13;
+            s += '<rect x="' + x + '" y="' + yy + '" width="11" height="11" rx="2" ' + (days[i] ? 'stroke="none" style="fill:var(--cyan)"' : 'stroke-opacity=".35" stroke-width="1"') + "/>";
+          }
+          return s;
+        }
+        /* the running share of rainy days (gold) against the chance (dashed coral), 0–100% */
+        function pfChart(sh, p, o) {
+          var x0 = 46, w = 240, y0 = o.y, h = o.h, n = sh.length, st = Math.max(1, Math.ceil(n / 240)), pts = [], i, s = "", anim = o.anim && !EX_RM;
+          var Y = function (v) { return +(y0 + h * (1 - v)).toFixed(1); }, X = function (j) { return +(x0 + (n > 1 ? j / (n - 1) : 0) * w).toFixed(1); };
+          [0, 0.5, 1].forEach(function (v) { s += '<path d="M' + x0 + " " + Y(v) + "H" + (x0 + w) + '" stroke-opacity="' + (v ? ".15" : ".5") + '"/>' + LBL(x0 - 6, Y(v) + 4, v * 100 + "%", "text-anchor:end;font-size:12px"); });
+          s += '<path d="M' + x0 + " " + Y(p / 100) + "H" + (x0 + w) + '" style="stroke:var(--coral)" stroke-dasharray="5 4"/>' +
+            LBL(x0 + w, p >= 85 ? Y(p / 100) + 15 : Y(p / 100) - 5, "chance " + p + "%", "text-anchor:end;font-size:12px;fill:var(--coral)");
+          for (i = 0; i < n; i += st) pts.push(X(i) + "," + Y(sh[i]));
+          if ((n - 1) % st) pts.push(X(n - 1) + "," + Y(sh[n - 1]));
+          s += '<polyline points="' + pts.join(" ") + '" stroke-width="2.5" style="stroke:var(--gold)"' +
+            (anim ? ' pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><animate attributeName="stroke-dashoffset" from="1" to="0" dur="1.2s"/></polyline>' : "/>");
+          return s + LBL(x0, y0 + h + 16, "day 1", "text-anchor:start;font-size:12px") + LBL(x0 + w, y0 + h + 16, "day " + ciFmt(n), "text-anchor:end;font-size:12px");
+        }
+        function pfSVG(run, p, n, ok, anim) {
+          var s = SVG_OPEN(232);
+          s += LBL(150, 16, ciFmt(run.rain) + " rainy of " + ciFmt(n) + " days · share " + pfPct(run.share) + "%", "font-weight:600" + (ok ? ";fill:var(--ok)" : ""));
+          s += pfTiles(run.days, 26, 40) + pfChart(run.sh, p, { y: 74, h: 126, anim: anim });
+          return s + "</svg>";
+        }
+        /* hook: ten afternoons, each forecast 40% */
+        function pfHook() {
+          var s = SVG_OPEN(104);
+          for (var i = 0; i < 10; i++) {
+            var x = 17 + i * 27;
+            s += '<rect x="' + x + '" y="34" width="22" height="34" rx="4" stroke-opacity=".5"/>' + LBL(x + 11, 56, "40%", "font-size:12px;fill:var(--cyan)");
+          }
+          return s + LBL(150, 18, "10 afternoons, each “40% chance of rain”", "font-weight:600") + LBL(150, 92, "How many rainy ones?", "font-size:12px") + "</svg>";
+        }
+        /* notice: two 10-day runs land far off; 1,000 days land near 40% */
+        function pfNotice() {
+          var L = pfRun(PF_SEED, 1000, 40), rows = [["10 days", "1 rainy", 10], ["10 more days", "7 rainy", 70], ["1,000 days", ciFmt(L.rain) + " rainy", pfPct(L.share)]], s = SVG_OPEN(168), x0 = 128, w = 150;
+          rows.forEach(function (r, i) {
+            var y = 40 + i * 40, ok = i === 2;
+            s += LBL(x0 - 10, y + 2, r[0], "text-anchor:end;font-size:12px;font-weight:600") + LBL(x0 - 10, y + 17, r[1], "text-anchor:end;font-size:12px");
+            s += '<rect x="' + x0 + '" y="' + (y - 8) + '" width="' + w + '" height="20" rx="4" stroke-opacity=".3"/>' +
+              '<rect x="' + x0 + '" y="' + (y - 8) + '" width="' + (w * r[2] / 100).toFixed(1) + '" height="20" rx="4" stroke="none" style="fill:var(' + (ok ? "--ok" : "--cyan") + ');fill-opacity:.55"/>' +
+              LBL(x0 + w * r[2] / 100 + 4, y + 6, r[2] + "%", "text-anchor:start;font-size:12px;font-weight:600");
+          });
+          s += '<path d="M' + (x0 + w * 0.4) + " 22V" + 156 + '" style="stroke:var(--coral)" stroke-dasharray="4 4"/>' + LBL(x0 + w * 0.4, 18, "40%", "font-size:12px;fill:var(--coral)");
+          return s + LBL(60, 18, "Share of rainy days", "font-weight:600") + "</svg>";
+        }
+        /* the plate: 1,000 days at 40%, the running share wobbling early and flattening on the dashed 40% line */
+        function svgProbLR() {
+          var r = pfRun(PF_SEED, 1000, 40), s = SVG_OPEN(198);
+          s += pfChart(r.sh, 40, { y: 34, h: 128 });
+          return s + LBL(150, 18, "Share of rainy days so far, 40% forecast", "font-weight:600") + LBL(150, 194, "Wobbles early, flattens at 40%", "font-size:12px;fill:var(--ok)") + "</svg>";
+        }
+        /* Day 25 play: chance 0–100% (step 5), days 10–1,000. Solved when a stretch of ≥ 500 days at 40% shows a share within 4 points of 40% */
+        function pfPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), rs = card.querySelectorAll('input[type="range"]'), os = card.querySelectorAll(".x-ctl output"),
+            nb = card.querySelectorAll("[data-n]"), res = $(".x-res", card), done = !!api.solved, seed = 1;
+          function paint(stop, anim) {
+            var p = +rs[0].value, n = +rs[1].value, run = pfRun(seed, n, p), ok = n >= 500 && p === 40 && Math.abs(run.share - 40) <= 4;
+            if (stop && ok && !done) { done = true; api.solve(10); }
+            box.innerHTML = pfSVG(run, p, n, ok, anim);
+            os[0].textContent = p + "%"; os[1].textContent = ciFmt(n);
+            rs[0].setAttribute("aria-valuetext", p + " percent chance"); rs[1].setAttribute("aria-valuetext", n + " days");
+            Array.prototype.forEach.call(nb, function (b) { b.setAttribute("aria-pressed", String(+b.dataset.n === n)); });
+            out.textContent = "Rainy days: " + ciFmt(run.rain) + " of " + ciFmt(n) + ". Share: " + pfPct(run.share) + "% (chance " + p + "%)." +
+              (ok ? " That’s the long run: close to 40%." : p === 40 && n >= 500 ? " Run again." : done ? "" : " Set 40% and at least 500 days, then Run.");
+            res.hidden = !done;
+          }
+          Array.prototype.forEach.call(rs, function (i) { i.addEventListener("input", function () { paint(false); }); i.addEventListener("change", function () { paint(true); }); });
+          Array.prototype.forEach.call(nb, function (b) { b.addEventListener("click", function () { rs[1].value = b.dataset.n; paint(true, true); }); });
+          $(".x-go", card).addEventListener("click", function () { seed++; paint(true, true); });
+          $(".x-do", card).addEventListener("click", function () { rs[0].value = 40; rs[1].value = 1000; seed = PF_SEED; paint(true, true); });
+          if (done) { rs[0].value = 40; rs[1].value = 1000; seed = PF_SEED; }
+          paint(false);
+        }
+        /* Day 25 build: 20% of 15 clients miss → 0.2 × 15 = 3 no-shows → 15 − 3 = 12 in the room */
+        function pfBuild(card, api) {
+          var a = $(".x-a", card), b = $(".x-b", card), two = $(".x-st2", card), res = $(".x-res", card), h = $(".x-hint", card), st = api.solved ? 2 : 0;
+          function num(i) { return parseFloat(i.value.replace(/[,\s]|clients?|people|no-shows?/g, "")); }
+          function paint() { a.disabled = st > 0; b.disabled = st !== 1; two.hidden = st < 1; res.hidden = st < 2; if (st > 0) a.value = "3"; if (st > 1) b.value = "12"; }
+          function check() {
+            if (st === 0) {
+              if (num(a) === 3) { st = 1; h.hidden = true; }
+              else { h.innerHTML = "<b>Hint:</b> Expected count = number × chance. 20% of 15 = 0.2 × 15."; h.hidden = false; }
+            } else if (st === 1) {
+              if (num(b) === 12) { st = 2; h.hidden = true; api.solve(10); } else { h.innerHTML = "<b>Hint:</b> Everyone who doesn’t miss is in the room: 15 − 3."; h.hidden = false; }
+            }
+            paint();
+          }
+          $(".x-go", card).addEventListener("click", check);
+          [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
+          $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "3"; check(); } if (st === 1) { b.value = "12"; check(); } });
           paint();
         }
         var LESSON_CONTENT = {
@@ -13699,6 +13816,101 @@
                   '<p class="x-so"><b>So:</b> Measure across, multiply by π for the way around, and use half of it, squared, for the inside.</p>' }
             ]
           },
+          25: {
+            home: ["Probability: How Often", "forecasts, no-shows, flight delays: read the chances right."],
+            flow: true,
+            steps: [
+              { kind: "predict", title: "Ten days of 40%",
+                body: '<p class="x-q">The Miami forecast says 40% chance of afternoon rain, 10 days in a row. How many rainy afternoons should you expect?</p>' +
+                  cpBox(pfHook(), "Same forecast, ten afternoons", "Ten afternoon tiles, each marked with a 40% chance of rain") +
+                  ["None", "About 4", "All 10"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden><p class="why"><b>About 4.</b> 40% means about 4 out of every 10 such days — not “it won’t rain” and not “it will”.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l25rain", 1)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "Rain or no rain",
+                body: '<p class="x-q">Each afternoon rains with the chance you set. Run a stretch of days and watch the share of rainy ones. Then set the Miami forecast, 40%, and run at least 500 days.</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">Tiles: the first 40 days, blue = rain · gold: share of rainy days so far · dashed: the chance</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="x-ctl"><label>Chance <input type="range" min="0" max="100" step="5" value="50" aria-label="Chance of rain in percent"><output>50%</output></label>' +
+                  '<label>Days <input type="range" min="10" max="1000" step="10" value="10" aria-label="Number of days"><output>10</output></label>' +
+                  '<button type="button" data-n="10" aria-pressed="true">10 days</button><button type="button" data-n="100" aria-pressed="false">100 days</button><button type="button" data-n="1000" aria-pressed="false">1,000 days</button></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Run</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<div class="x-res" hidden><p class="why"><b>Hundreds of days at 40%: the share settles near 40%.</b> Now try 10 days and Run a few times: the count jumps around. Short runs swing; long runs settle.</p></div>',
+                mount: pfPlay },
+              { kind: "notice", title: "Short runs jump, long runs settle", hl: ".x-nl",
+                viz: cpBox(pfNotice(), "Same 40% forecast every day"),
+                q: "Ten days gave 1 rainy afternoon, then 7. A thousand days landed near 40%. What does the 40% describe?",
+                options: ["The long run: how often, over many days", "What will happen on any one day", "Exactly 4 rainy days in every 10"],
+                say: "Short runs jump around: 10 days can give 1 or 7 rainy ones. Long runs settle near the stated chance. A chance describes the long run, not one day." },
+              { kind: "plate", plate: "problr", title: "Chance = how often, in the long run" },
+              { kind: "play", title: "Build it: the group session",
+                body: '<p class="x-q">About 20% of clients miss any given group session. 15 are scheduled. How many no-shows should you expect?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-a" type="text" inputmode="decimal" autocomplete="off" placeholder="no-shows" aria-label="Expected no-shows"></div>' +
+                  '<div class="x-st2" hidden><p class="why"><b>3 no-shows.</b> 0.2 × 15 = 3.</p>' +
+                  '<p class="x-q">How many should you expect in the room?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-b" type="text" inputmode="decimal" autocomplete="off" placeholder="clients" aria-label="Expected clients in the room"></div></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden></p>' +
+                  '<div class="x-res" hidden><p class="why"><b>12 in the room.</b> 15 − 3 = 12, or 0.8 × 15. Set out about 12 chairs, and keep a few spare: it’s an expectation, not a promise.</p></div>',
+                mount: pfBuild },
+              { kind: "formalize", title: "Name it: chance in numbers",
+                body: '<ol class="x-wk"><li><span>Chance</span><span>as a fraction, decimal or %</span><b>40% = 0.4 = 4 in 10</b></li>' +
+                  "<li><span>Expected count</span><span>number × chance</span><b>0.2 × 15 = 3</b></li>" +
+                  "<li><span>Doesn’t happen</span><span>1 − chance</span><b>1 − 0.4 = 0.6</b></li>" +
+                  "<li><span>Both</span><span>two separate things: multiply the chances</span><b>0.2 × 0.2 = 0.04</b></li>" +
+                  "<li><span>At least one</span><span>1 − (chance neither)</span><b>1 − 0.8 × 0.8 = 0.36</b></li></ol>",
+                so: "Write the chance as a decimal. Multiply by the count to expect; take it from 1 for “not”; multiply for “both”; use 1 − none for “at least one”." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“It’s been dry 5 afternoons in a row at 40%, so rain is ‘due’ — today it must be more than 40%.” What went wrong?",
+                options: ["It’s still about 40%: the sky doesn’t keep score", "Nothing: after a dry streak, rain is due, so more than 40%", "Nothing: 5 dry days means it must rain today"], answer: 0, tags: [null, "PROB-GAMBLER-DUE", "PROB-GAMBLER-DUE"], concept: "l25-rate",
+                hints: ["Does today’s sky know what happened the last 5 afternoons?", "Each day’s chance comes from today’s weather."],
+                why: "Still about 40%. The sky doesn’t keep score: each day’s chance is set by today’s weather, not by a streak." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“Each flight on your trip to Managua has a 20% chance of delay, so there’s a 40% chance BOTH are delayed.” What went wrong?",
+                options: ["Both = 0.2 × 0.2 = 4%; at least one = 1 − 0.8 × 0.8 = 36%", "Nothing: 20% + 20% = 40% for both", "Both = 20%: the same as one flight"], answer: 0, tags: [null, "PROB-ADD-ANDS", null], concept: "l25-combine",
+                hints: ["Is both flights delayed more likely or less likely than one?", "“Both” multiplies: 0.2 × 0.2."],
+                why: "Both = 0.2 × 0.2 = 4%, rarer than either. At least one = 1 − 0.8 × 0.8 = 36%. Adding overcounts: with six flights you’d pass 100%." },
+              { kind: "fade", title: "Enough sharp shots",
+                q: "Shooting a fast-moving subject, about 70% of your shots come out sharp. You want about 14 sharp shots. Fill in the missing line.",
+                lines: ["Each shot is sharp 0.7 of the time", "14 ÷ 0.7 = 20 shots", "Shoot a few more than 20 — 70% is an average, and a real burst can come in under"],
+                blank: 1, options: ["14 ÷ 0.7 = 20 shots", "14 × 0.7 ≈ 10 shots", "14 + 7 = 21 shots"], answer: 0, tags: [null, null, null], concept: "l25-expect",
+                hints: ["Shots × 0.7 = 14 sharp. Which number of shots?", "Undo × 0.7 by dividing: 14 ÷ 0.7."],
+                why: "20 × 0.7 = 14, so 14 ÷ 0.7 = 20 shots. × 0.7 gives fewer shots than the sharp ones you want; + 7 just adds." },
+              { kind: "quiz", title: "Quick check: a rainy stretch",
+                q: "30% chance of rain each day for 20 days. About how many rainy days should you expect?",
+                options: ["About 6", "About 3", "All 20"], answer: 0, tags: [null, null, null], concept: "l25-expect",
+                hints: ["Expected count = number × chance.", "0.3 × 20 = ?"],
+                why: "0.3 × 20 = 6 rainy days, give or take." },
+              { kind: "quiz", title: "Quick check: not a 6",
+                q: "What’s the chance a fair die is NOT a 6?",
+                options: ["5/6 ≈ 83%", "1/6 ≈ 17%", "1/5 = 20%"], answer: 0, tags: [null, null, null], concept: "l25-rate",
+                hints: ["The chance of a 6 is 1/6.", "Doesn’t happen = 1 − chance."],
+                why: "1 − 1/6 = 5/6 ≈ 83%. Five of the six faces aren’t a 6." },
+              { kind: "quiz", title: "Quick check: three afternoons",
+                q: "40% chance of rain each afternoon for 3 days. What’s the chance of at least one rainy afternoon?",
+                options: ["About 78%", "About 22%", "120%: 40% + 40% + 40%"], answer: 0, tags: [null, null, "PROB-ADD-ANDS"], concept: "l25-combine",
+                hints: ["Find the chance of no rain at all: dry is 0.6 each day.", "At least one = 1 − 0.6 × 0.6 × 0.6."],
+                why: "Dry all three: 0.6³ = 0.216. At least one rainy: 1 − 0.216 ≈ 78%. 22% is the all-dry chance; 120% shows adding overcounts." },
+              { kind: "transfer", title: "New costume: your caseload",
+                q: "A program reports 60% of clients complete it. Your caseload is 25. This month 13 completed. What should you make of it?",
+                options: ["Expect about 15; 12 to 18 is normal swing, so watch the trend over many months", "Expect about 15; 13 is proof something broke", "Expect all 25 to complete"], answer: 0, tags: [null, null, null], concept: "l25-expect",
+                hints: ["Expected = 25 × 0.6.", "Small groups swing: is 13 far from 15 for a group of 25?"],
+                why: "25 × 0.6 = 15 expected. In a group that small, anywhere from about 12 to 18 is normal swing, so one month’s 13 isn’t proof something broke — look at the trend over many months." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Weather apps.</b> 40% means about 4 in 10 days like this one.</li><li><b>Flight delays.</b> Both delayed multiplies; at least one is 1 − none.</li>" +
+                  "<li><b>Appointment no-shows.</b> Expect number × chance, plus a few spare.</li><li><b>Photo bursts.</b> Divide by the sharp rate, then shoot a few more.</li>" +
+                  "<li><b>Warranties and insurance.</b> Priced on how often things go wrong across many people.</li><li><b>Sports odds.</b> A 70% favorite still loses about 3 times in 10.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>A chance is a long-run rate.</b> 40% = about 4 in every 10 such days.</li><li><b>Expected count = n × chance.</b> 20% of 15 clients: 3 no-shows.</li>" +
+                  "<li><b>No “due” streaks.</b> Five dry days don’t raise today’s 40%.</li><li><b>“Both” multiplies; “at least one” = 1 − none.</b> Two 20% flights: 4% both, 36% at least one.</li>" +
+                  "<li><b>Small samples swing.</b> 13 of 25 against an expected 15 is normal.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> Read a chance as how often over many tries, multiply to expect, and judge by the long run, not one day.</p>' + LAB_DICE }
+            ]
+          },
           /* Foundations B4: exponent laws by counting factor chips. Each play keeps its own state; values and exponents appear only after the learner acts */
           "b4-laws": {
             home: ["Exponent laws, just counting", "join, cancel and copy rows of factor chips: the laws fall out of the count."],
@@ -16149,6 +16361,39 @@
                   "One turn rolls π × " + w + " = " + F(T, "in") + ". Distance: " + m + " × 63,360 = " + nf(I) + " in; " + nf(I) + " ÷ " + nf(T) + " = " + nf(n) + " turns.", c[0]);
               }
             ],
+            25: [
+              function (r) {
+                var n = 10 + Math.floor(r() * 51), p = 10 + 5 * Math.floor(r() * 17), a = n * p / 100, c = pk(r, [
+                  ["Miami rain", "days", "The Miami forecast gives a " + p + "% chance of rain on each of the next " + n + " days. How many rainy days should you expect?"],
+                  ["Group no-shows", "clients", n + " clients signed up for groups at work this week, and about " + p + "% don’t show. How many no-shows should you expect?"],
+                  ["Managua trip", "flights", "About " + p + "% of flights on the Miami–Managua route run late. Out of " + n + " flights, how many do you expect to be delayed?"],
+                  ["Photo burst", "shots", "In a burst, " + p + "% of your shots come out sharp. In a " + n + "-shot burst, how many sharp shots do you expect?"],
+                  ["Phone app", "launches", "A buggy app crashes on " + p + "% of launches. If you open it " + n + " times, how many crashes do you expect?"],
+                  ["Gym class", "people", n + " people booked the gym class, and about " + p + "% usually show up. How many do you expect in the room?"]]);
+                var z = mk(c[2], a, c[1], "Expected count = n × p = " + n + " × " + p / 100 + " = " + pl(a, c[1]) + ". It’s an average over many tries, so it needn’t be a whole number.", c[0]);
+                z.tol = Math.max(0.5, Math.abs(z.a) * 0.01); return z;
+              },
+              function (r) {
+                var p = 10 + 5 * Math.floor(r() * 9), k = r() < 0.5 ? 2 : 3, q = 1 - p / 100, t = Math.floor(r() * 3), c = pk(r, [
+                  ["Miami rain", "it rains in Miami on a given day", k + " days in a row"], ["Group no-shows", "a client skips group at work", k + " clients"],
+                  ["Managua trip", "a flight is delayed", k + " legs of the Managua trip"], ["Photo burst", "a shot comes out blurry", k + " shots"],
+                  ["Phone app", "the app crashes when you open it", k + " launches"], ["Gym class", "the gym class gets cancelled", k + " separate days"]]), a, q2, w;
+                if (t === 0) { a = 100 - p; q2 = "The chance that " + c[1] + " is " + p + "%. What is the chance it doesn’t happen, in %?"; w = "P(not) = 1 − p = 100% − " + p + "% = " + a + "%."; }
+                else if (t === 1) { a = Math.pow(p / 100, k) * 100; q2 = "The chance that " + c[1] + " is " + p + "%, independently each time. What is the chance it happens on all " + c[2] + ", in %?"; w = "Independent, so multiply: P(all) = p^" + k + " = " + p / 100 + "^" + k + " = " + +Math.pow(p / 100, k).toFixed(6) + " = " + nf(a) + "%."; }
+                else { a = (1 - Math.pow(q, k)) * 100; q2 = "The chance that " + c[1] + " is " + p + "%, independently each time. What is the chance it happens at least once across " + c[2] + ", in %?"; w = "At least one = 1 − P(none) = 1 − (1 − " + p / 100 + ")^" + k + " = 1 − " + +q.toFixed(2) + "^" + k + " = 1 − " + +Math.pow(q, k).toFixed(6) + " = " + nf(a) + "%."; }
+                var z = mk(q2, a, "%", w, c[0]); z.tol = 0.5; return z;
+              },
+              function (r) {
+                var s = 50 + 5 * Math.floor(r() * 9), g = 5 + Math.floor(r() * 26), x = g * 100 / s, n = Math.ceil(x - 1e-9), c = pk(r, [
+                  ["Photo burst", "About " + s + "% of your shots come out sharp. You need " + g + " sharp shots for the client gallery. How many shots should you take?", "shots"],
+                  ["Group no-shows", "About " + s + "% of invited clients show up to group. You want " + g + " people in the room. How many should you invite?", "invites"],
+                  ["Gym class", "About " + s + "% of people who book the gym class show up. The coach wants " + g + " in class. How many bookings are needed?", "bookings"],
+                  ["Phone app", "Your app opens without crashing " + s + "% of the time. You need " + g + " clean sessions to finish a task list. How many launches should you plan for?", "launches"],
+                  ["Managua trip", "About " + s + "% of Miami–Managua flights leave on time. You want " + g + " on-time flights over the year. How many flights should you plan to take?", "flights"]]);
+                var z = mk(c[1] + " (Round up.)", n, c[2], "Tries = target ÷ rate = " + g + " ÷ " + s / 100 + " = " + nf(x) + " → " + pl(n, c[2]) + (n === x ? " exactly." : " (round up: a fraction of a try won’t do it)."), c[0]);
+                z.tol = 0.5; return z;
+              }
+            ],
             18: (function () {
               var C = [["Nicaragua Christmas trip", "You park $P in savings for the Christmas trip to Nicaragua"], ["Miami rent", "You set aside $P as a rent cushion for your Miami apartment"],
                 ["Camera gear", "You put $P into a fund for a new camera body and lens"], ["Counseling paycheck", "You stash $P from your counseling paycheck in a CD"]];
@@ -16219,7 +16464,7 @@
                 z.tol = 0.01; return z;
               }
             ]
-            /* REMIX: generators cover Days 1–24; add new days here */
+            /* REMIX: generators cover Days 1–25; add new days here */
           };
           Remix = (function () {
             function days() { return Object.keys(REMIX).map(Number).filter(function (d) { return REMIX[d] && REMIX[d].length; }); }
