@@ -1550,6 +1550,8 @@
           "LOG-DB-LINEAR": "Decibels are a log scale: +10 dB is ×10 intensity, so +30 dB is ×1,000. Protect your hearing at concerts.",
           "AREA-CONVERT-ONCE": "A square yard is 3 ft by 3 ft = 9 sq ft. Converting area means converting BOTH directions, so divide by 9, not 3.",
           "VOL-DOUBLE-ALL-DOUBLE": "Volume uses three lengths, so doubling all three multiplies it by 2 × 2 × 2 = 8.",
+          "SIM-ADD-NOT-MULTIPLY": "Similar shapes grow by multiplying, not adding. Find the multiplier (6 ÷ 4 = 1.5) and use it.",
+          "TRIG-WRONG-SIDE": "The height is opposite the angle and the ladder is the slanted side, so use sin. Sanity check: a steep ladder reaches high, not 4 ft.",
           "FUNC-IN-OUT-SWAP": "f(11) means feed 11 in, not find what gives 11: with f(x) = 2x + 3, f(11) = 2 × 11 + 3 = 25. The 4 solves 2x + 3 = 11, which runs the machine backward.",
           "SYS-CROSS-MEANS-CHEAPER": "The crossing is where the plans are equal, not where one wins: at month 5 both gyms cost $200. Before it B is cheaper; after it A is.",
           "INEQ-EXACT-ONLY": "“At most $60” is a range, not one exact value, and you round in the safe direction: at $6.75 a pack, 18 + 6.75p ≤ 60 gives p ≤ 6.2, so at most 6 packs. 7 packs is $65.25, over the limit.",
@@ -6343,6 +6345,11 @@
             see: "Twelve 1-ft squares cover a 4 × 3 patch: 12 sq ft. Twelve 1-ft cubes fill a 3 × 2 × 2 box: 12 cu ft. Same count, different job.",
             why: "Area is how many 1-ft squares cover a surface: paint, flooring, prints. Volume is how many 1-ft cubes fill a space: boxes, tanks, soil. Two lengths make squares; three make cubes.",
             use: "Home projects, moving, shipping, cooking: square feet for what you cover, cubic feet for what you fill." },
+          similar: { term: "Same shape, different size", svg: svgSimilar, short: "Similar triangles: equal angles, every side times one multiplier.",
+            alt: "A 3-4-5 right triangle and a 6-8-10 copy with the same marked angle; every side is multiplied by 2",
+            see: "Two triangles with the same angles. The big one is the small one with every side × 2: 4 becomes 8, 3 becomes 6, 5 becomes 10.",
+            why: "Equal angles lock the shape, so the sides can only grow together, by one multiplier. That’s why one known triangle measures another: find the multiplier, then multiply. Adding the same amount to every side breaks the shape.",
+            use: "Measuring tall things from their shadows, maps and floor plans, photo prints and crops: find the one multiplier, then use it on every length." },
           number: { term: "Number", svg: svgNumber, short: "Keeps only how many.",
             alt: "A cookie, a music note and a calendar day become three identical dots, then the numeral 3",
             see: "Three unlike things (a cookie, a song, a day) turn into three identical dots, then one mark: 3. Each dot stands for one thing; the numeral stands for the whole group.",
@@ -8530,6 +8537,90 @@
           $(".x-go", card).addEventListener("click", check);
           [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
           $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "7"; check(); } if (st === 1) { b.value = "315"; check(); } });
+          paint();
+        }
+        /* Day 23 similar triangles & trig. Post and palm each drawn at their own scale: same sun angle, so the rays stay parallel.
+           6 ft post, 4 ft shadow → ×1.5; palm shadow 30 ft → 45 ft */
+        var LAB_PYTHAG = '<button type="button" class="start press x-3dbtn" data-scene="pythag3d">See Pythagoras Pour in the Lab</button>';
+        function slEq(v, d) { var p = Math.pow(10, d), r = Math.round(v * p) / p; return (Math.abs(r - v) < 1e-9 ? "= " : "≈ ") + r; }
+        function slSVG(h, s, ps, o) {
+          o = o || {};
+          var G = 168, H = ps * h / s, ok = h === 6 && s === 4 && ps === 30, sv = SVG_OPEN(196);
+          sv += '<circle cx="24" cy="26" r="10" style="fill:var(--gold);fill-opacity:.5;stroke:var(--gold)"/>' + '<path d="M12 ' + G + 'H290" stroke-opacity=".5"/>';
+          function tri(x, hh, ss, k, labH, labS, palm) {
+            var top = +(G - hh * k).toFixed(1), tip = +(x + ss * k).toFixed(1), dx = x - tip, dy = top - G, L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, r = 14, t = "";
+            t += '<path d="M' + x + " " + G + "L" + x + " " + top + "L" + tip + " " + G + 'Z" style="fill:var(--cyan);fill-opacity:.22;stroke:none"/>';
+            t += '<path d="M' + tip + " " + G + "L" + (x + dx * 0.3).toFixed(1) + " " + (top + dy * 0.3).toFixed(1) + '" style="stroke:var(--gold)" stroke-dasharray="5 4"/>';
+            t += '<path d="M' + (tip - r) + " " + G + "A" + r + " " + r + " 0 0 1 " + (tip + ux * r).toFixed(1) + " " + (G + uy * r).toFixed(1) + '" style="stroke:var(--gold)"/>';
+            t += '<path d="M' + x + " " + G + "V" + top + '" stroke-width="5"/>';
+            if (palm) t += '<path d="M' + x + " " + top + "q-14 -10 -26 4M" + x + " " + top + "q14 -10 26 4M" + x + " " + top + "q-8 -14 -18 -14M" + x + " " + top + 'q8 -14 18 -14" style="stroke:var(--ok)" stroke-width="3"/>';
+            return t + LBL(x - 7, +((top + G) / 2 + 4).toFixed(1), labH, "text-anchor:end;font-size:12px;font-weight:600") + LBL(+((x + tip) / 2).toFixed(1), G + 18, labS, "font-size:12px");
+          }
+          sv += tri(50, h, s, Math.min(64 / s, 110 / h), h + " ft", s + " ft shadow", false);
+          sv += tri(170, H, ps, Math.min(115 / ps, 112 / H), o.hide ? "?" : (Math.round(H * 10) / 10) + " ft", ps + " ft shadow", true);
+          var head = o.head || (o.hide ? "How tall is the palm?" : "Palm: " + ps + " × " + h + " ÷ " + s + " " + slEq(H, 1) + " ft");
+          return sv + LBL(160, 18, head, "font-weight:600" + (ok && !o.hide ? ";fill:var(--ok)" : "")) + "</svg>";
+        }
+        /* the plate: a 3-4-5 triangle and its ×2 copy, the same angle marked on both */
+        function svgSimilar() {
+          var s = SVG_OPEN(184), f = 'style="fill:var(--cyan);fill-opacity:.3;stroke:var(--cyan)"', a = 'style="stroke:var(--gold)"';
+          s += '<path d="M40 140H80V110Z" ' + f + '/><path d="M50 140A10 10 0 0 0 48 134" ' + a + "/>";
+          s += '<path d="M150 140H230V80Z" ' + f + '/><path d="M162 140A12 12 0 0 0 159.6 132.8" ' + a + "/>";
+          s += LBL(60, 156, "4", "font-size:12px") + LBL(88, 130, "3", "text-anchor:start;font-size:12px") + LBL(54, 120, "5", "font-size:12px") +
+            LBL(190, 156, "8", "font-size:12px") + LBL(238, 114, "6", "text-anchor:start;font-size:12px") + LBL(180, 102, "10", "font-size:12px");
+          s += '<path d="M100 112H134M126 106L134 112L126 118" ' + a + "/>" + LBL(117, 100, "× 2", "font-weight:600;fill:var(--gold)");
+          return s + LBL(150, 20, "Same shape, different size", "font-weight:600") + LBL(150, 176, "Same angles · every side × 2", "font-size:12px;fill:var(--ok)") + "</svg>";
+        }
+        /* name it: a right triangle seen from the angle at bottom left */
+        function slRight() {
+          var s = SVG_OPEN(176), f = 'style="fill:var(--cyan);fill-opacity:.25;stroke:var(--cyan)"';
+          s += '<path d="M50 140H230V50Z" ' + f + '/><path d="M218 140V128H230" stroke-opacity=".6"/><path d="M74 140A24 24 0 0 0 71.5 129.3" style="stroke:var(--gold)"/>';
+          return s + LBL(88, 134, "angle", "font-size:12px;fill:var(--gold);font-weight:600") + LBL(140, 158, "adjacent (next to the angle)", "font-size:12px") +
+            LBL(238, 99, "opposite", "text-anchor:start;font-size:12px") + LBL(118, 84, "hypotenuse", "text-anchor:end;font-size:12px") + LBL(118, 100, "(the slanted side)", "text-anchor:end;font-size:12px") +
+            LBL(150, 20, "From the angle: opposite, adjacent, slanted", "font-weight:600") + "</svg>";
+        }
+        /* build: a 1:12 ramp drawn to scale, 24 in up over 288 in along */
+        function slRamp() {
+          var s = SVG_OPEN(150);
+          s += '<path d="M30 120L270 100V120Z" style="fill:var(--cyan);fill-opacity:.25;stroke:var(--cyan)"/><rect x="270" y="100" width="20" height="20" style="fill:var(--gold);fill-opacity:.35;stroke:var(--gold)"/>';
+          return s + LBL(150, 92, "1 in up for every 12 in along", "font-size:12px;font-weight:600") + LBL(280, 92, "24 in", "font-size:12px") +
+            LBL(150, 140, "run = ?", "font-size:12px;font-weight:600") + LBL(150, 20, "Wheelchair ramp, 1 : 12", "font-weight:600") + "</svg>";
+        }
+        /* Day 23 play: post 4–8 ft, post shadow 2–8 ft, palm shadow 10–60 ft. Solved when it stops on 6 / 4 / 30 → 45 ft */
+        function slPlay(card, api) {
+          var box = $(".x-nl", card), out = $(".x-nl__out", card), rs = card.querySelectorAll('input[type="range"]'), res = $(".x-res", card), done = !!api.solved;
+          function set(v) { v.forEach(function (n, i) { rs[i].value = n; }); }
+          function paint(stop) {
+            var h = +rs[0].value, s = +rs[1].value, ps = +rs[2].value, H = ps * h / s, ok = h === 6 && s === 4 && ps === 30;
+            if (stop && ok && !done) { done = true; api.solve(10); }
+            box.innerHTML = slSVG(h, s, ps);
+            Array.prototype.forEach.call(rs, function (i) { i.setAttribute("aria-valuetext", i.value + " feet"); });
+            out.textContent = "Post: height ÷ shadow = " + h + " ÷ " + s + " " + slEq(h / s, 2) + ". Palm height = " + ps + " × " + h + " ÷ " + s + " " + slEq(H, 1) + " ft." +
+              (ok ? " That’s the palm: 45 ft." : done ? "" : " Set the post to 6 ft with a 4 ft shadow, and the palm’s shadow to 30 ft.");
+            res.hidden = !done;
+          }
+          Array.prototype.forEach.call(rs, function (i) { i.addEventListener("input", function () { paint(false); }); i.addEventListener("change", function () { paint(true); }); });
+          $(".x-do", card).addEventListener("click", function () { set([6, 4, 30]); paint(true); });
+          if (done) set([6, 4, 30]);
+          paint(false);
+        }
+        /* Day 23 build: 1:12 ramp, 24 in rise → 24 × 12 = 288 in → ÷ 12 = 24 ft */
+        function slBuild(card, api) {
+          var a = $(".x-a", card), b = $(".x-b", card), two = $(".x-st2", card), res = $(".x-res", card), h = $(".x-hint", card), st = api.solved ? 2 : 0;
+          function num(i) { return parseFloat(i.value.replace(/[,\s]|in|ft|inches|feet/g, "")); }
+          function paint() { a.disabled = st > 0; b.disabled = st !== 1; two.hidden = st < 1; res.hidden = st < 2; if (st > 0) a.value = "288"; if (st > 1) b.value = "24"; }
+          function check() {
+            if (st === 0) {
+              if (num(a) === 288) { st = 1; h.hidden = true; }
+              else { h.innerHTML = "<b>Hint:</b> Every inch up needs 12 inches along, so multiply the rise by 12: 24 × 12."; h.hidden = false; }
+            } else if (st === 1) {
+              if (num(b) === 24) { st = 2; h.hidden = true; api.solve(10); } else { h.innerHTML = "<b>Hint:</b> 12 in = 1 ft, so divide the inches by 12: 288 ÷ 12."; h.hidden = false; }
+            }
+            paint();
+          }
+          $(".x-go", card).addEventListener("click", check);
+          [a, b].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") check(); }); });
+          $(".x-do", card).addEventListener("click", function () { if (st === 0) { a.value = "288"; check(); } if (st === 1) { b.value = "24"; check(); } });
           paint();
         }
         var LESSON_CONTENT = {
@@ -13328,6 +13419,103 @@
                   '<p class="x-so"><b>So:</b> In a right triangle, the squares on the two short sides add up to the square on the long side — and that’s how you measure any straight-line distance.</p>' }
             ]
           },
+          23: {
+            home: ["Similar Triangles & Trig", "shadows, ramps, ladders: measure what you can't reach."],
+            flow: true,
+            scene: "pythag3d",
+            steps: [
+              { kind: "predict", title: "How tall is the palm?",
+                body: '<p class="x-q">A palm tree in your Miami neighborhood casts a 30 ft shadow. At the same moment a 6 ft fence post casts a 4 ft shadow. How tall is the palm?</p>' +
+                  cpBox(slSVG(6, 4, 30, { hide: 1 }), "Same sun, same moment: the post and the palm", "A 6 ft post with a 4 ft shadow and a palm with a 30 ft shadow, under parallel sun rays; the palm’s height is unknown") +
+                  ["20 ft", "36 ft", "45 ft"].map(function (t, k) { return '<button type="button" class="qopt press" data-g="' + k + '">' + t + "</button>"; }).join("") +
+                  '<p class="why x-saved" hidden>Guess saved.</p>' +
+                  '<div class="x-res" hidden><p class="why"><b>45 ft.</b> The post is 1.5× its shadow (6 ÷ 4), so the palm is 30 × 1.5 = 45 ft.</p></div>',
+                /* stored, never graded; the reveal opens once a guess is in */
+                mount: function (card, api) {
+                  a2Pred("l23palm", 2)(card, api);
+                  var r = $(".x-res", card); r.hidden = !api.pred;
+                  card.addEventListener("click", function (e) { if (e.target.closest("[data-g]")) r.hidden = false; });
+                } },
+              { kind: "play", title: "Shadows side by side",
+                body: '<p class="x-q">Sun rays hit the post and the palm at the same angle. Change the post and the shadows and watch the palm. Then set the real ones: a 6 ft post, a 4 ft shadow, a 30 ft palm shadow.</p>' +
+                  '<div class="x-mini"><div class="x-viz x-nl" aria-hidden="true"></div><p class="x-cap">Gold: the sun’s rays, at the same angle on both · each drawn to fit</p><p class="x-nl__out" role="status"></p></div>' +
+                  '<div class="x-ctl"><label>Post height <input type="range" min="4" max="8" step="1" value="5" aria-label="Post height in feet"></label>' +
+                  '<label>Post shadow <input type="range" min="2" max="8" step="1" value="6" aria-label="Post shadow in feet"></label>' +
+                  '<label>Palm shadow <input type="range" min="10" max="60" step="1" value="20" aria-label="Palm shadow in feet"></label></div>' +
+                  '<button type="button" class="prev press x-do">Do it for me</button>' +
+                  '<div class="x-res" hidden><p class="why"><b>6 ÷ 4 = 1.5, and 30 × 1.5 = 45 ft.</b> Now stretch the palm’s shadow to 60 ft: the palm doubles to 90 ft.</p></div>',
+                mount: slPlay },
+              { kind: "notice", title: "Same angle, same shape", hl: ".x-nl",
+                viz: cpBox(slSVG(6, 4, 30, { head: "Same sun angle → same shape" }), "Post: 6 ÷ 4 = 1.5 · palm: 45 ÷ 30 = 1.5"),
+                q: "The post and the palm made two triangles. What did they share?",
+                options: ["The same shape, so the same height ÷ shadow ratio", "The same size", "The same gap between height and shadow"],
+                say: "Same sun angle, same shape. Same shape means the same ratios, whatever the size: 6 ÷ 4 = 45 ÷ 30 = 1.5." },
+              { kind: "plate", plate: "similar", title: "Same shape, different size" },
+              { kind: "play", title: "Build it: a wheelchair ramp",
+                body: cpBox(slRamp(), "Drawn to scale: 1 up, 12 along", "A long, low ramp rising 24 inches to a porch, at 1 inch up for every 12 inches along") +
+                  '<p class="x-q">A wheelchair ramp follows the 1:12 rule: 1 inch up for every 12 inches along. The porch is 24 in high. How long is the ramp’s run, in inches?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-a" type="text" inputmode="decimal" autocomplete="off" placeholder="inches" aria-label="Run in inches"></div>' +
+                  '<div class="x-st2" hidden><p class="why"><b>288 in.</b> 24 × 12 = 288.</p>' +
+                  '<p class="x-q">How many feet is that?</p>' +
+                  '<div class="field__box" style="margin-top:12px"><input class="x-b" type="text" inputmode="decimal" autocomplete="off" placeholder="feet" aria-label="Run in feet"></div></div>' +
+                  '<div class="links"><button type="button" class="start press x-go">Check</button><button type="button" class="prev press x-do">Do it for me</button></div>' +
+                  '<p class="why x-hint" hidden></p>' +
+                  '<div class="x-res" hidden><p class="why"><b>24 ft.</b> 288 ÷ 12 = 24. Every ramp built to the rule is the same shape, so the multiplier does the work.</p></div>',
+                mount: slBuild },
+              { kind: "formalize", title: "Name it: tan, sin, cos",
+                body: cpBox(slRight(), "Stand at the angle: opposite faces it, adjacent touches it, the hypotenuse slants", "A right triangle with an angle marked at the bottom left: the bottom side is adjacent, the vertical side is opposite, the slanted side is the hypotenuse") +
+                  '<ol class="x-wk"><li><span>tan</span><span>opposite ÷ adjacent, “rise over run”</span><b>ramp: 1 ÷ 12</b></li>' +
+                  "<li><span>sin</span><span>opposite ÷ hypotenuse (the slanted side)</span><b>ladder height</b></li>" +
+                  "<li><span>cos</span><span>adjacent ÷ hypotenuse</span><b>ladder base</b></li>" +
+                  "<li><span>Angle</span><span>1:12 ramp: tan⁻¹(1/12) on a calculator</span><b>≈ 4.8°</b></li></ol>" +
+                  '<p class="why">SOH-CAH-TOA is just a reminder: Sin = Opposite ÷ Hypotenuse, Cos = Adjacent ÷ Hypotenuse, Tan = Opposite ÷ Adjacent. The calculator does the trig.</p>',
+                so: "In a right triangle, from an angle: tan = rise ÷ run; sin and cos use the slanted side. Pick the two sides you have, and let the calculator do the rest." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "A friend says: “The post is 2 ft taller than its shadow, so the palm is 30 + 2 = 32 ft.” What went wrong?",
+                options: ["Similar shapes multiply: 6 ÷ 4 = 1.5, so 30 × 1.5 = 45 ft", "Nothing: add the 2 ft, so 32 ft", "It should be 30 − 2 = 28 ft"], answer: 0, tags: [null, "SIM-ADD-NOT-MULTIPLY", "SIM-ADD-NOT-MULTIPLY"], concept: "l23-similar",
+                hints: ["Would a 300 ft shadow mean a 302 ft palm? Same shape means same ratio.", "Find the multiplier: post height ÷ post shadow."],
+                why: "Similar shapes grow by multiplying, not adding. The post is 1.5× its shadow, so the palm is 30 × 1.5 = 45 ft." },
+              { kind: "quiz", title: "Spot the mistake",
+                q: "“A 16 ft ladder leans at 75°. Height up the wall = 16 × cos 75° ≈ 4.1 ft.” What went wrong?",
+                options: ["The height is opposite the angle: 16 × sin 75° ≈ 15.5 ft", "Nothing: 16 × cos 75° ≈ 4.1 ft is right", "Use tan: 16 × tan 75° ≈ 59.7 ft"], answer: 0, tags: [null, "TRIG-WRONG-SIDE", "TRIG-WRONG-SIDE"], concept: "l23-trig",
+                hints: ["The ladder is the slanted side. Which side is the wall height: opposite or next to the 75° angle at the ground?", "Opposite ÷ slanted side is sin."],
+                why: "The height is opposite the angle and the ladder is the slanted side, so use sin: 16 × sin 75° ≈ 15.5 ft. A steep ladder reaches high, not 4 ft." },
+              { kind: "fade", title: "The safe ladder angle",
+                q: "The same 16 ft ladder at the safe 75° angle. Fill in the missing line.",
+                lines: ["Height is opposite the angle, the ladder is the slanted side: use sin", "16 × 0.966 ≈ 15.5 ft", "Base: 16 × cos 75° ≈ 4.1 ft, about 4 ft out — the “1 out for every 4 up” ladder rule"],
+                blank: 1, options: ["16 × 0.966 ≈ 15.5 ft", "16 + 0.966 ≈ 17 ft", "16 ÷ 0.966 ≈ 16.6 ft"], answer: 0, tags: [null, null, null], concept: "l23-trig",
+                hints: ["sin 75° ≈ 0.966 on a calculator.", "Height = ladder × sin 75°."],
+                why: "16 × sin 75° = 16 × 0.966 ≈ 15.5 ft. Dividing would make the height longer than the ladder, which can’t be." },
+              { kind: "quiz", title: "Quick check: a photo",
+                q: "In your print, a 6 ft person is 4 in tall. The building behind them, at the same distance, is 10 in tall. How tall is the building?",
+                options: ["15 ft", "12 ft", "60 ft"], answer: 0, tags: [null, "SIM-ADD-NOT-MULTIPLY", null], concept: "l23-similar",
+                hints: ["The building is 10 ÷ 4 = 2.5 times the person in the print.", "Real life keeps the same multiplier."],
+                why: "10 ÷ 4 = 2.5, and 6 × 2.5 = 15 ft. 12 adds the 6 in difference; 60 forgets to divide by 4." },
+              { kind: "quiz", title: "Quick check: road grade",
+                q: "A road sign says 6% grade. How many feet do you climb per 100 ft forward?",
+                options: ["6 ft", "60 ft", "0.06 ft"], answer: 0, tags: [null, null, null], concept: "l23-trig",
+                hints: ["Grade is rise ÷ run as a percent: per hundred.", "6% of 100 ft = ?"],
+                why: "6% means 6 per 100: 6 ft up for every 100 ft forward. That’s rise ÷ run, the same as tan." },
+              { kind: "quiz", title: "Quick check: a drone",
+                q: "A drone is 200 ft away horizontally, and you look up 30° to see it. How high is it? (tan 30° ≈ 0.577)",
+                options: ["About 115 ft", "About 100 ft", "About 346 ft"], answer: 0, tags: [null, "TRIG-WRONG-SIDE", "TRIG-WRONG-SIDE"], concept: "l23-trig",
+                hints: ["Height is opposite the 30° angle; 200 ft is next to it.", "tan = opposite ÷ adjacent, so height = 200 × tan 30°."],
+                why: "200 × 0.577 ≈ 115 ft. 100 uses sin, which needs the slanted side; 346 divides by tan instead of multiplying." },
+              { kind: "transfer", title: "New costume: the group room",
+                q: "Drawing the group room’s floor plan at ¼ inch = 1 ft, the 20 ft wall is 5 in on paper. How long is the 15 ft wall on paper?",
+                options: ["3.75 in: 15 × ¼", "15.25 in: 15 + ¼", "60 in: 15 × 4"], answer: 0, tags: [null, "SIM-ADD-NOT-MULTIPLY", "CONV-WRONG-DIRECTION"], concept: "l23-similar",
+                hints: ["Every foot becomes ¼ inch: one multiplier for every wall.", "Check: 20 × ¼ = 5 in."],
+                why: "15 × ¼ = 3.75 in. Same shape, one multiplier — so chair layouts on paper match the room." },
+              { kind: "world", title: "Where this shows up for you",
+                body: "<ul><li><b>Shadows.</b> Measure a tree from its shadow and a post’s.</li><li><b>Ramps and roofs.</b> Rise over run: 1:12 for wheelchair ramps.</li>" +
+                  "<li><b>Ladders.</b> About 1 ft out for every 4 ft up, near 75°.</li><li><b>Maps and floor plans.</b> One multiplier for every length.</li>" +
+                  "<li><b>Photo crops and prints.</b> Same shape, different size.</li><li><b>Drone and camera angles.</b> An angle and a distance give a height.</li></ul>" },
+              { kind: "recap", title: "Recap",
+                body: "<ul><li><b>Same angles → same shape.</b> Multiply by one ratio: 6 ÷ 4 = 1.5, so the palm is 30 × 1.5 = 45 ft.</li><li><b>tan = rise ÷ run.</b> A 1:12 ramp: tan⁻¹(1/12) ≈ 4.8°.</li>" +
+                  "<li><b>sin uses the slanted side.</b> 16 ft ladder at 75°: 16 × sin 75° ≈ 15.5 ft up.</li><li><b>Sanity-check the size.</b> A steep ladder reaches high; a palm isn’t 32 ft just by adding.</li></ul>" +
+                  '<p class="x-so"><b>So:</b> Find a triangle you can measure, find the multiplier, and measure what you can’t reach.</p>' + LAB_PYTHAG }
+            ]
+          },
           /* Foundations B4: exponent laws by counting factor chips. Each play keeps its own state; values and exponents appear only after the learner acts */
           "b4-laws": {
             home: ["Exponent laws, just counting", "join, cancel and copy rows of factor chips: the laws fall out of the count."],
@@ -15718,6 +15906,39 @@
                 }
               ];
             })(),
+            23: [
+              function (r) {
+                var h = pk(r, [4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8]), s = 2 + Math.floor(r() * 13) / 2, S = 10 + Math.floor(r() * 71), H = S * h / s, c = pk(r, [
+                  ["Miami palm", "A " + h + " ft fence post in your Miami yard casts a " + s + " ft shadow. At the same moment a palm tree’s shadow is " + S + " ft. How tall is the palm?"],
+                  ["Lamp post", "Your " + h + " ft tripod on the sidewalk casts a " + s + " ft shadow, while the lamp post beside it casts " + S + " ft. How tall is the lamp post?"],
+                  ["Miami condo", "A " + h + " ft parking post casts a " + s + " ft shadow. The Miami condo next door casts a " + S + " ft shadow. How tall is the condo, in feet?"]]);
+                return mk(c[1], H, "ft", "Same sun, same ratio: height ÷ shadow matches. " + h + " ÷ " + s + " = H ÷ " + S + ", so H = " + S + " × " + h + " ÷ " + s + " = " + nf(S * h) + " ÷ " + s + " = " + F(H, "ft") + ".", c[0]);
+              },
+              function (r) {
+                if (r() < 0.5) {
+                  var R = 6 + Math.floor(r() * 31), c = pk(r, [["Porch ramp", "Your porch is " + R + " in above the walk. A wheelchair ramp needs a 1:12 slope (12 in of run for every 1 in of rise). How many feet long is the run?"],
+                    ["Photo studio", "The photo studio door sits " + R + " in above the parking lot. At a 1:12 ramp slope, how many feet of run do you need for a rolling gear cart?"]]);
+                  return mk(c[1], R, "ft", "1:12 means run = rise × 12 = " + R + " × 12 = " + nf(R * 12) + " in; ÷ 12 in per ft = " + F(R, "ft") + ". Shortcut: at 1:12, inches of rise = feet of run.", c[0]);
+                }
+                var g = 3 + Math.floor(r() * 8), d = 100 * (1 + Math.floor(r() * 20)), y = g / 100 * d, k = pk(r, [["Miami causeway", "A Miami causeway bridge ramp climbs at a " + g + "% grade for " + nf(d) + " ft. How many feet does it rise?"],
+                  ["Photo studio", "The road up to a hilltop photo shoot has a " + g + "% grade for " + nf(d) + " ft. How many feet do you climb?"]]);
+                return mk(k[1], y, "ft", "A " + g + "% grade rises " + g + " ft per 100 ft: " + g / 100 + " × " + nf(d) + " = " + F(y, "ft") + ".", k[0]);
+              },
+              function (r) {
+                var A = 20 + Math.floor(r() * 56), rad = A * Math.PI / 180, t = Math.tan(rad), s = Math.sin(rad), c;
+                if (r() < 0.5) {
+                  var D = 10 + Math.floor(r() * 291);
+                  c = pk(r, [["Drone over the beach", "You stand " + D + " ft from the spot under your drone on the beach and look up at " + A + "° to see it (tan " + A + "° ≈ " + t.toFixed(3) + "). How high is the drone?"],
+                    ["Miami palm", "From " + D + " ft away you look up " + A + "° to the top of a Miami palm (tan " + A + "° ≈ " + t.toFixed(3) + "). How tall is it, from eye level?"]]);
+                  return mk(c[1], D * t, "ft", "tan = opposite ÷ adjacent, so height = distance × tan " + A + "° = " + D + " × " + t.toFixed(3) + " = " + F(D * t, "ft") + ".", c[0]);
+                }
+                var L = 10 + Math.floor(r() * 31);
+                c = pk(r, [["Ladder at home", "Your " + L + " ft ladder leans against the house at " + A + "° to the ground (sin " + A + "° ≈ " + s.toFixed(3) + "). How high up the wall does it reach?"],
+                  ["Photo studio", "A " + L + " ft ladder in your photo studio leans at " + A + "° to the floor (sin " + A + "° ≈ " + s.toFixed(3) + "). How high does it reach on the wall?"],
+                  ["Group room", "On the floor plan of the group room, a " + L + " ft cable runs from a corner at " + A + "° to the long wall (sin " + A + "° ≈ " + s.toFixed(3) + "). How far out from that wall does it end?"]]);
+                return mk(c[1], L * s, "ft", "sin = opposite ÷ hypotenuse, so the side opposite the angle = length × sin " + A + "° = " + L + " × " + s.toFixed(3) + " = " + F(L * s, "ft") + ".", c[0]);
+              }
+            ],
             18: (function () {
               var C = [["Nicaragua Christmas trip", "You park $P in savings for the Christmas trip to Nicaragua"], ["Miami rent", "You set aside $P as a rent cushion for your Miami apartment"],
                 ["Camera gear", "You put $P into a fund for a new camera body and lens"], ["Counseling paycheck", "You stash $P from your counseling paycheck in a CD"]];
@@ -15788,7 +16009,7 @@
                 z.tol = 0.01; return z;
               }
             ]
-            /* REMIX: generators cover Days 1–22; add new days here */
+            /* REMIX: generators cover Days 1–23; add new days here */
           };
           Remix = (function () {
             function days() { return Object.keys(REMIX).map(Number).filter(function (d) { return REMIX[d] && REMIX[d].length; }); }
