@@ -478,6 +478,15 @@
       .x-tile > span:not(.x-tile__glow) { position: relative; }
       .x-tile__t { font: 600 19px/1.25 var(--display); }
       .x-tile__i { font-size: 13.5px; color: var(--dim); }
+      .x-tile__m { font-size: 12.5px; color: var(--dim); font-style: italic; border-left: 2px solid var(--gold); padding-left: 8px; }
+      .x-lsearch { position: sticky; top: 8px; z-index: 5; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent); min-height: 48px; }
+      .x-lsearch input { flex: 1; min-width: 0; background: none; border: 0; outline: 0; color: inherit; font: inherit; font-size: 16px; padding: 12px 0; }
+      .x-lsearch input::-webkit-search-cancel-button { display: none; }
+      .x-lsearch:focus-within { box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 55%, transparent); }
+      .x-lsearch__i { display: flex; color: var(--gold); }
+      .x-lsearch__x { width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--surface-2, rgba(127,127,127,.15)); color: inherit; font-size: 20px; line-height: 1; cursor: pointer; }
+      .x-lsearch__n { margin: 6px 4px 0; }
+      mark.x-lsm { background: color-mix(in srgb, var(--gold) 38%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
       .x-tile[aria-disabled="true"] { cursor: default; }
       .x-tile[aria-disabled="true"]:active { transform: none; }
       .x-tile[aria-disabled="true"] .x-tile__glow { opacity: 0.35; animation: none; }
@@ -2166,6 +2175,83 @@
         }
 
         /* registry: append new scenes here */
+        /* ============ LAB SEARCH (EN/ES, accent + typo tolerant) ============ */
+        var LabSearch = {
+          q: "",
+          norm: function (t) { return String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9%×²³π]+/g, " ").trim(); },
+          ES: { porcentaje: "percent", porciento: "percent", por: "per", cambio: "change", proporcion: "proportion", razon: "ratio", tasa: "rate", multiplicacion: "multiplication multiply", multiplicar: "multiply", division: "division divide", dividir: "divide", fraccion: "fraction", fracciones: "fractions", decimal: "decimal", numero: "number", numeros: "numbers", valor: "value", posicion: "place", lugar: "place", suma: "add sum", resta: "subtract", ecuacion: "equation", ecuaciones: "equations", funcion: "function", funciones: "functions", grafica: "graph", grafico: "graph chart", pendiente: "slope", recta: "line", lineal: "linear", cuadratica: "quadratic", parabola: "parabola", exponencial: "exponential", crecimiento: "growth", interes: "interest", compuesto: "compound", dinero: "money", factura: "bill", costo: "cost", precio: "price", ahorro: "saving savings", deuda: "debt", area: "area", volumen: "volume", circulo: "circle", triangulo: "triangle", angulo: "angle", distancia: "distance", vistas: "views", forma: "shape", espacio: "space", probabilidad: "probability chance", azar: "chance random", dado: "dice die", dados: "dice", muestra: "sample", media: "mean average", promedio: "average mean", mediana: "median", dispersion: "spread", variabilidad: "variability spread", desviacion: "deviation", campana: "bell", normal: "normal", correlacion: "correlation", regresion: "regression", factores: "factors", factor: "factor", duplicar: "double doubling", duplicaciones: "doublings", potencia: "power", raiz: "root", cuadrado: "square", balanza: "balance", reparto: "share", repartir: "share", justo: "fair", jardin: "garden", cientifica: "scientific", notacion: "notation", sesgo: "bias", independiente: "independent", espacio_muestral: "sample space", ciudad: "city", terapia: "therapy", cliente: "client", clientes: "clients", foto: "photo", fotografia: "photography" },
+          lev: function (a, b, max) {
+            if (Math.abs(a.length - b.length) > max) return max + 1;
+            var prev = [], cur, i, j;
+            for (j = 0; j <= b.length; j++) prev[j] = j;
+            for (i = 1; i <= a.length; i++) {
+              cur = [i]; var best = i;
+              for (j = 1; j <= b.length; j++) { cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); if (cur[j] < best) best = cur[j]; }
+              if (best > max) return max + 1;
+              prev = cur;
+            }
+            return prev[b.length];
+          },
+          /* each query token becomes a list of alternatives (itself + Spanish→English) */
+          terms: function (q) {
+            return LabSearch.norm(q).split(" ").filter(Boolean).map(function (t) {
+              var alts = [t], es = LabSearch.ES[t];
+              if (!es && t.length >= 5) Object.keys(LabSearch.ES).some(function (k) { if (LabSearch.lev(t, k, 1) <= 1) { es = LabSearch.ES[k]; return true; } });
+              if (es) es.split(" ").forEach(function (x) { if (alts.indexOf(x) < 0) alts.push(x); });
+              return alts;
+            });
+          },
+          wordHit: function (w, alt) {
+            if (!w || !alt) return false;
+            if (w.indexOf(alt) === 0 || (alt.length >= 3 && w.indexOf(alt) > 0)) return true;
+            if (alt.length < 4) return false;
+            var max = alt.length >= 7 ? 2 : 1;
+            return LabSearch.lev(alt, w.slice(0, alt.length + max), max) <= max || LabSearch.lev(alt, w, max) <= max;
+          },
+          match: function (words, terms) {
+            return terms.every(function (alts) { return alts.some(function (a) { return words.some(function (w) { return LabSearch.wordHit(w, a); }); }); });
+          },
+          mark: function (text, terms) {
+            if (!terms.length) return esc(text);
+            return String(text || "").split(/(\s+)/).map(function (tok) {
+              var nw = LabSearch.norm(tok).split(" ");
+              var hit = nw.some(function (w) { return terms.some(function (alts) { return alts.some(function (a) { return LabSearch.wordHit(w, a); }); }); });
+              return hit && tok.trim() ? '<mark class="x-lsm">' + esc(tok) + "</mark>" : esc(tok);
+            }).join("");
+          },
+          apply: function () {
+            var box = doc.getElementById("lab-search-box"); if (!box) return;
+            var q = LabSearch.q, terms = LabSearch.terms(q), tiles = doc.querySelectorAll(".x-gal .x-tile"), n = 0;
+            Array.prototype.forEach.call(tiles, function (t) {
+              var words = t.__lsw || (t.__lsw = LabSearch.norm(t.getAttribute("data-ls")).split(" "));
+              var ok = !terms.length || LabSearch.match(words, terms);
+              t.hidden = !ok; if (ok) n++;
+              ["t", "i", "e"].forEach(function (k) { var el = t.querySelector("[data-lso-" + k + "]"); if (el) el.innerHTML = ok ? LabSearch.mark(el.getAttribute("data-lso-" + k), terms) : esc(el.getAttribute("data-lso-" + k)); });
+              var sn = t.querySelector(".x-tile__m");
+              if (sn) {
+                var line = "";
+                if (ok && terms.length) {
+                  var hay = (t.getAttribute("data-ls-more") || "").split(/(?<=[.!?])\s+/);
+                  hay.some(function (sent) { var w = LabSearch.norm(sent).split(" "); if (terms.some(function (alts) { return alts.some(function (a) { return w.some(function (x) { return LabSearch.wordHit(x, a); }); }); })) { line = sent; return true; } });
+                }
+                sn.hidden = !line; sn.innerHTML = line ? LabSearch.mark(line.length > 160 ? line.slice(0, 157) + "…" : line, terms) : "";
+              }
+            });
+            Array.prototype.forEach.call(doc.querySelectorAll("section[data-labgrp]"), function (sec) { sec.hidden = !sec.querySelector(".x-tile:not([hidden])"); });
+            var c = doc.getElementById("lab-search-count");
+            if (c) c.textContent = terms.length ? (n === 1 ? "1 scene" : n + " scenes") + " · " + (n === 1 ? "1 escena" : n + " escenas") : tiles.length + " scenes · escenas";
+            var none = doc.getElementById("lab-search-none"); if (none) none.hidden = n > 0 || !terms.length;
+            var clr = doc.getElementById("lab-search-clear"); if (clr) clr.hidden = !q;
+          },
+          bind: function () {
+            var inp = doc.getElementById("lab-search"); if (!inp || inp.__ls) return; inp.__ls = 1;
+            inp.addEventListener("input", function () { LabSearch.q = inp.value; LabSearch.apply(); });
+            inp.addEventListener("keydown", function (e) { if (e.key === "Escape" && inp.value) { e.stopPropagation(); inp.value = ""; LabSearch.q = ""; LabSearch.apply(); } });
+            var clr = doc.getElementById("lab-search-clear");
+            if (clr) clr.addEventListener("click", function () { inp.value = ""; LabSearch.q = ""; LabSearch.apply(); inp.focus(); });
+            LabSearch.apply();
+          }
+        };
         var SCENES = [
           {
             id: "galton", name: "Galton Rain", day: 10, level: "foundations", hue: ["#3fd8ff", "#a06bff"],
@@ -5976,9 +6062,13 @@
           },
           lab: function () {
             var tile = function (s, soon) {
-              return '<button type="button" class="x-tile glass press" data-n="' + (s.n || pad2(s.day)) + '"' + (soon ? ' aria-disabled="true"' : ' data-scene="' + s.id + '"') + ' style="--h1:' + s.hue[0] + ";--h2:" + s.hue[1] + '">' +
-                '<span class="x-tile__glow" aria-hidden="true"></span><span class="eyebrow">' + (s.kicker ? esc(s.kicker) + "</span>" : "") + (s.kicker ? "" : (s.unit ? esc(s.unit) + " · " : "") + dayLabel(s.day) + " · " + esc(lessonOf(s.day).title) + "</span>") +
-                '<span class="x-tile__t">' + esc(s.name) + '</span><span class="x-tile__i">' + esc(s.idea) + "</span>" +
+              var eb = s.kicker ? s.kicker : (s.unit ? s.unit + " · " : "") + dayLabel(s.day) + " · " + ((lessonOf(s.day) || {}).title || "");
+              var more = [s.cap, s.see, s.why, s.use].filter(Boolean).join(" ");
+              var lsAll = [s.name, s.term, eb, "day " + s.day, dayLabel(s.day), (lessonOf(s.day) || {}).title, s.unit, s.idea, more].filter(Boolean).join(" ");
+              return '<button type="button" class="x-tile glass press" data-n="' + (s.n || pad2(s.day)) + '"' + (soon ? ' aria-disabled="true"' : ' data-scene="' + s.id + '"') + ' data-ls="' + esc(lsAll) + '" data-ls-more="' + esc(more) + '" style="--h1:' + s.hue[0] + ";--h2:" + s.hue[1] + '">' +
+                '<span class="x-tile__glow" aria-hidden="true"></span><span class="eyebrow" data-lso-e="' + esc(eb) + '">' + esc(eb) + "</span>" +
+                '<span class="x-tile__t" data-lso-t="' + esc(s.name) + '">' + esc(s.name) + '</span><span class="x-tile__i" data-lso-i="' + esc(s.idea) + '">' + esc(s.idea) + "</span>" +
+                '<span class="x-tile__m" hidden></span>' +
                 (soon ? '<span class="chip">Coming soon</span>' : "") + "</button>";
             };
             var all = LAB_SCENES.map(function (s) { return { s: s, soon: false }; }).concat(SOON.map(function (s) { return { s: s, soon: true }; }));
@@ -5988,9 +6078,15 @@
             var GALLERY_G = { v: "gallery", t: "Graph Gallery", s: "Growth & money · Functions & graphs · Proportional thinking" };
             var WARMLAB_G = { v: "warmlab", t: "Warm-up Lab", s: "See the basics move: multiply, divide, compare." };
             var FOUNDLAB_G = { v: "foundlab", t: "Foundations Lab", s: "Touch the ideas behind the Foundations lessons." };
-            return '<div><h1 class="greet">The Lab</h1><p class="dim">See math move.</p></div>' + [WARMLAB_G, FOUNDLAB_G, GALLERY_G, WARM_G].concat(GROUPS).map(function (g) {
+            setTimeout(LabSearch.bind, 0);
+            return '<div><h1 class="greet">The Lab</h1><p class="dim">See math move.</p></div>' +
+              '<div class="x-lsearch glass" id="lab-search-box" role="search"><span class="x-lsearch__i" aria-hidden="true">' + (I.search || '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>') + '</span>' +
+              '<input id="lab-search" type="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Search the Lab · Buscar en el Lab" aria-label="Search Lab scenes" value="' + esc(LabSearch.q) + '" />' +
+              '<button type="button" class="x-lsearch__x press" id="lab-search-clear" aria-label="Clear search"' + (LabSearch.q ? "" : " hidden") + '>×</button></div>' +
+              '<p class="eyebrow x-lsearch__n" id="lab-search-count" aria-live="polite"></p>' +
+              '<p class="dim" id="lab-search-none" hidden>No scenes match. Try another word · Ninguna escena coincide, prueba otra palabra.</p>' + [WARMLAB_G, FOUNDLAB_G, GALLERY_G, WARM_G].concat(GROUPS).map(function (g) {
               var items = all.filter(function (o) { return (o.s.level || lessonOf(o.s.day).level) === g.v; }).sort(function (a, b) { return String(a.s.day).localeCompare(String(b.s.day), undefined, { numeric: true }); });
-              return items.length ? '<section aria-label="' + g.t + '"><div class="grpname"><h2 class="mark" style="--fs:18px">' + g.t + '</h2><span class="eyebrow">' + g.s + '</span></div><div class="x-gal">' +
+              return items.length ? '<section data-labgrp="' + g.v + '" aria-label="' + g.t + '"><div class="grpname"><h2 class="mark" style="--fs:18px">' + g.t + '</h2><span class="eyebrow">' + g.s + '</span></div><div class="x-gal">' +
                 items.map(function (o) { return tile(o.s, o.soon); }).join("") + "</div></section>" : "";
             }).join("");
           },
