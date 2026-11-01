@@ -931,6 +931,19 @@
   <body>
     <!-- LOGIN -->
     <section id="login">
+      <div class="auth glass" id="x-reset" hidden>
+        <div class="auth__brand">
+          <h1 class="mark">New password</h1>
+          <p class="tagline" id="x-reset-who">Choose a new password for your account.</p>
+        </div>
+        <div class="field field--pw">
+          <label for="x-npw">New password</label>
+          <div class="field__box"><input id="x-npw" type="password" autocomplete="new-password" placeholder="At least 8 characters" /></div>
+        </div>
+        <button type="button" class="cta press" id="x-setpw">Save new password</button>
+        <p class="alert" id="x-reset-alert" role="alert"></p>
+        <div class="x-authalt"><button type="button" class="x-link press" id="x-skippw">Not now</button></div>
+      </div>
       <div class="auth glass" id="auth-form">
         <div class="auth__brand">
           <img class="x-icon" src="numina-icon.png" alt="" />
@@ -1144,7 +1157,7 @@
           /* old on-device accounts: only read now, to carry a name over to the cloud account */
           accounts: function () { return Store.get(K.accounts, {}); },
           signUp: function (name, email, pw) {
-            return Cloud.raw("/auth/v1/signup", { method: "POST", body: { email: email, password: pw, data: name ? { name: name } : {} } }).then(function (res) {
+            return Cloud.raw("/auth/v1/signup?redirect_to=" + encodeURIComponent(location.origin + location.pathname), { method: "POST", body: { email: email, password: pw, data: name ? { name: name } : {} } }).then(function (res) {
               if (!res.ok) throw Cloud.err(res);
               if (!res.data || !res.data.access_token) { var c = new Error("Check your email to confirm, then sign in."); c.code = "confirm"; throw c; }
               return Auth.online(res.data, name);
@@ -1168,7 +1181,7 @@
             return Auth.start({ name: s.user.name, email: s.user.email, id: s.user.id, cloud: true });
           },
           recover: function (email) {
-            return Cloud.raw("/auth/v1/recover", { method: "POST", body: { email: email } }).then(function (res) { if (!res.ok) throw Cloud.err(res); });
+            return Cloud.raw("/auth/v1/recover?redirect_to=" + encodeURIComponent(location.origin + location.pathname), { method: "POST", body: { email: email } }).then(function (res) { if (!res.ok) throw Cloud.err(res); });
           },
           guest: function () { return Auth.start({ name: "", email: "", local: true }); },
           start: function (user) {
@@ -18126,7 +18139,68 @@
         Themes.apply();
         try { Pwa.init(); } catch (e) { /* install support is optional */ }
         if (Auth.user && Auth.user.cloud && !Cloud.s) { Auth.user = null; Store.del(K.session); }
-        if (Auth.user) showApp(); else showLogin();
+        /* ============ ACCOUNT LINKS: confirmation + password-reset emails return here ============ */
+        var AuthLink = (function () {
+          var api = {};
+          function parse(h) {
+            var q = {};
+            String(h || "").replace(/^#/, "").split("&").forEach(function (kv) {
+              var i = kv.indexOf("="); if (i < 1) return;
+              try { q[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1).replace(/\+/g, " ")); } catch (e) {}
+            });
+            return q;
+          }
+          api.pending = function () { return /access_token=|error_description=/.test(location.hash); };
+          function resetForm(on) { $("#x-reset").hidden = !on; $("#auth-form").hidden = !!on; }
+          api.run = function () {
+            var q = parse(location.hash);
+            try { history.replaceState(history.state, "", location.pathname + location.search); } catch (e) {}
+            if (q.error_description) {
+              showLogin();
+              say(q.error_description.replace(/\.$/, "") + ". That link expired or was already used: tap Forgot password for a new reset link, or Create account again for a new confirmation email.");
+              return;
+            }
+            if (!q.access_token) { if (Auth.user) showApp(); else showLogin(); return; }
+            showLogin(); say("Signing you in…", true);
+            Cloud.save({ access_token: q.access_token, refresh_token: q.refresh_token, expires_at: Date.now() + (+q.expires_in || 3600) * 1000, user: { id: "", email: "", name: "" } });
+            Cloud.raw("/auth/v1/user").then(function (res) {
+              if (!res.ok || !res.data) throw Cloud.err(res);
+              var u = res.data, md = u.user_metadata || {}, local = Auth.accounts()[(u.email || "").toLowerCase()];
+              var name = md.name || (local && local.name) || (u.email || "").split("@")[0];
+              Cloud.s.user = { id: u.id, email: u.email || "", name: name }; Cloud.save(Cloud.s);
+              Auth.start({ name: name, email: u.email, id: u.id, cloud: true });
+              say("");
+              if (q.type === "recovery") {
+                $("#x-reset-who").textContent = "Choose a new password for " + (u.email || "your account") + ". It works in Psygma and Anima too.";
+                resetForm(true);
+                try { $("#x-npw").focus(); } catch (e) {}
+                return;
+              }
+              enterApp();
+              UI.toast(q.type === "signup" ? "Email confirmed. You’re signed in" : "Signed in");
+            }).catch(function (e) {
+              Cloud.save(null);
+              showLogin();
+              say((e && e.message && !/request failed/i.test(e.message) ? e.message + ". " : "") + "That link didn’t work. Tap Forgot password or Create account to get a new one.");
+            });
+          };
+          function setPw() {
+            var b = $("#x-setpw"), pw = $("#x-npw").value, al = $("#x-reset-alert");
+            if (pw.length < 8) { al.textContent = "Password needs at least 8 characters."; return; }
+            al.textContent = ""; b.disabled = true; b.textContent = "Saving…";
+            Cloud.req("/auth/v1/user", { method: "PUT", body: { password: pw } }).then(function (res) {
+              if (!res.ok) throw Cloud.err(res);
+              $("#x-npw").value = ""; resetForm(false); enterApp(); UI.toast("Password updated");
+            }).catch(function (e) { al.textContent = (e && e.message) || "Couldn’t save the password."; })
+              .then(function () { b.disabled = false; b.textContent = "Save new password"; });
+          }
+          $("#x-setpw").addEventListener("click", setPw);
+          $("#x-npw").addEventListener("keydown", function (e) { if (e.key === "Enter") setPw(); });
+          $("#x-skippw").addEventListener("click", function () { $("#x-npw").value = ""; resetForm(false); enterApp(); });
+          return api;
+        })();
+        if (AuthLink.pending()) AuthLink.run();
+        else if (Auth.user) showApp(); else showLogin();
       })();
     </script>
   <script>if('serviceWorker' in navigator&&location.protocol==='https:'){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}</script>
