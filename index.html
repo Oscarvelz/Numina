@@ -478,6 +478,15 @@
       .x-tile > span:not(.x-tile__glow) { position: relative; }
       .x-tile__t { font: 600 19px/1.25 var(--display); }
       .x-tile__i { font-size: 13.5px; color: var(--dim); }
+      .x-gloss { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 12px; margin-top: 14px; }
+      .x-gterm { padding: 16px 16px 14px; border-radius: var(--r-l, 18px); display: flex; flex-direction: column; gap: 6px; }
+      .x-gterm__en { margin: 0; font-family: var(--serif, Georgia, serif); font-size: 19px; line-height: 1.2; }
+      .x-gterm__es { margin: 0; color: var(--gold); font-size: 14.5px; font-weight: 600; letter-spacing: 0.01em; }
+      [data-theme="day"] .x-gterm__es { color: color-mix(in srgb, var(--gold) 50%, var(--text, #1b2233)); }
+      .x-gterm__d { margin: 2px 0 0; font-size: 15px; }
+      .x-gterm__tech { margin: 0; font-size: 13.5px; color: var(--dim); border-left: 2px solid color-mix(in srgb, var(--gold) 60%, transparent); padding-left: 8px; }
+      .x-gterm__ls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 6px; }
+      .x-gterm__ls .chip { font-size: 12px; cursor: pointer; text-align: left; }
       .x-tile__m { font-size: 12.5px; color: var(--dim); font-style: italic; border-left: 2px solid var(--gold); padding-left: 8px; }
       .x-lsearch { position: sticky; top: 8px; z-index: 5; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent); min-height: 48px; }
       .x-lsearch input { flex: 1; min-width: 0; background: none; border: 0; outline: 0; color: inherit; font: inherit; font-size: 16px; padding: 12px 0; }
@@ -1002,6 +1011,7 @@
           home: SVG('<path d="M4 10.4 12 4l8 6.4V19a1 1 0 0 1-1 1h-4.2v-5.4H9.2V20H5a1 1 0 0 1-1-1Z"/>'),
           library: SVG('<path d="M5 4.6h5.2a2 2 0 0 1 1.8 1.1 2 2 0 0 1 1.8-1.1H19v13H14a2 2 0 0 0-2 1.3 2 2 0 0 0-2-1.3H5Z"/><path d="M12 6.8V19"/>'),
           review: SVG('<path d="M20.4 12a8.4 8.4 0 1 1-2.6-6"/><path d="M20.6 4.4V10h-5.4"/>'),
+          gloss: SVG('<path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5v-15Z"/><path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3"/><path d="M9 8h6M9 11.5h4"/>'),
           flask: SVG('<path d="M9.2 3.6h5.2M10.3 3.6v5.3l-4.9 8.4a2.1 2.1 0 0 0 1.8 3.1h9.4a2.1 2.1 0 0 0 1.8-3.1l-4.9-8.4V3.6"/><path d="M7.4 14.4h9.2"/><path d="M19 2.6l.55 1.45 1.45.55-1.45.55L19 6.6l-.55-1.45-1.45-.55 1.45-.55Z" stroke-width="1.2"/>'),
           large: SVG('<rect x="4" y="4.8" width="16" height="6" rx="2"/><rect x="4" y="13.2" width="16" height="6" rx="2"/>'),
           medium: SVG('<rect x="4" y="4.6" width="16" height="4.2" rx="1.5"/><rect x="4" y="10.4" width="16" height="4.2" rx="1.5"/><rect x="4" y="16.2" width="16" height="4.2" rx="1.5"/>'),
@@ -1464,7 +1474,7 @@
           }
         };
 
-        var TABS = [{ v: "home", t: "Home", i: "home" }, { v: "library", t: "Library", i: "library" }, { v: "lab", t: "Lab", i: "flask" }, { v: "review", t: "Review", i: "review" }, { v: "settings", t: "Settings", i: "gear" }];
+        var TABS = [{ v: "home", t: "Home", i: "home" }, { v: "library", t: "Library", i: "library" }, { v: "lab", t: "Lab", i: "flask" }, { v: "review", t: "Review", i: "review" }, { v: "glossary", t: "Glossary", i: "gloss" }, { v: "settings", t: "Settings", i: "gear" }];
         function paintTabs() {
           var srsN = 0;
           try { if (typeof SRS !== "undefined" && SRS) srsN = SRS.today(); } catch (e) { srsN = 0; }
@@ -2203,9 +2213,9 @@
           },
           wordHit: function (w, alt) {
             if (!w || !alt) return false;
-            if (w.indexOf(alt) === 0 || (alt.length >= 3 && w.indexOf(alt) > 0)) return true;
+            if (w.indexOf(alt) === 0) return true;
             if (alt.length < 4) return false;
-            var max = alt.length >= 7 ? 2 : 1;
+            var max = alt.length >= 8 ? 2 : 1;
             return LabSearch.lev(alt, w.slice(0, alt.length + max), max) <= max || LabSearch.lev(alt, w, max) <= max;
           },
           match: function (words, terms) {
@@ -2250,6 +2260,244 @@
             var clr = doc.getElementById("lab-search-clear");
             if (clr) clr.addEventListener("click", function () { inp.value = ""; LabSearch.q = ""; LabSearch.apply(); inp.focus(); });
             LabSearch.apply();
+          }
+        };
+        /* ============ GLOSSARY: every term the lessons and Lab use, English + Spanish ============ */
+        var NG = function (l, en, es, d, tech) { return { l: l, en: en, es: es, d: d, tech: tech }; };
+        var GLOSSARY = [
+          NG(["w1", "a1-family"], "Number", "Número", "An amount you can count, measure or place on a line.", "An abstract object used to count, measure and label; it can be natural, integer, rational, irrational or real."),
+          NG(["w1"], "One-to-one correspondence", "Correspondencia biunívoca", "Matching each thing with exactly one count.", "A pairing in which every element of one set matches exactly one element of another, and vice versa."),
+          NG(["w2"], "Place value", "Valor posicional", "A digit is worth more or less depending on where it sits.", "In base ten, each position is worth ten times the position to its right (ones, tens, hundreds…)."),
+          NG(["w2"], "Digit", "Dígito / cifra", "One of the ten symbols 0–9.", "A single symbol used to write numbers in a positional system; base ten uses 0 through 9."),
+          NG(["w2"], "Zero as placeholder", "El cero como marcador de posición", "The 0 in 405 says “no tens” and keeps the 4 in the hundreds.", "Zero fills an empty position so the other digits keep their place values."),
+          NG(["a1-family"], "Natural numbers", "Números naturales", "The counting numbers: 1, 2, 3…", "The set ℕ = {1, 2, 3, …} (some texts include 0)."),
+          NG(["a1-family", "a1-negatives"], "Integers", "Números enteros", "Whole numbers and their negatives: …, −2, −1, 0, 1, 2…", "The set ℤ of whole numbers, positive, negative and zero."),
+          NG(["a1-family", "a3-number"], "Rational number", "Número racional", "Any number you can write as a fraction of two integers.", "A number expressible as p/q with integers p, q and q ≠ 0; its decimal ends or repeats."),
+          NG(["a1-family", 24], "Irrational number", "Número irracional", "A number that can’t be a fraction; its decimals never end or repeat, like π.", "A real number not expressible as p/q; examples include √2 and π."),
+          NG(["a1-family"], "Real numbers", "Números reales", "Every point on the number line.", "The set ℝ containing all rational and irrational numbers."),
+          NG(["a1-negatives"], "Negative number", "Número negativo", "Below zero: debt, loss, cold, going backward.", "A real number less than zero, written with a minus sign."),
+          NG(["a1-negatives"], "Absolute value", "Valor absoluto", "How far a number is from zero, ignoring direction.", "|x| = x if x ≥ 0 and −x if x < 0; the distance from x to 0."),
+          NG(["a1-negatives", "w1"], "Number line", "Recta numérica", "A ruler for numbers: left is smaller, right is bigger.", "A line on which every real number corresponds to exactly one point."),
+          NG(["a1-estimate"], "Estimate", "Estimación", "A quick, close-enough answer before you calculate.", "An approximate value found by rounding or reasoning, used to predict and check exact results."),
+          NG(["a1-estimate"], "Rounding", "Redondeo", "Swapping a number for a nearby, easier one.", "Replacing a number by the closest value with fewer significant digits (to the nearest 10, 0.1, etc.)."),
+          NG(["a1-estimate", "b4-sci"], "Order of magnitude", "Orden de magnitud", "Roughly how many zeros: tens, hundreds, thousands?", "The power of ten nearest to a quantity; values one order apart differ by about ×10."),
+          NG(["a2-meaning"], "Sum", "Suma", "The result of adding.", "The result of addition; its parts are called addends (sumandos)."),
+          NG(["a2-meaning"], "Difference", "Diferencia / resta", "The result of subtracting; how far apart two numbers are.", "The result of subtraction: minuend − subtrahend (minuendo − sustraendo)."),
+          NG(["a2-meaning"], "Product", "Producto", "The result of multiplying.", "The result of multiplication; the numbers multiplied are factors."),
+          NG(["a2-meaning"], "Quotient", "Cociente", "The result of dividing: how many in each group, or how many groups.", "The result of dividend ÷ divisor (dividendo ÷ divisor)."),
+          NG(["a2-meaning"], "Remainder", "Residuo / resto", "What’s left over when things don’t split evenly.", "In a = bq + r with 0 ≤ r < b, the value r."),
+          NG(["a2-laws"], "Commutative property", "Propiedad conmutativa", "Order doesn’t matter: 3 + 5 = 5 + 3, 4 × 6 = 6 × 4.", "a + b = b + a and a·b = b·a; it does not hold for subtraction or division."),
+          NG(["a2-laws"], "Associative property", "Propiedad asociativa", "Grouping doesn’t matter: (2 + 3) + 4 = 2 + (3 + 4).", "(a + b) + c = a + (b + c) and (ab)c = a(bc)."),
+          NG(["a2-laws", "a6-expr"], "Distributive property", "Propiedad distributiva", "Multiply each part: 3 × 14 = 3 × 10 + 3 × 4.", "a(b + c) = ab + ac."),
+          NG(["a2-inverse", 7], "Inverse operation", "Operación inversa", "The move that undoes another: + undoes −, × undoes ÷.", "An operation that reverses the effect of another, returning the original value."),
+          NG(["a2-inverse", "a3-divide"], "Reciprocal", "Recíproco / inverso multiplicativo", "Flip the fraction: the reciprocal of 3/4 is 4/3.", "For x ≠ 0, the number 1/x, so that x · (1/x) = 1."),
+          NG(["a2-inverse", "a1-negatives"], "Opposite (additive inverse)", "Opuesto / inverso aditivo", "Same distance from zero, other side: 7 and −7.", "For x, the number −x such that x + (−x) = 0."),
+          NG(["a2-atoms"], "Prime number", "Número primo", "A number with exactly two factors: 1 and itself (2, 3, 5, 7…).", "A natural number greater than 1 whose only positive divisors are 1 and itself."),
+          NG(["a2-atoms"], "Composite number", "Número compuesto", "A number that can be built from smaller factors, like 12 = 3 × 4.", "A natural number greater than 1 with a divisor other than 1 and itself."),
+          NG(["a2-atoms", "b4-laws"], "Factor", "Factor / divisor", "A number that divides another evenly: 3 is a factor of 12.", "An integer d is a factor of n if n = d·k for some integer k."),
+          NG(["a2-atoms"], "Multiple", "Múltiplo", "What you get counting by a number: 4, 8, 12 are multiples of 4.", "n is a multiple of d if n = d·k for some integer k."),
+          NG(["a2-atoms"], "Prime factorization", "Descomposición en factores primos", "Breaking a number into its prime “atoms”: 60 = 2 × 2 × 3 × 5.", "Writing an integer as a product of primes, which is unique apart from order."),
+          NG(["a2-atoms", "a3-add"], "Least common multiple (LCM)", "Mínimo común múltiplo (mcm)", "The first number both counts land on.", "The smallest positive integer that is a multiple of each given integer."),
+          NG(["a2-atoms", "a3-equiv"], "Greatest common factor (GCF)", "Máximo común divisor (MCD)", "The biggest number that divides both evenly.", "The largest positive integer dividing each given integer."),
+          NG(["a3-number"], "Fraction", "Fracción", "A number that names part of a whole, or a division: 3/4 = 3 ÷ 4.", "A number a/b (b ≠ 0) representing a divided by b."),
+          NG(["a3-number"], "Numerator", "Numerador", "The top number: how many parts you have.", "In a/b, the dividend a."),
+          NG(["a3-number"], "Denominator", "Denominador", "The bottom number: how many equal parts make a whole.", "In a/b, the divisor b, which cannot be 0."),
+          NG(["a3-number"], "Unit fraction", "Fracción unitaria", "One single part: 1/2, 1/3, 1/8.", "A fraction with numerator 1."),
+          NG(["a3-number"], "Improper fraction", "Fracción impropia", "Top bigger than bottom: more than one whole, like 7/4.", "A fraction whose numerator is greater than or equal to its denominator."),
+          NG(["a3-number"], "Mixed number", "Número mixto", "A whole plus a fraction: 1¾.", "A whole number and a proper fraction written together; 1¾ = 7/4."),
+          NG(["a3-equiv"], "Equivalent fractions", "Fracciones equivalentes", "Different names, same amount: 1/2 = 2/4 = 50/100.", "Fractions a/b and c/d with ad = bc."),
+          NG(["a3-equiv"], "Simplify (a fraction)", "Simplificar (una fracción)", "Divide top and bottom by the same number to get smaller numbers.", "Divide numerator and denominator by a common factor; fully simplified means their GCF is 1."),
+          NG(["a3-add"], "Common denominator", "Común denominador", "Cut both fractions into the same size pieces before adding.", "A shared multiple of the denominators, needed to add or subtract fractions."),
+          NG(["a4-costumes", 1], "Percent", "Porcentaje / por ciento", "Per hundred: 15% means 15 of every 100.", "A ratio expressed as a fraction of 100; p% = p/100."),
+          NG(["a4-costumes"], "Decimal", "Número decimal", "A number written with a point: 0.75 = 75 hundredths.", "A base-ten representation in which digits right of the decimal point are tenths, hundredths, …"),
+          NG([1], "Base (of a percent)", "Base / cantidad de referencia", "The whole the percent is OF.", "In part = p% × whole, the reference quantity (the whole)."),
+          NG([1, 29], "Percentage point", "Punto porcentual", "The plain gap between two percents: 5% → 7% is +2 points (but +40%).", "The arithmetic difference between two percentages, distinct from their relative (percent) change."),
+          NG([2], "Percent change", "Variación porcentual", "How much something grew or shrank, compared with where it started.", "(new − old) ÷ old × 100%."),
+          NG([2], "Multiplier", "Factor multiplicador", "One number that applies a percent change: +20% is × 1.2, −20% is × 0.8.", "The factor 1 + r that scales a quantity by a relative change r."),
+          NG([3], "Ratio", "Razón", "A comparison of two amounts: 2 cups of rice to 3 of water.", "A quotient a : b comparing two quantities, often of the same kind."),
+          NG([3, 12], "Rate", "Tasa", "How much of one thing per one of another: miles per hour, $ per ounce.", "A ratio comparing quantities in different units."),
+          NG([3], "Unit rate", "Tasa unitaria", "The “per ONE” number: $0.25 per ounce, 60 miles per hour.", "A rate whose second quantity is 1."),
+          NG([3], "Unit price", "Precio unitario", "Price per one ounce, item or pound, so you can compare deals.", "Total price ÷ number of units."),
+          NG([4], "Proportion", "Proporción", "Two ratios that stay equal as things scale: 2/3 = 6/9.", "An equation stating two ratios are equal, a/b = c/d."),
+          NG([4], "Cross-multiplication", "Productos cruzados", "Shortcut to solve a/b = c/d: a × d = b × c.", "For b, d ≠ 0, a/b = c/d if and only if ad = bc."),
+          NG([4], "Conversion factor", "Factor de conversión", "A fraction worth 1 that swaps units, like 12 in / 1 ft.", "A ratio of equivalent quantities in different units, used to change units without changing value."),
+          NG([4, 21], "Unit of measure", "Unidad de medida", "What you’re counting in: feet, liters, minutes, dollars.", "A standard quantity used to express measurements."),
+          NG([4, "a5-tables"], "Directly proportional", "Directamente proporcional", "Double one, the other doubles: y = k × x.", "Quantities with a constant ratio y/x = k."),
+          NG(["a5-tables"], "Constant of proportionality", "Constante de proporcionalidad", "The fixed “per one” number k that links the two columns.", "The constant k in y = kx."),
+          NG(["a5-tables"], "Inversely proportional", "Inversamente proporcional", "Double one, the other halves: more workers, fewer hours.", "Quantities with constant product, xy = k, so y = k/x."),
+          NG(["a5-tables", "b2-views"], "Table of values", "Tabla de valores", "Two columns that grow together, showing inputs and outputs.", "A tabular list of input–output pairs of a relationship."),
+          NG([5, "a5-similar", 23], "Scale factor", "Factor de escala", "New ÷ old: how many times bigger or smaller.", "The ratio k of corresponding lengths; areas scale by k² and volumes by k³."),
+          NG([5], "Scale (map/drawing)", "Escala", "Map length to real length, like 1 inch : 1 mile.", "The ratio between distances on a model or map and actual distances."),
+          NG(["a5-similar", "b3-congruent", 23], "Similar figures", "Figuras semejantes", "Same shape, different size: angles match, sides scale.", "Figures with equal corresponding angles and proportional corresponding sides."),
+          NG(["b3-congruent"], "Congruent figures", "Figuras congruentes", "Exact copies: same shape AND same size.", "Figures that can be mapped onto each other by rigid motions (slides, turns, flips)."),
+          NG(["a6-patterns"], "Sequence", "Sucesión", "A list that follows a rule: 3, 6, 9, 12…", "An ordered list of numbers (terms) indexed by position."),
+          NG(["a6-patterns"], "Term (of a sequence or expression)", "Término", "One item of a list, or one piece of an expression joined by + or −.", "An element of a sequence; in an expression, a product of numbers and variables separated by + or −."),
+          NG(["a6-patterns", 13], "Arithmetic sequence", "Progresión aritmética", "Add the same amount each step: 5, 8, 11, 14.", "A sequence with constant difference d: aₙ = a₁ + (n − 1)d."),
+          NG(["a6-patterns", 17], "Geometric sequence", "Progresión geométrica", "Multiply by the same amount each step: 2, 6, 18, 54.", "A sequence with constant ratio r: aₙ = a₁ · rⁿ⁻¹."),
+          NG([6, "a6-expr"], "Variable", "Variable", "A labeled box that holds a number that can change.", "A symbol representing an unknown or varying quantity."),
+          NG(["a6-expr", 6], "Expression", "Expresión algebraica", "A math phrase with no equals sign: 3x + 5.", "A combination of numbers, variables and operations with no equality."),
+          NG(["a6-expr"], "Like terms", "Términos semejantes", "Terms with the same letter part, so you can combine them: 3x + 2x = 5x.", "Terms with identical variable factors raised to the same powers."),
+          NG(["a6-expr", 13], "Coefficient", "Coeficiente", "The number stuck to a letter: in 7x, it’s 7.", "The numerical factor of a term."),
+          NG(["a6-expr", 13], "Constant", "Constante / término independiente", "A number that doesn’t change, with no letter attached.", "A fixed value; in an expression, a term with no variable."),
+          NG([6], "Substitution", "Sustitución", "Plug a number in for the letter.", "Replacing a variable with a value or expression."),
+          NG(["a6-proof"], "Proof", "Demostración", "Showing why something is always true, not just for a few examples.", "A logical argument establishing a statement for every case."),
+          NG(["a6-proof"], "Counterexample", "Contraejemplo", "One case that breaks a claim.", "A specific instance showing a general statement is false."),
+          NG([7], "Equation", "Ecuación", "A balanced scale: both sides are equal.", "A statement that two expressions are equal."),
+          NG([7], "Solution", "Solución", "The value that makes the equation true.", "A value of the variable that satisfies the equation."),
+          NG([7, 8], "Solve / isolate", "Resolver / despejar", "Undo steps until the letter stands alone.", "Apply equal operations to both sides until the variable is isolated."),
+          NG([8], "Formula", "Fórmula", "A saved rule that links quantities: area = length × width.", "An equation expressing a relationship between quantities."),
+          NG([8], "Order of operations", "Jerarquía de operaciones", "Parentheses, exponents, × and ÷, then + and −.", "Convention: grouping symbols, powers, multiplication/division left to right, addition/subtraction left to right."),
+          NG([9], "Inequality", "Desigualdad / inecuación", "An equation with a fence: at most (≤), at least (≥).", "A statement using <, >, ≤ or ≥; its solution is usually an interval."),
+          NG([9], "Flip the inequality sign", "Invertir el sentido de la desigualdad", "Multiply or divide by a negative and the arrow turns around.", "Multiplying both sides by a negative number reverses the inequality."),
+          NG([10], "System of equations", "Sistema de ecuaciones", "Two rules that must both be true at once.", "A set of equations sharing variables, solved simultaneously."),
+          NG([10, 13], "Break-even point", "Punto de equilibrio", "Where two plans cost the same; past it, the other wins.", "The input at which two cost (or cost and revenue) functions are equal."),
+          NG([10, "b1-plane"], "Intersection", "Intersección / punto de corte", "Where two lines cross.", "A point that satisfies both equations."),
+          NG(["b1-plane"], "Coordinate plane", "Plano cartesiano", "Two number lines crossing so every point has an address.", "The plane defined by perpendicular x- and y-axes."),
+          NG(["b1-plane"], "Axis", "Eje", "One of the two reference lines: across (x) or up (y).", "The x-axis (eje de abscisas) and y-axis (eje de ordenadas)."),
+          NG(["b1-plane"], "Ordered pair", "Par ordenado", "A point’s address: (across, up), like (3, 5).", "A pair (x, y) in which order matters."),
+          NG(["b1-plane"], "Origin", "Origen", "The point (0, 0) where the axes cross.", "The intersection of the axes, (0, 0)."),
+          NG(["b1-plane"], "Quadrant", "Cuadrante", "One of the four regions the axes cut the plane into.", "Regions I–IV, numbered counterclockwise from the upper right."),
+          NG([11], "Function", "Función", "A machine with a rule: one input in, one output out.", "A relation assigning exactly one output to each input."),
+          NG([11, 12], "Input / output", "Variable independiente / dependiente", "What you choose (input) and what you get (output).", "The independent variable x and the dependent variable y = f(x)."),
+          NG([11], "Domain", "Dominio", "All the inputs that make sense.", "The set of allowed input values of a function."),
+          NG([11], "Range (of a function)", "Recorrido / imagen", "All the outputs you can get.", "The set of output values of a function (not the same as range in statistics)."),
+          NG([12], "Slope", "Pendiente", "How much the output changes for each one step of input.", "m = Δy/Δx = (y₂ − y₁)/(x₂ − x₁)."),
+          NG([12], "Rate of change", "Razón de cambio", "How fast one thing changes as another changes.", "Change in output divided by change in input; for lines it is constant."),
+          NG([12, 13], "y-intercept", "Ordenada al origen", "Where the line starts: the output when the input is 0.", "The value b in y = mx + b; the point (0, b)."),
+          NG([13], "Linear function", "Función lineal", "A straight-line rule: fixed part + rate × use.", "f(x) = mx + b."),
+          NG([13], "Fixed cost", "Costo fijo", "The part you pay no matter what: the monthly fee.", "The constant term of a cost function."),
+          NG([13], "Variable cost", "Costo variable", "The part that grows with use: per mile, per kWh.", "The term proportional to usage, rate × quantity."),
+          NG([13, 15], "Model", "Modelo matemático", "A simplified math rule that predicts something real.", "A mathematical representation used to describe and predict a real system."),
+          NG(["b2-views"], "Representation", "Representación", "One relationship shown four ways: words, table, graph, equation.", "A form (verbal, tabular, graphical, symbolic) used to express a relationship."),
+          NG(["b2-curve", 17], "Nonlinear", "No lineal", "Not a straight line: the change per step itself changes.", "A relationship whose rate of change is not constant."),
+          NG([14], "Quadratic function", "Función cuadrática", "A rule with x², which draws an arc with a best point.", "f(x) = ax² + bx + c with a ≠ 0."),
+          NG([14], "Parabola", "Parábola", "The U or ∩ shaped curve of a quadratic.", "The graph of a quadratic function."),
+          NG([14], "Vertex", "Vértice", "The top or bottom of the arc: the best (or worst) point.", "The point (−b/2a, f(−b/2a)) where a parabola turns."),
+          NG([14], "Maximum / minimum", "Máximo / mínimo", "The highest or lowest value possible.", "The greatest or least output a function attains."),
+          NG([14], "Roots (zeros)", "Raíces / ceros", "Where the curve hits zero.", "Values of x with f(x) = 0."),
+          NG([14], "Axis of symmetry", "Eje de simetría", "The mirror line through the vertex.", "The vertical line x = −b/2a."),
+          NG([14], "Optimization", "Optimización", "Finding the best choice: most profit, least cost.", "Finding the input that maximizes or minimizes a function."),
+          NG([15], "Graph", "Gráfica", "A picture of how numbers relate.", "A visual representation of data or of a function’s input–output pairs."),
+          NG([15], "Axis scale", "Escala del eje", "How much each step on an axis is worth.", "The spacing and units assigned to an axis."),
+          NG([15, 29], "Truncated axis", "Eje truncado", "An axis that doesn’t start at 0, so small changes look huge.", "An axis whose range omits zero, exaggerating differences."),
+          NG([15], "Trend", "Tendencia", "The overall direction behind the wiggles.", "The long-term pattern in data over time."),
+          NG([16], "Exponent", "Exponente", "How many times you multiply the base: 2³ = 2 × 2 × 2.", "In bⁿ, the number n."),
+          NG([16], "Base (of a power)", "Base (de una potencia)", "The number being multiplied by itself.", "In bⁿ, the number b."),
+          NG([16], "Power", "Potencia", "A base raised to an exponent: 5² is a power.", "An expression bⁿ and its value."),
+          NG([16, 21], "Square / cube", "Cuadrado / cubo", "Times itself (x²) or times itself three times (x³).", "The second and third powers of a number."),
+          NG([16, 22], "Square root", "Raíz cuadrada", "Undo squaring: √49 = 7.", "The non-negative number whose square is x."),
+          NG(["b4-laws"], "Laws of exponents", "Leyes de los exponentes", "Shortcuts: multiply powers → add exponents; power of a power → multiply.", "aᵐ·aⁿ = aᵐ⁺ⁿ, aᵐ/aⁿ = aᵐ⁻ⁿ, (aᵐ)ⁿ = aᵐⁿ."),
+          NG(["b4-laws"], "Negative exponent", "Exponente negativo", "Divide instead of multiply: 2⁻³ = 1/8.", "a⁻ⁿ = 1/aⁿ for a ≠ 0; also a⁰ = 1."),
+          NG(["b4-sci"], "Scientific notation", "Notación científica", "Big or tiny numbers as a × 10ⁿ: 3.2 × 10⁶.", "A number written as a × 10ⁿ with 1 ≤ |a| < 10 and n an integer."),
+          NG([17], "Exponential growth", "Crecimiento exponencial", "Grows by the same PERCENT each step, so it speeds up.", "y = a·bᵗ with b > 1."),
+          NG([17], "Exponential decay", "Decrecimiento exponencial", "Shrinks by the same percent each step.", "y = a·bᵗ with 0 < b < 1."),
+          NG([17], "Growth factor", "Factor de crecimiento", "What you multiply by each step: 5% growth → × 1.05.", "The base b = 1 + r of an exponential model."),
+          NG([17, "b4-sci"], "Doubling time", "Tiempo de duplicación", "How long until it doubles.", "The time t with bᵗ = 2; about 70 ÷ (percent rate)."),
+          NG([17], "Half-life", "Vida media / semivida", "How long until half is left.", "The time t with bᵗ = 1/2."),
+          NG([17, 18], "Rule of 72", "Regla del 72", "72 ÷ the yearly % ≈ years to double.", "An approximation of doubling time for compound growth."),
+          NG([18], "Principal", "Capital (principal)", "The money you start with or borrow.", "The initial amount invested or borrowed."),
+          NG([18, 19], "Interest", "Interés", "The price of using money: you earn it saving, pay it borrowing.", "A charge or return computed from a rate applied to the principal."),
+          NG([18, 19], "Interest rate", "Tasa de interés", "The percent charged or earned per period.", "Interest per period as a percentage of the principal."),
+          NG([18], "Simple interest", "Interés simple", "Interest only on the starting amount.", "I = P·r·t."),
+          NG([18], "Compound interest", "Interés compuesto", "Interest on interest: the pile grows faster each year.", "A = P(1 + r/n)ⁿᵗ."),
+          NG([18], "Compounding period", "Período de capitalización", "How often interest is added: yearly, monthly, daily.", "The interval after which interest is added to the principal."),
+          NG([19], "APR (annual percentage rate)", "Tasa de porcentaje anual (APR)", "The yearly cost of borrowing, before compounding.", "The nominal annual interest rate including certain fees."),
+          NG([19], "APY (annual percentage yield)", "Rendimiento porcentual anual (APY)", "The real yearly growth once compounding is counted.", "(1 + r/n)ⁿ − 1, the effective annual rate."),
+          NG([19], "Balance", "Saldo", "How much you still owe (or have).", "The outstanding amount of an account or loan."),
+          NG([19], "Minimum payment", "Pago mínimo", "The smallest payment allowed; mostly covers interest.", "The lowest required periodic payment on a credit balance."),
+          NG([19], "Amortization", "Amortización", "Paying a loan down over time; early payments are mostly interest.", "Repayment of a loan by scheduled installments of interest and principal."),
+          NG([19], "Installment", "Cuota / plazo", "One of the regular payments.", "A periodic payment in a repayment schedule."),
+          NG([20], "Logarithm", "Logaritmo", "Counts the multiplications: how many ×10 (or ×2) to get here?", "log_b(x) = y means bʸ = x."),
+          NG([20], "Common logarithm", "Logaritmo decimal", "Log base 10: counts the zeros. log(1,000) = 3.", "The logarithm with base 10."),
+          NG([20, 15], "Logarithmic scale", "Escala logarítmica", "Each step multiplies, so huge ranges fit (decibels, Richter).", "A scale where equal distances represent equal ratios."),
+          NG([21, "b3-areaform"], "Perimeter", "Perímetro", "The distance around the edge.", "The total length of a shape’s boundary."),
+          NG([21, "b3-areaform"], "Area", "Área", "How much surface it covers, in square units.", "The measure of a two-dimensional region."),
+          NG([21], "Volume", "Volumen", "How much space it fills, in cubic units.", "The measure of a three-dimensional region."),
+          NG([21], "Square unit", "Unidad cuadrada", "A 1 × 1 tile: square feet, square meters.", "A unit of area equal to a square of side one unit."),
+          NG([21], "Cubic unit", "Unidad cúbica", "A 1 × 1 × 1 block: cubic feet, cubic inches.", "A unit of volume equal to a cube of edge one unit."),
+          NG([21], "Surface area", "Área superficial / área total", "The total area of all a box’s faces: what wrapping paper covers.", "The sum of the areas of a solid’s faces."),
+          NG(["b3-areaform"], "Base and height", "Base y altura", "The bottom side and the straight-up distance to the top.", "A side and the perpendicular distance to the opposite vertex or side."),
+          NG([22], "Right triangle", "Triángulo rectángulo", "A triangle with a square (90°) corner.", "A triangle with one 90° angle."),
+          NG([22], "Hypotenuse", "Hipotenusa", "The longest side, across from the square corner.", "The side opposite the right angle."),
+          NG([22], "Leg (of a right triangle)", "Cateto", "Either of the two sides that make the square corner.", "One of the two sides forming the right angle."),
+          NG([22], "Pythagorean theorem", "Teorema de Pitágoras", "Leg² + leg² = hypotenuse²: 3, 4, 5.", "In a right triangle, a² + b² = c²."),
+          NG([22], "Distance formula", "Fórmula de la distancia", "Pythagoras on a map: straight-line distance between two points.", "d = √((x₂ − x₁)² + (y₂ − y₁)²)."),
+          NG([23], "Angle", "Ángulo", "How much something turns, in degrees.", "The figure formed by two rays sharing an endpoint, measured in degrees or radians."),
+          NG([23], "Trigonometry", "Trigonometría", "Using angles to find lengths you can’t measure directly.", "The study of relationships between angles and side lengths of triangles."),
+          NG([23], "Sine, cosine, tangent", "Seno, coseno, tangente", "Side ratios set by an angle: opposite/hyp, adjacent/hyp, opposite/adjacent.", "sin θ = opp/hyp, cos θ = adj/hyp, tan θ = opp/adj."),
+          NG([23], "Angle of elevation", "Ángulo de elevación", "How far you tilt your head up to see the top.", "The angle between the horizontal and the line of sight upward."),
+          NG([23, 12], "Grade (slope as %)", "Pendiente porcentual", "Rise ÷ run as a percent: ramps, roads, roofs.", "(rise/run) × 100%."),
+          NG([24], "Circle", "Círculo / circunferencia", "All points the same distance from a center.", "Circunferencia is the curve; círculo is the region it encloses."),
+          NG([24], "Radius", "Radio", "Center to edge.", "The distance from the center to any point on the circle."),
+          NG([24], "Diameter", "Diámetro", "Edge to edge through the center: two radii.", "A chord through the center; d = 2r."),
+          NG([24], "Circumference", "Longitud de la circunferencia", "The distance around a circle: about 3.14 diameters.", "C = πd = 2πr."),
+          NG([24], "Pi (π)", "Pi (π)", "The rim is always ≈ 3.14 diameters.", "The ratio of circumference to diameter, ≈ 3.14159, irrational."),
+          NG([25], "Probability", "Probabilidad", "How often something happens in the long run, from 0 to 1.", "A measure from 0 (impossible) to 1 (certain) of how likely an event is."),
+          NG([25, "b6-grid"], "Outcome", "Resultado", "One possible way things can turn out.", "A single result of a random experiment."),
+          NG([25, "b6-grid"], "Event", "Suceso / evento", "A group of outcomes you care about: “rolling a 6”.", "A subset of the sample space."),
+          NG([25], "Relative frequency", "Frecuencia relativa", "Times it happened ÷ times you tried.", "The proportion of trials in which an event occurred."),
+          NG([25], "Law of large numbers", "Ley de los grandes números", "More tries → results settle near the true probability.", "As trials increase, the relative frequency approaches the probability."),
+          NG([25], "Complement", "Suceso complementario", "Everything else: P(not A) = 1 − P(A).", "The event that A does not occur."),
+          NG([25, "b6-indep"], "“At least one”", "“Al menos uno”", "Easiest as 1 − P(none).", "P(at least one) = 1 − P(no occurrences)."),
+          NG(["b6-grid"], "Sample space", "Espacio muestral", "The full list of what could happen.", "The set of all possible outcomes."),
+          NG(["b6-indep"], "Independent events", "Sucesos independientes", "One doesn’t change the odds of the other.", "P(A and B) = P(A)·P(B)."),
+          NG(["b6-indep"], "Dependent events", "Sucesos dependientes", "The first result changes the odds of the next.", "Events with P(B | A) ≠ P(B)."),
+          NG(["b6-indep", 25], "Gambler’s fallacy", "Falacia del jugador", "Believing a coin is “due”. It isn’t.", "The mistaken belief that past independent outcomes change future probabilities."),
+          NG([26], "Expected value", "Valor esperado / esperanza matemática", "The long-run average payoff per try.", "E[X] = Σ (value × probability)."),
+          NG([26], "Fair game", "Juego justo", "On average nobody wins or loses: expected value 0.", "A game whose expected net payoff is zero."),
+          NG([26], "House edge", "Ventaja de la casa", "The casino’s built-in average profit per bet.", "The expected loss per unit wagered, as a percentage."),
+          NG([26], "Risk", "Riesgo", "How much the result can swing, especially the bad side.", "Uncertainty in outcomes, often measured by variability or chance of loss."),
+          NG([27], "Mean (average)", "Media aritmética (promedio)", "Fair share: add them up, divide by how many.", "Σx / n."),
+          NG([27], "Median", "Mediana", "The middle value when sorted; the typical person.", "The middle value of ordered data (average of the two middle values if n is even)."),
+          NG([27], "Mode", "Moda", "The most common value.", "The value occurring most frequently."),
+          NG([27, 28], "Outlier", "Valor atípico", "A value far from the rest, like an NBA star walking into a bar.", "An observation unusually far from the bulk of the data."),
+          NG([27], "Skewed distribution", "Distribución asimétrica (sesgada)", "A long tail on one side pulls the mean away from the median.", "A distribution that is not symmetric; right-skewed has a long upper tail."),
+          NG([27], "Weighted average", "Media ponderada", "Bigger groups count more.", "Σ(wᵢxᵢ) / Σwᵢ."),
+          NG([28], "Spread (variability)", "Dispersión (variabilidad)", "How far things usually land from the average.", "The degree to which data values differ from each other and from the center."),
+          NG([28], "Range (statistics)", "Rango / recorrido", "Biggest − smallest.", "max − min; sensitive to outliers."),
+          NG([28], "Mean absolute deviation", "Desviación media absoluta", "The typical miss: average distance from the average.", "Σ|x − x̄| / n."),
+          NG([28], "Standard deviation", "Desviación estándar (típica)", "The pros’ version of the typical miss.", "The square root of the variance; σ for a population, s for a sample."),
+          NG([28], "Variance", "Varianza", "The average squared miss.", "Σ(x − x̄)² / n (population) or / (n − 1) (sample)."),
+          NG([28], "Normal distribution (bell curve)", "Distribución normal (campana de Gauss)", "The symmetric bell: most values near the middle.", "A continuous symmetric distribution defined by mean μ and standard deviation σ."),
+          NG([28], "68–95–99.7 rule", "Regla empírica (68-95-99,7)", "In a bell: ~68% within 1 SD, ~95% within 2, ~99.7% within 3.", "The empirical rule for normal distributions."),
+          NG([28], "z-score", "Puntuación z (puntuación típica)", "How many SDs above or below average: (x − mean) ÷ SD.", "z = (x − μ)/σ."),
+          NG(["b5-bias"], "Population", "Población", "Everyone you want to know about.", "The full set of individuals of interest."),
+          NG(["b5-bias"], "Sample", "Muestra", "The group you actually asked.", "A subset of the population that is observed."),
+          NG(["b5-bias"], "Random sample", "Muestra aleatoria", "Everyone had a fair chance to be picked.", "A sample in which each member of the population has a known, typically equal, chance of selection."),
+          NG(["b5-bias"], "Sampling bias", "Sesgo de muestreo", "Asking the wrong people tilts the answer.", "Systematic error from a sample that is not representative of the population."),
+          NG(["b5-corr"], "Correlation", "Correlación", "Two things that tend to move together.", "A measure of linear association, r, from −1 to 1."),
+          NG(["b5-corr"], "Causation", "Causalidad", "One thing actually making the other happen.", "A relationship in which changing one variable produces a change in another."),
+          NG(["b5-corr"], "Confounding variable", "Variable de confusión", "A hidden third thing driving both.", "A variable related to both the presumed cause and the outcome, creating a spurious association."),
+          NG(["b5-corr"], "Scatter plot", "Diagrama de dispersión", "Dots for pairs of values; the cloud’s shape shows the link.", "A graph of paired data (x, y) as points."),
+          NG(["b2-curve", 15], "Linear vs exponential", "Lineal frente a exponencial", "Adds the same amount vs multiplies by the same amount.", "Constant differences versus constant ratios between successive values.")
+        ];
+        var GlossSearch = {
+          q: "",
+          apply: function () {
+            var wrap = doc.getElementById("gl-list"); if (!wrap) return;
+            var terms = LabSearch.terms(GlossSearch.q), cards = wrap.querySelectorAll(".x-gterm"), n = 0;
+            var hitIn = function (txt) { var w = LabSearch.norm(txt).split(" "); return terms.length && terms.every(function (alts) { return alts.some(function (a) { return w.some(function (x) { return LabSearch.wordHit(x, a); }); }); }); };
+            Array.prototype.forEach.call(cards, function (c) {
+              var words = c.__lsw || (c.__lsw = LabSearch.norm(c.getAttribute("data-ls")).split(" "));
+              var ok = !terms.length || LabSearch.match(words, terms);
+              c.hidden = !ok; if (ok) n++;
+              /* rank: name match first, then Spanish name, then the rest */
+              var exact = function (txt) { var w = LabSearch.norm(txt).split(" "); return terms.every(function (alts) { return alts.some(function (a) { return w.indexOf(a) > -1; }); }); };
+              c.style.order = !terms.length || !ok ? "" : exact(c.getAttribute("data-lso-en")) || exact(c.getAttribute("data-lso-es")) ? 0 : hitIn(c.getAttribute("data-lso-en")) ? 1 : hitIn(c.getAttribute("data-lso-es")) ? 2 : 3;
+              ["en", "es", "d", "tech"].forEach(function (k) { var el = c.querySelector(".x-gterm__" + k); if (el) el.innerHTML = ok ? LabSearch.mark(c.getAttribute("data-lso-" + k), terms) : esc(c.getAttribute("data-lso-" + k)); });
+            });
+            var cnt = doc.getElementById("gl-count");
+            if (cnt) cnt.textContent = terms.length ? n + (n === 1 ? " term · término" : " terms · términos") : GLOSSARY.length + " terms · términos";
+            var none = doc.getElementById("gl-none"); if (none) none.hidden = n > 0 || !terms.length;
+            var clr = doc.getElementById("gl-clear"); if (clr) clr.hidden = !GlossSearch.q;
+          },
+          bind: function () {
+            var inp = doc.getElementById("gl-q"); if (!inp || inp.__ls) return; inp.__ls = 1;
+            inp.addEventListener("input", function () { GlossSearch.q = inp.value; GlossSearch.apply(); });
+            inp.addEventListener("keydown", function (e) { if (e.key === "Escape" && inp.value) { e.stopPropagation(); inp.value = ""; GlossSearch.q = ""; GlossSearch.apply(); } });
+            var clr = doc.getElementById("gl-clear");
+            if (clr) clr.addEventListener("click", function () { inp.value = ""; GlossSearch.q = ""; GlossSearch.apply(); inp.focus(); });
+            GlossSearch.apply();
           }
         };
         var SCENES = [
@@ -6089,6 +6337,27 @@
               return items.length ? '<section data-labgrp="' + g.v + '" aria-label="' + g.t + '"><div class="grpname"><h2 class="mark" style="--fs:18px">' + g.t + '</h2><span class="eyebrow">' + g.s + '</span></div><div class="x-gal">' +
                 items.map(function (o) { return tile(o.s, o.soon); }).join("") + "</div></section>" : "";
             }).join("");
+          },
+          glossary: function () {
+            setTimeout(GlossSearch.bind, 0);
+            var sorted = GLOSSARY.slice().sort(function (a, b) { return a.en.localeCompare(b.en); });
+            var lbl = function (d) { var lo = lessonOf(d); return lo ? dayLabel(d) + " · " + lo.title : ""; };
+            var srch = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>';
+            return '<div><h1 class="greet">Glossary</h1><p class="dim">Every term the lessons and the Lab use, with its Spanish technical name · Cada término con su nombre técnico en español.</p></div>' +
+              '<div class="x-lsearch glass" role="search"><span class="x-lsearch__i" aria-hidden="true">' + srch + '</span>' +
+              '<input id="gl-q" type="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Search EN or ES · Buscar en inglés o español" aria-label="Search the glossary" value="' + esc(GlossSearch.q) + '" />' +
+              '<button type="button" class="x-lsearch__x press" id="gl-clear" aria-label="Clear search"' + (GlossSearch.q ? "" : " hidden") + '>×</button></div>' +
+              '<p class="eyebrow x-lsearch__n" id="gl-count" aria-live="polite"></p>' +
+              '<p class="dim" id="gl-none" hidden>No terms match. Try another word · Ningún término coincide, prueba otra palabra.</p>' +
+              '<div class="x-gloss" id="gl-list">' + sorted.map(function (g) {
+                var ls = g.l.filter(function (d) { var lo = lessonOf(d); return lo && (typeof d !== "number" || LESSON_CONTENT[d]); });
+                var hay = [g.en, g.es, g.d, g.tech].concat(ls.map(lbl)).join(" ");
+                return '<article class="x-gterm glass" data-ls="' + esc(hay) + '" data-lso-en="' + esc(g.en) + '" data-lso-es="' + esc(g.es) + '" data-lso-d="' + esc(g.d) + '" data-lso-tech="' + esc(g.tech) + '">' +
+                  '<h3 class="x-gterm__en">' + esc(g.en) + '</h3><p class="x-gterm__es" lang="es">' + esc(g.es) + '</p>' +
+                  '<p class="x-gterm__d">' + esc(g.d) + '</p><p class="x-gterm__tech">' + esc(g.tech) + '</p>' +
+                  (ls.length ? '<div class="x-gterm__ls">' + ls.map(function (d) { return '<button type="button" class="chip press" data-lesson="' + d + '">' + esc(lbl(d)) + "</button>"; }).join("") + "</div>" : "") +
+                  "</article>";
+              }).join("") + "</div>";
           },
           review: function () {
             try { if (typeof SRS !== "undefined" && SRS) { var srsHome = SRS.home(); if (srsHome) return srsHome; } } catch (e) {}
